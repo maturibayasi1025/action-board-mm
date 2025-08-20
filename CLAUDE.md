@@ -47,12 +47,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 #### `/app` - Next.js App Router
 - `(auth-pages)/` - 認証ルート (sign-in, sign-up, forgot-password)
 - `(protected)/` - 認証が必要な保護されたルート
-- `missions/[id]/` - 提出機能付きミッション詳細ページ
+- `missions/[id]/` - 提出機能付きグッジョブ詳細ページ
 - `users/[id]/` - ユーザープロフィールページ
 
 #### `/components` - 再利用可能なUIコンポーネント
 - `ui/` - ベースUIコンポーネント (Radix UIベース)
-- `mission/` - ミッション固有のコンポーネント
+- `mission/` - グッジョブ固有のコンポーネント
 - `ranking/` - ランキングシステムコンポーネント
 
 #### `/lib` - 共有ユーティリティ
@@ -84,8 +84,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - shadcn/uiパターンに従うコンポーネント構成
 - コンポーネント開発とドキュメント用のStorybook
 
-### ミッションシステム
-- ユーザーがミッション用の成果物を提出できる中核機能
+### グッジョブシステム
+- ユーザーがグッジョブ用の成果物を提出できる中核機能
 - 位置情報サポート付き画像アップロード機能
 - 達成追跡とユーザープロフィール統合
 - ソーシャル共有機能 (Facebook, Twitter, LINE)

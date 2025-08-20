@@ -149,7 +149,7 @@ export function HorizontalScrollContainer({
             "w-12 h-12 rounded-full bg-white shadow-lg border-2",
             "hover:bg-gray-50 transition-colors",
           )}
-          aria-label="前のミッションを表示"
+          aria-label="前のグッジョブを表示"
         >
           <ChevronLeft className="h-6 w-6" />
         </button>
@@ -188,7 +188,7 @@ export function HorizontalScrollContainer({
             "w-12 h-12 rounded-full bg-white shadow-lg border-2",
             "hover:bg-gray-50 transition-colors",
           )}
-          aria-label="次のミッションを表示"
+          aria-label="次のグッジョブを表示"
         >
           <ChevronRight className="h-6 w-6" />
         </button>

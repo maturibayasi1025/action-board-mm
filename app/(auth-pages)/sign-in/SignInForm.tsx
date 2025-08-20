@@ -39,16 +39,16 @@ export default function SignInForm({ returnUrl }: SignInFormProps) {
   return (
     <div className="flex flex-col gap-4 mt-8 min-w-72 max-w-72 mx-auto">
       {/* LINEログインボタン */}
-      <Button
+      {/* <Button
         type="button"
         onClick={handleLINELogin}
         disabled={isLineLoading}
         className="w-full h-12 bg-[#00B900] hover:bg-[#00A000] text-white"
       >
         {isLineLoading ? "LINE連携中..." : "LINEでログイン"}
-      </Button>
+      </Button> */}
 
-      <div className="relative my-4">
+      {/* <div className="relative my-4">
         <div className="absolute inset-0 flex items-center">
           <span className="w-full border-t" />
         </div>
@@ -57,7 +57,7 @@ export default function SignInForm({ returnUrl }: SignInFormProps) {
             または
           </span>
         </div>
-      </div>
+      </div> */}
 
       {/* Email + Passwordログインフォーム */}
       <form action={formAction} className="flex flex-col gap-2 [&>input]:mb-3">

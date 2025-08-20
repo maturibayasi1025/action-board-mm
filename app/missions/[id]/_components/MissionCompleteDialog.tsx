@@ -48,7 +48,7 @@ export function MissionCompleteDialog({ isOpen, onClose, mission }: Props) {
                 ? mission.ogp_image_url
                 : `/api/missions/${mission.id}/og?type=complete`
             }
-            alt="ミッションクリア"
+            alt="グッジョブクリア"
             className="w-full mx-auto min-h-[158px] md:min-h-[215px]"
           />
         </DialogHeader>

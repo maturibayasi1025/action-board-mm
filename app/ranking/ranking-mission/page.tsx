@@ -29,7 +29,7 @@ export default async function RankingMissionPage({ searchParams }: PageProps) {
     error: userError,
   } = await supabase.auth.getUser();
 
-  // ミッション一覧を取得（max_achievement_countがnullのもののみ）
+  // グッジョブ一覧を取得（max_achievement_countがnullのもののみ）
   const { data: missions, error: missionsError } = await supabase
     .from("missions")
     .select("*")
@@ -39,10 +39,10 @@ export default async function RankingMissionPage({ searchParams }: PageProps) {
 
   // エラーハンドリング
   if (missionsError) {
-    console.error("ミッション取得エラー:", missionsError);
+    console.error("グッジョブ取得エラー:", missionsError);
     return (
       <div className="p-4 text-red-600">
-        ミッションの取得中にエラーが発生しました。
+        グッジョブの取得中にエラーが発生しました。
       </div>
     );
   }
@@ -50,12 +50,12 @@ export default async function RankingMissionPage({ searchParams }: PageProps) {
   if (!missions || missions.length === 0) {
     return (
       <div className="p-4 text-gray-600">
-        現在利用可能なミッションがありません。
+        現在利用可能なグッジョブがありません。
       </div>
     );
   }
 
-  // 選択されたミッションまたは最初のミッション（is_featured優先）を取得
+  // 選択されたグッジョブまたは最初のグッジョブ（is_featured優先）を取得
   const selectedMission = resolvedSearchParams.missionId
     ? missions.find((m) => m.id === resolvedSearchParams.missionId)
     : missions[0]; // is_featuredがtrueのものが先頭に来ているため、最初のものを選択
@@ -63,7 +63,7 @@ export default async function RankingMissionPage({ searchParams }: PageProps) {
   if (!selectedMission) {
     return (
       <div className="p-4 text-gray-600">
-        選択されたミッションが見つかりません。
+        選択されたグッジョブが見つかりません。
       </div>
     );
   }
@@ -71,11 +71,11 @@ export default async function RankingMissionPage({ searchParams }: PageProps) {
   let userRanking = null;
 
   if (user) {
-    // 現在のユーザーのミッション別ランキングを探す
+    // 現在のユーザーのグッジョブ別ランキングを探す
     userRanking = await getUserMissionRanking(selectedMission.id, user.id);
   }
 
-  // ミッションタイプに応じてbadgeTextを生成、ポスティングミッションの場合はポスティング枚数を取得
+  // グッジョブタイプに応じてbadgeTextを生成、ポスティンググッジョブの場合はポスティング枚数を取得
   const isPostingMission = selectedMission.required_artifact_type === "POSTING";
   const userPostingCount =
     user && isPostingMission ? await getUserPostingCount(user.id) : 0;
@@ -92,7 +92,7 @@ export default async function RankingMissionPage({ searchParams }: PageProps) {
   return (
     <div className="flex flex-col min-h-screen py-4 w-full">
       <RankingTabs>
-        {/* ミッション選択 */}
+        {/* グッジョブ選択 */}
         <section className="py-4 bg-white">
           <MissionSelect missions={missions} />
         </section>
@@ -109,7 +109,7 @@ export default async function RankingMissionPage({ searchParams }: PageProps) {
         )}
 
         <section className="py-4 bg-white">
-          {/* ミッション別ランキング */}
+          {/* グッジョブ別ランキング */}
           <RankingMission
             limit={100}
             mission={selectedMission}

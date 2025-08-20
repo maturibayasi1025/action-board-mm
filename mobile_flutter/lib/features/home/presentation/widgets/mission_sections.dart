@@ -11,7 +11,7 @@ class MissionSections extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return ref.watch(missionsProvider).when(
           data: (missions) {
-            // ミッションを難易度でグループ化
+            // グッジョブを難易度でグループ化
             final easyMissions = missions.where((m) => m.difficulty == 1).toList();
             final normalMissions = missions.where((m) => m.difficulty == 2).toList();
             final hardMissions = missions.where((m) => m.difficulty == 3).toList();
@@ -25,7 +25,7 @@ class MissionSections extends ConsumerWidget {
                   ),
                 if (normalMissions.isNotEmpty)
                   MissionSection(
-                    title: '🎯ポスティング系ミッション',
+                    title: '🎯ポスティング系グッジョブ',
                     missions: normalMissions,
                   ),
                 if (hardMissions.isNotEmpty)
@@ -37,7 +37,7 @@ class MissionSections extends ConsumerWidget {
             );
           },
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (error, stack) => const Center(child: Text('ミッションの取得に失敗しました')),
+          error: (error, stack) => const Center(child: Text('グッジョブの取得に失敗しました')),
         );
   }
 }

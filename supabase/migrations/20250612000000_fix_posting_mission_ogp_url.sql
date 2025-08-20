@@ -1,4 +1,4 @@
--- ポスティングミッションのOGP画像URLを修正
+-- ポスティンググッジョブのOGP画像URLを修正
 
 UPDATE missions 
 SET ogp_image_url = 'https://tibsocpjqvxxipszbwui.supabase.co/storage/v1/object/public/ogp//15_posting.png'

@@ -21,8 +21,8 @@ const mockUser: User = {
 
 const baseMission: Tables<"missions"> = {
   id: "test-mission-1",
-  title: "テストミッション",
-  content: "テストミッションの内容",
+  title: "テストグッジョブ",
+  content: "テストグッジョブの内容",
   difficulty: 1,
   icon_url: "/test-icon.svg",
   event_date: null,
@@ -65,7 +65,7 @@ describe("ArtifactForm", () => {
       />,
     );
 
-    expect(screen.getByText("ミッション完了を記録しよう")).toBeInTheDocument();
+    expect(screen.getByText("グッジョブ完了を記録しよう")).toBeInTheDocument();
     expect(screen.getByLabelText(/テストラベル/)).toBeInTheDocument();
     expect(
       screen.getByPlaceholderText("テストラベルを入力してください"),

@@ -50,10 +50,10 @@ export function ArtifactForm({
     <Card>
       <CardHeader>
         <CardTitle className="text-lg text-center">
-          ミッション完了を記録しよう
+          グッジョブ完了を記録しよう
         </CardTitle>
         <p className="text-sm text-muted-foreground">
-          ミッションを完了したら、達成を記録しましょう！
+          グッジョブを完了したら、達成を記録しましょう！
         </p>
         {mission.required_artifact_type !== "POSTER" && (
           <p className="text-sm text-muted-foreground">

@@ -40,33 +40,34 @@ export default async function Metrics() {
     : process.env.FALLBACK_UPDATE_DATE || "2025.07.03 02:20";
 
   return (
-    <MetricsLayout title="チームみらいの活動状況🚀" lastUpdated={lastUpdated}>
-      {/* サポーター数表示エリア（メインハイライト） */}
-      <SupporterMetric
-        data={metricsData.supporter}
-        fallbackCount={fallbackSupporterCount}
-        fallbackIncrease={fallbackSupporterIncrease}
-      />
+    // <MetricsLayout title="MAISON MARC経済圏の活動状況🚀" lastUpdated={lastUpdated}>
+    //   {/* サポーター数表示エリア（メインハイライト） */}
+    //   <SupporterMetric
+    //     data={metricsData.supporter}
+    //     fallbackCount={fallbackSupporterCount}
+    //     fallbackIncrease={fallbackSupporterIncrease}
+    //   />
 
-      {/* 下段：アクション数と寄付金額を左右に分割表示 */}
-      <div className="flex items-stretch">
-        {/* 左側：アクション達成数 */}
-        <AchievementMetric
-          data={metricsData.achievement}
-          fallbackTotal={fallbackAchievementCount}
-          fallbackToday={fallbackTodayAchievementCount}
-        />
+    //   {/* 下段：アクション数と寄付金額を左右に分割表示 */}
+    //   <div className="flex items-stretch">
+    //     {/* 左側：アクション達成数 */}
+    //     <AchievementMetric
+    //       data={metricsData.achievement}
+    //       fallbackTotal={fallbackAchievementCount}
+    //       fallbackToday={fallbackTodayAchievementCount}
+    //     />
 
-        {/* 中央：縦線セパレーター */}
-        <Separator orientation="vertical" className="mx-4 h-full" />
+    //     {/* 中央：縦線セパレーター */}
+    //     <Separator orientation="vertical" className="mx-4 h-full" />
 
-        {/* 右側：寄付金額 */}
-        <DonationMetric
-          data={metricsData.donation}
-          fallbackAmount={fallbackDonationAmount}
-          fallbackIncrease={fallbackDonationIncrease}
-        />
-      </div>
-    </MetricsLayout>
+    //     {/* 右側：寄付金額 */}
+    //     <DonationMetric
+    //       data={metricsData.donation}
+    //       fallbackAmount={fallbackDonationAmount}
+    //       fallbackIncrease={fallbackDonationIncrease}
+    //     />
+    //   </div>
+    // </MetricsLayout>
+    <></>
   );
 }

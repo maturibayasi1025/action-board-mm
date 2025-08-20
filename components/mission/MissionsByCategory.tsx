@@ -12,7 +12,7 @@ type MissionCategoryViewRow =
 export default async function MissionsByCategory({
   userId,
   showAchievedMissions,
-  title = "📈 ミッション",
+  title = "📈 グッジョブ",
 }: MissionsProps) {
   const supabase = await createClient();
 
@@ -45,7 +45,7 @@ export default async function MissionsByCategory({
     achievementCounts?.map((a) => [a.mission_id, a.achievement_count]) ?? [],
   );
 
-  // View からミッションデータ取得
+  // View からグッジョブデータ取得
   const { data, error } = await supabase
     .from("mission_category_view")
     .select(`
@@ -76,7 +76,7 @@ export default async function MissionsByCategory({
     return (
       <div className="text-center py-12">
         <p className="text-gray-500 text-lg">
-          ミッションが見つかりませんでした
+          グッジョブが見つかりませんでした
         </p>
       </div>
     );
@@ -95,13 +95,13 @@ export default async function MissionsByCategory({
     {},
   );
 
-  // カテゴリ内のミッションをソート
+  // カテゴリ内のグッジョブをソート
   for (const categoryId in grouped) {
     grouped[categoryId].sort((a, b) => {
       // mission_idがnullの場合の処理
       if (!a.mission_id || !b.mission_id) return 0;
 
-      // 上限まで達成済みのミッションを後ろに移動
+      // 上限まで達成済みのグッジョブを後ろに移動
       const aAchievementCount = userAchievementCountMap.get(a.mission_id) ?? 0;
       const bAchievementCount = userAchievementCountMap.get(b.mission_id) ?? 0;
 

@@ -21,4 +21,4 @@ ALTER TABLE mission_artifacts ADD CONSTRAINT ensure_artifact_data CHECK (
 COMMENT ON COLUMN mission_artifacts.text_content IS '成果物がテキストの場合のテキスト内容';
 
 -- missionsテーブルのrequired_artifact_typeコメントを更新
-COMMENT ON COLUMN missions.required_artifact_type IS 'ミッション達成に必要な成果物の種類 (LINK, TEXT, IMAGE, NONE)';
+COMMENT ON COLUMN missions.required_artifact_type IS 'グッジョブ達成に必要な成果物の種類 (LINK, TEXT, IMAGE, NONE)';

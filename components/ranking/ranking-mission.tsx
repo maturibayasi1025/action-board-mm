@@ -29,7 +29,7 @@ export default async function RankingMission({
 
   const rankingMap = new Map(rankings.map((item) => [item.user_id, item]));
 
-  // ポスティングミッションの場合のみ、上位ユーザーの投稿数を取得
+  // ポスティンググッジョブの場合のみ、上位ユーザーの投稿数を取得
   const topUsersPostingCount =
     isPostingMission && rankings.length > 0
       ? await getTopUsersPostingCount(

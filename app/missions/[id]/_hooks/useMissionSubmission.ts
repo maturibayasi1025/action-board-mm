@@ -13,10 +13,10 @@ export function useMissionSubmission(
       mission.max_achievement_count !== null &&
       userAchievementCount >= mission.max_achievement_count
     ) {
-      return "このミッションは完了済みです";
+      return "このグッジョブは完了済みです";
     }
 
-    return "ミッション完了を記録する";
+    return "グッジョブ完了を記録する";
   }, [mission.max_achievement_count, userAchievementCount]);
 
   const isButtonDisabled = useMemo(() => {

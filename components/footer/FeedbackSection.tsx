@@ -7,13 +7,13 @@ export function FeedbackSection() {
       <div className="px-4 md:container md:mx-auto text-center">
         <h2 className="text-xl font-bold mb-4">ご意見箱</h2>
         <p className="text-sm text-gray-600 mb-8 p-4">
-          チームみらいアクションボードを より良いサービスにするため、
+          MAISON MARC経済圏アクションボードを より良いサービスにするため、
           <br />
           皆様のご意見・ご要望をお聞かせください。
           <br />
           いただいたフィードバックは 今後の改善に活用させていただきます。
         </p>
-        <Link
+        {/* <Link
           href={FOOTER_CONFIG.feedback.poster_map_url}
           target="_blank"
           rel="noopener noreferrer"
@@ -37,7 +37,7 @@ export function FeedbackSection() {
             <path d="M16.376 3.622a1 1 0 0 1 3.002 3.002L7.368 18.635a2 2 0 0 1-.855.506l-2.872.838a.5.5 0 0 1-.62-.62l.838-2.872a2 2 0 0 1 .506-.854z" />
           </svg>
           ポスターマップへのご意見
-        </Link>
+        </Link> */}
         <Link
           href={FOOTER_CONFIG.feedback.url}
           target="_blank"

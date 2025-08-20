@@ -1,4 +1,4 @@
--- クイズカテゴリの整理とミッションの再紐付け
+-- クイズカテゴリの整理とグッジョブの再紐付け
 
 -- 1. 既存のクイズカテゴリに紐づくmission_category_linkを削除
 DELETE FROM mission_category_link
@@ -8,7 +8,7 @@ WHERE category_id = 'b8f24e3d-1a9b-4c5d-8e2f-9a3b4c5d6e7f';
 DELETE FROM mission_category
 WHERE id = 'b8f24e3d-1a9b-4c5d-8e2f-9a3b4c5d6e7f';
 
--- 3. クイズ系のミッションを新しいカテゴリに紐付け
+-- 3. クイズ系のグッジョブを新しいカテゴリに紐付け
 -- カテゴリID '720b511c-8be3-8e0c-e2ae-d95be1613281' に紐付ける
 -- DO $$
 -- DECLARE
@@ -47,8 +47,8 @@ WHERE id = 'b8f24e3d-1a9b-4c5d-8e2f-9a3b4c5d6e7f';
 --         AND required_artifact_type = 'QUIZ'
 --     ON CONFLICT (mission_id, category_id) DO NOTHING;
     
---     -- 将来追加されるクイズミッションも自動的に紐付ける
---     -- （既に紐付けられていないクイズタイプのミッションがあれば）
+--     -- 将来追加されるクイズグッジョブも自動的に紐付ける
+--     -- （既に紐付けられていないクイズタイプのグッジョブがあれば）
 --     INSERT INTO mission_category_link (mission_id, category_id, sort_no)
 --     SELECT 
 --         m.id,

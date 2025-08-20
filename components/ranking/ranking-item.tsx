@@ -49,7 +49,7 @@ export function RankingItem({
         </div>
       </div>
       <div className="flex items-center gap-3">
-        {/* ミッション別ランキングの場合はポイントと達成回数を表示 */}
+        {/* グッジョブ別ランキングの場合はポイントと達成回数を表示 */}
         {mission ? (
           <>
             <Badge

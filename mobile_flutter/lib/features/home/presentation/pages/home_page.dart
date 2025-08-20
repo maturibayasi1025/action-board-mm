@@ -35,9 +35,9 @@ class _HomePageState extends ConsumerState<HomePage> {
               children: [
                 // チームみらいの活動状況
                 TeamStatsSection(),
-                // ミッションセクション
+                // グッジョブセクション
                 MissionSections(),
-                // ミッション一覧へボタン
+                // グッジョブ一覧へボタン
                 ViewAllMissionsButton(),
               ],
             ),

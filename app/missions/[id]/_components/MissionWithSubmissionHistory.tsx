@@ -201,7 +201,7 @@ export function MissionWithSubmissionHistory({
               あなた専用紹介URL
             </p>
             <p className="text-sm text-muted-foreground">
-              あなた専用の紹介URLを周りの人に共有して、紹介URLから登録が完了すると、自動でミッションクリア回数がカウントされます。
+              あなた専用の紹介URLを周りの人に共有して、紹介URLから登録が完了すると、自動でグッジョブクリア回数がカウントされます。
             </p>
             <p className="text-sm mt-4 font-bold">QRコードをスキャン</p>
             <QRCodeDisplay value={signupUrl} />

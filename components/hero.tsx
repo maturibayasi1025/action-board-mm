@@ -35,14 +35,14 @@ export default async function Hero() {
       <div className="relative px-4 py-16 md:py-24">
         <div className="max-w-4xl mx-auto text-center">
           <h1 className="text-4xl md:text-5xl lg:text-6xl text-gray-900 mb-4 leading-tight">
-            チームみらい
+            MAISON MARC経済圏
             <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700">
               アクションボード
             </span>
           </h1>
           <p className="text-lg md:text-xl text-gray-700 mb-8 font-medium">
-            テクノロジーで政治をかえる。あなたと一緒に未来をつくる。
+            テクノロジーで経済圏をかえる。共存共栄・相互扶助をもっと身近に。
           </p>
 
           {!user && (
@@ -52,7 +52,9 @@ export default async function Hero() {
                   size="lg"
                   className="min-w-72 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-700 hover:via-teal-700 hover:to-emerald-800 text-white font-bold py-6 px-8 rounded-full shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300"
                 >
-                  <span className="text-lg">🚀 チームみらいで手を動かす</span>
+                  <span className="text-lg">
+                    🚀 MAISON MARC経済圏ともに手を動かす
+                  </span>
                 </Button>
               </Link>
             </div>

@@ -29,7 +29,7 @@ class ViewAllMissionsButton extends StatelessWidget {
           elevation: 0,
         ),
         child: const Text(
-          'ミッション一覧へ',
+          'グッジョブ一覧へ',
           style: TextStyle(
             fontFamily: 'Noto Sans JP',
             fontSize: 16,

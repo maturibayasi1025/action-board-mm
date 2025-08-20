@@ -19,12 +19,12 @@ create policy select_all_categories
   for select
   using (true);
 
---ミッションカテゴリ紐付マスタテーブルを追加
+--グッジョブカテゴリ紐付マスタテーブルを追加
 
 create table public.mission_category_link (
   mission_id uuid not null references missions(id) on delete cascade,
   category_id uuid not null references mission_category(id) on delete cascade,
-  sort_no integer not null default 0,             -- カテゴリ内のミッション表示順
+  sort_no integer not null default 0,             -- カテゴリ内のグッジョブ表示順
   del_flg boolean not null default false,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
@@ -48,7 +48,7 @@ create policy select_all_links
 --   ('fdfe421f-9145-e73f-7000-53ab53d23f49', ' 作って参加する', 5, 'DEFAULT');
 
 
--- ミッションカテゴリ紐付テーブルへのデータ投入
+-- グッジョブカテゴリ紐付テーブルへのデータ投入
 -- missionsの一部でたーた生成時にuuidを随時採番しているため、タイトルからuuidを取得し登録
 -- uuidが取得できなかった場合、FK違反を意図的に起こし気が付ける仕組みを設けている（clalesce）
 -- insert into mission_category_link (mission_id, category_id, sort_no) values

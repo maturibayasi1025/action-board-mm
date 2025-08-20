@@ -18,7 +18,7 @@ values
 ('6d4a5924-5411-277c-9c7d-911df2b717a1', 'noteで応援しよう', 1200, 'DEFAULT'),
 ('cb1da45e-740d-5ad9-55e8-40cb5c8446e1', '作って応援しよう', 1300, 'DEFAULT');
 
--- ミッションカテゴリ紐付テーブルへのデータ投入
+-- グッジョブカテゴリ紐付テーブルへのデータ投入
 -- missionsの一部のデータ生成時にuuidを随時採番しているため、タイトルからuuidを取得し登録
 -- uuidが取得できなかった場合、FK違反を意図的に起こし気が付ける仕組みを設けている（coalesce）
 -- insert into mission_category_link (mission_id, category_id, sort_no) values

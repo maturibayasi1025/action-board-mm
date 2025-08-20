@@ -44,7 +44,7 @@ export function MainLinkButton({
         if (result.success) {
           // 新しいタブでリンクを開く
           window.open(mainLink.link, "_blank", "noopener,noreferrer");
-          toast.success("ミッションを達成しました！");
+          toast.success("グッジョブを達成しました！");
         } else {
           toast.error(result.error || "エラーが発生しました");
         }

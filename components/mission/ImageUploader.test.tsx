@@ -16,8 +16,8 @@ const mockUser: User = {
 
 const mockMission: Tables<"missions"> = {
   id: "test-mission-1",
-  title: "テストミッション",
-  content: "テストミッションの内容",
+  title: "テストグッジョブ",
+  content: "テストグッジョブの内容",
   difficulty: 1,
   icon_url: "/test-icon.svg",
   event_date: null,

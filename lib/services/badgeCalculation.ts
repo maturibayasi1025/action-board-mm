@@ -168,7 +168,7 @@ export async function calculatePrefectureRankingBadges(): Promise<{
 }
 
 /**
- * ミッション別ランキングのバッジを計算・更新
+ * グッジョブ別ランキングのバッジを計算・更新
  */
 export async function calculateMissionRankingBadges(): Promise<{
   success: boolean;
@@ -178,7 +178,7 @@ export async function calculateMissionRankingBadges(): Promise<{
   let updatedCount = 0;
 
   try {
-    // max_achievement_countがnullのミッションを取得
+    // max_achievement_countがnullのグッジョブを取得
     const { data: missions, error: missionsError } = await supabase
       .from("missions")
       .select("id, slug")
@@ -190,7 +190,7 @@ export async function calculateMissionRankingBadges(): Promise<{
       return { success: false, updatedCount: 0 };
     }
 
-    // 各ミッションごとに処理
+    // 各グッジョブごとに処理
     for (const mission of missions || []) {
       const { data: missionRanking, error } = await supabase.rpc(
         "get_mission_ranking",

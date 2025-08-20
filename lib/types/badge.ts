@@ -10,9 +10,9 @@ export interface UserBadge {
   is_notified: boolean;
   created_at: string;
   updated_at: string;
-  // ミッションバッジの場合、ミッションのタイトル
+  // グッジョブバッジの場合、グッジョブのタイトル
   mission_title?: string;
-  // ミッションバッジの場合、ミッションのID（リンク生成用）
+  // グッジョブバッジの場合、グッジョブのID（リンク生成用）
   mission_id?: string;
 }
 
@@ -73,11 +73,11 @@ export function getBadgeRankingUrl(badge: UserBadge): string | null {
       }
       return "/ranking/ranking-prefecture";
     case BadgeType.MISSION:
-      // ミッションIDがあればそれを使用
+      // グッジョブIDがあればそれを使用
       if (badge.mission_id) {
         return `/ranking/ranking-mission?missionId=${badge.mission_id}`;
       }
-      // mission_idがない場合は汎用ミッションページへ
+      // mission_idがない場合は汎用グッジョブページへ
       return "/ranking/ranking-mission";
     default:
       return null;

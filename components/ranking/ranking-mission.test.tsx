@@ -58,8 +58,8 @@ jest.mock("lucide-react", () => ({
 
 const mockMission = {
   id: "mission-1",
-  title: "テストミッション",
-  name: "テストミッション",
+  title: "テストグッジョブ",
+  name: "テストグッジョブ",
 } as any;
 
 const mockRankings: UserMissionRanking[] = [
@@ -104,7 +104,7 @@ describe("RankingMission", () => {
   });
 
   describe("基本的な表示", () => {
-    it("ミッションが存在しない場合はnullを返す", async () => {
+    it("グッジョブが存在しない場合はnullを返す", async () => {
       const result = await RankingMission({
         limit: 10,
       });
@@ -112,7 +112,7 @@ describe("RankingMission", () => {
       expect(result).toBeNull();
     });
 
-    it("ミッションが存在する場合はランキングを表示する", async () => {
+    it("グッジョブが存在する場合はランキングを表示する", async () => {
       getMissionRanking.mockResolvedValue(mockRankings);
       getTopUsersPostingCount.mockResolvedValue(mockPostingCounts);
 
@@ -124,7 +124,7 @@ describe("RankingMission", () => {
       );
 
       expect(
-        screen.getByText("🏅「テストミッション」トップ10"),
+        screen.getByText("🏅「テストグッジョブ」トップ10"),
       ).toBeInTheDocument();
       expect(screen.getByTestId("card")).toBeInTheDocument();
     });
@@ -148,7 +148,7 @@ describe("RankingMission", () => {
   });
 
   describe("バッジテキストの生成", () => {
-    it("通常ミッションの場合は回数が表示される", async () => {
+    it("通常グッジョブの場合は回数が表示される", async () => {
       const mockRankingsWithAchievement = mockRankings.map((r) => ({
         ...r,
         user_achievement_count: r.user_id === "user-1" ? 10 : 8,
@@ -168,7 +168,7 @@ describe("RankingMission", () => {
       expect(screen.getByText("8回")).toBeInTheDocument();
     });
 
-    it("ポスティングミッションの場合は枚数が表示される", async () => {
+    it("ポスティンググッジョブの場合は枚数が表示される", async () => {
       getMissionRanking.mockResolvedValue(mockRankings);
       getTopUsersPostingCount.mockResolvedValue(mockPostingCounts);
 
@@ -198,7 +198,7 @@ describe("RankingMission", () => {
       expect(getMissionRanking).toHaveBeenCalledWith("mission-1", 15);
     });
 
-    it("ポスティングミッションの場合はgetTopUsersPostingCountが呼ばれる", async () => {
+    it("ポスティンググッジョブの場合はgetTopUsersPostingCountが呼ばれる", async () => {
       getMissionRanking.mockResolvedValue(mockRankings);
       getTopUsersPostingCount.mockResolvedValue(mockPostingCounts);
 
@@ -255,7 +255,7 @@ describe("RankingMission", () => {
       );
 
       expect(
-        screen.getByText("🏅「テストミッション」トップ10"),
+        screen.getByText("🏅「テストグッジョブ」トップ10"),
       ).toBeInTheDocument();
       expect(screen.queryByTestId("ranking-item")).not.toBeInTheDocument();
     });

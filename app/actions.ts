@@ -162,7 +162,7 @@ export const signUpActionWithState = async (
             artifact_type: "REFERRAL",
             text_content: email.toLowerCase(),
           });
-          // ミッション達成時にXPを付与
+          // グッジョブ達成時にXPを付与
           await grantMissionCompletionXp(
             referrerUserId,
             referralMissionId,
@@ -172,7 +172,7 @@ export const signUpActionWithState = async (
           console.warn("achievements挿入エラー:", achievementError);
         }
       } catch (e) {
-        console.warn("紹介ミッション登録処理に失敗:", e);
+        console.warn("紹介グッジョブ登録処理に失敗:", e);
       }
     }
 

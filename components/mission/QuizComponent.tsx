@@ -72,13 +72,13 @@ export default function QuizComponent({
   const getAchievementMessage = (categoryName?: string) => {
     switch (categoryName) {
       case "政策・マニフェスト":
-        return "ミッション達成！政策・マニフェストマスターですね！";
+        return "グッジョブ達成！政策・マニフェストマスターですね！";
       case "チームみらい":
-        return "ミッション達成！チームみらいマスターですね！";
+        return "グッジョブ達成！チームみらいマスターですね！";
       case "公職選挙法":
-        return "ミッション達成！公職選挙法マスターですね！";
+        return "グッジョブ達成！公職選挙法マスターですね！";
       default:
-        return "ミッション達成！クイズマスターですね！";
+        return "グッジョブ達成！クイズマスターですね！";
     }
   };
 
@@ -146,7 +146,7 @@ export default function QuizComponent({
   // クライアントサイドでのマウント時の処理
   useEffect(() => {
     setIsClient(true);
-    // ミッションリンクを取得
+    // グッジョブリンクを取得
     const fetchMissionLinks = async () => {
       const result = await getMissionLinksAction(missionId);
       if (result.success) {
@@ -385,7 +385,7 @@ export default function QuizComponent({
                 </div>
               </div>
               {result.passed ? (
-                <div>{`ミッション達成！${category}マスターですね！`}</div>
+                <div>{`グッジョブ達成！${category}マスターですね！`}</div>
               ) : (
                 <div className="text-red-600">
                   全問正解が必要です。再挑戦してください
@@ -426,7 +426,7 @@ export default function QuizComponent({
 
   return (
     <>
-      {/* ミッションリンク表示 */}
+      {/* グッジョブリンク表示 */}
       {missionLinks.length > 0 && (
         <Card className="w-full mb-6">
           <CardHeader>

@@ -8,8 +8,8 @@ flowchart TD
   signin[ログイン画面/sign-in]
   signup[ユーザー登録画面 /sign-up]
   forgot[パスワードリセット画面 /forgot-password]
-  mission[ミッション詳細画面 /missions/:id]
-  complete[ミッション達成画面 /missions/:id/complete]
+  mission[グッジョブ詳細画面 /missions/:id]
+  complete[グッジョブ達成画面 /missions/:id/complete]
   user[ユーザー詳細画面 /users/:id]
 
   top --> signin
@@ -21,7 +21,7 @@ flowchart TD
   signin --> forgot
   signup --> mission
 
-  mission --ミッション完了ボタン押下--> complete
+  mission --グッジョブ完了ボタン押下--> complete
   mission --> user
 
   complete --> user

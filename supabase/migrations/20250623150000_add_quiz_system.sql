@@ -1,4 +1,4 @@
--- クイズ機能のためのテーブル作成とミッション更新
+-- クイズ機能のためのテーブル作成とグッジョブ更新
 
 -- クイズカテゴリテーブル
 CREATE TABLE quiz_categories (
@@ -52,10 +52,10 @@ COMMENT ON COLUMN quiz_questions.option3 IS '選択肢3';
 COMMENT ON COLUMN quiz_questions.option4 IS '選択肢4';
 COMMENT ON COLUMN quiz_questions.correct_answer IS '正解の選択肢番号 (1-4)';
 COMMENT ON COLUMN quiz_questions.explanation IS '解説';
-COMMENT ON COLUMN quiz_questions.mission_id IS 'ミッションID（ミッション専用問題の場合）';
-COMMENT ON COLUMN quiz_questions.question_order IS '問題の順序（ミッション内での表示順）';
+COMMENT ON COLUMN quiz_questions.mission_id IS 'グッジョブID（グッジョブ専用問題の場合）';
+COMMENT ON COLUMN quiz_questions.question_order IS '問題の順序（グッジョブ内での表示順）';
 
--- ミッションクイズリンクテーブル
+-- グッジョブクイズリンクテーブル
 CREATE TABLE mission_quiz_links (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     mission_id UUID NOT NULL REFERENCES missions(id) ON DELETE CASCADE,
@@ -65,9 +65,9 @@ CREATE TABLE mission_quiz_links (
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-COMMENT ON TABLE mission_quiz_links IS 'ミッションの参考リンク';
+COMMENT ON TABLE mission_quiz_links IS 'グッジョブの参考リンク';
 COMMENT ON COLUMN mission_quiz_links.id IS 'リンクID';
-COMMENT ON COLUMN mission_quiz_links.mission_id IS 'ミッションID';
+COMMENT ON COLUMN mission_quiz_links.mission_id IS 'グッジョブID';
 COMMENT ON COLUMN mission_quiz_links.link IS '参考リンクURL';
 COMMENT ON COLUMN mission_quiz_links.remark IS 'リンクに関する備考';
 COMMENT ON COLUMN mission_quiz_links.display_order IS '表示順序';

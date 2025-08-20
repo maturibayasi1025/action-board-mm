@@ -261,7 +261,7 @@ export async function getUserRank(userId: string): Promise<number | null> {
 }
 
 /**
- * ミッション達成時にXPを付与する
+ * グッジョブ達成時にXPを付与する
  */
 export async function grantMissionCompletionXp(
   userId: string,
@@ -276,7 +276,7 @@ export async function grantMissionCompletionXp(
   const supabase = await createServiceClient();
 
   try {
-    // ミッション情報を取得して難易度を確認
+    // グッジョブ情報を取得して難易度を確認
     const { data: mission, error: missionError } = await supabase
       .from("missions")
       .select("difficulty, title")
@@ -285,12 +285,12 @@ export async function grantMissionCompletionXp(
 
     if (missionError) {
       console.error("Failed to fetch mission:", missionError);
-      return { success: false, error: "ミッション情報の取得に失敗しました" };
+      return { success: false, error: "グッジョブ情報の取得に失敗しました" };
     }
 
     // 難易度に基づくXP計算
     const xpToGrant = calculateMissionXp(mission.difficulty);
-    const description = `ミッション「${mission.title}」達成による経験値獲得`;
+    const description = `グッジョブ「${mission.title}」達成による経験値獲得`;
 
     // 共通のXP処理を実行
     const result = await processXpTransaction(

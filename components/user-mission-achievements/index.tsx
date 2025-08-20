@@ -14,7 +14,7 @@ export function UserMissionAchievements({
   return (
     <div className="w-full">
       <div className="flex flex-row justify-between items-center mb-4">
-        <span className="text-lg font-bold">ミッション達成状況</span>
+        <span className="text-lg font-bold">グッジョブ達成状況</span>
       </div>
       <div className="flex flex-col gap-2">
         <MissionAchievementTotalCard totalCount={totalCount} />

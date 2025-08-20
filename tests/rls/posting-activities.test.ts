@@ -19,11 +19,11 @@ describe("posting_activities テーブルのRLSテスト", () => {
     user1 = await createTestUser(`${crypto.randomUUID()}@example.com`);
     user2 = await createTestUser(`${crypto.randomUUID()}@example.com`);
 
-    // テスト用ミッションを作成（管理者権限で）
+    // テスト用グッジョブを作成（管理者権限で）
     const missionData = {
       id: crypto.randomUUID(),
-      title: "ポスティングミッション for RLS",
-      content: "これはRLSテスト用のポスティングミッションです",
+      title: "ポスティンググッジョブ for RLS",
+      content: "これはRLSテスト用のポスティンググッジョブです",
       difficulty: 1,
       required_artifact_type: "POSTING" as const,
       slug: `test-posting-mission-${crypto.randomUUID()}`,
@@ -33,7 +33,7 @@ describe("posting_activities テーブルのRLSテスト", () => {
       .from("missions")
       .insert(missionData);
     if (missionError) {
-      throw new Error(`ミッション作成エラー: ${missionError.message}`);
+      throw new Error(`グッジョブ作成エラー: ${missionError.message}`);
     }
     missionId = missionData.id;
 

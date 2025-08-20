@@ -1,12 +1,12 @@
--- クイズ用のミッションカテゴリを追加
+-- クイズ用のグッジョブカテゴリを追加
 
 -- クイズカテゴリをmission_categoryテーブルに追加
 INSERT INTO mission_category (id, category_title, sort_no, category_kbn)
 VALUES
   ('b8f24e3d-1a9b-4c5d-8e2f-9a3b4c5d6e7f', 'クイズに挑戦する', 6, 'QUIZ');
 
--- クイズミッションとカテゴリの紐付けを追加
--- クイズミッションのタイトルから動的にIDを取得して紐付け
+-- クイズグッジョブとカテゴリの紐付けを追加
+-- クイズグッジョブのタイトルから動的にIDを取得して紐付け
 INSERT INTO mission_category_link (mission_id, category_id, sort_no) 
 SELECT 
     m.id,
@@ -30,13 +30,13 @@ WHERE m.required_artifact_type = 'QUIZ'
             AND mcl.category_id = 'b8f24e3d-1a9b-4c5d-8e2f-9a3b4c5d6e7f'
     );
 
--- クイズカテゴリ用のミッションをより詳細に紐付け（タイトルベース）
--- 既存のクイズミッションが特定できる場合
+-- クイズカテゴリ用のグッジョブをより詳細に紐付け（タイトルベース）
+-- 既存のクイズグッジョブが特定できる場合
 DO $$
 DECLARE
     quiz_category_id UUID := 'b8f24e3d-1a9b-4c5d-8e2f-9a3b4c5d6e7f';
 BEGIN
-    -- 既存のクイズミッションを削除して再挿入
+    -- 既存のクイズグッジョブを削除して再挿入
     DELETE FROM mission_category_link 
     WHERE category_id = quiz_category_id;
     

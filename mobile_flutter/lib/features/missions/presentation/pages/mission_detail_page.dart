@@ -61,7 +61,7 @@ class _MissionDetailPageState extends ConsumerState<MissionDetailPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('ミッションを完了しました！'),
+            content: Text('グッジョブを完了しました！'),
             backgroundColor: AppColors.primary,
           ),
         );
@@ -102,7 +102,7 @@ class _MissionDetailPageState extends ConsumerState<MissionDetailPage> {
           },
         ),
         title: Text(
-          'ミッション詳細',
+          'グッジョブ詳細',
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
             color: AppColors.textPrimary,
             fontWeight: FontWeight.w700,
@@ -115,7 +115,7 @@ class _MissionDetailPageState extends ConsumerState<MissionDetailPage> {
           return SingleChildScrollView(
             child: Column(
               children: [
-                // ミッション情報セクション
+                // グッジョブ情報セクション
                 Container(
                   padding: const EdgeInsets.only(bottom: 20),
                   child: Container(
@@ -131,7 +131,7 @@ class _MissionDetailPageState extends ConsumerState<MissionDetailPage> {
                           ),
                           child: Column(
                             children: [
-                              // ミッションアイコンとラベル
+                              // グッジョブアイコンとラベル
                               Column(
                                 children: [
                                   if (mission.iconUrl != null)
@@ -198,7 +198,7 @@ class _MissionDetailPageState extends ConsumerState<MissionDetailPage> {
                                 ],
                               ),
                               const SizedBox(height: 20),
-                              // ミッションタイトル
+                              // グッジョブタイトル
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.stretch,
                                 children: [
@@ -230,7 +230,7 @@ class _MissionDetailPageState extends ConsumerState<MissionDetailPage> {
                             ],
                           ),
                         ),
-                        // ミッション説明
+                        // グッジョブ説明
                         if (mission.content != null)
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -263,7 +263,7 @@ class _MissionDetailPageState extends ConsumerState<MissionDetailPage> {
                           Column(
                             children: [
                               Text(
-                                'ミッション完了を記録しよう',
+                                'グッジョブ完了を記録しよう',
                                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                                       color: const Color(0xFF1A1A1A),
                                       fontWeight: FontWeight.w700,
@@ -272,7 +272,7 @@ class _MissionDetailPageState extends ConsumerState<MissionDetailPage> {
                               ),
                               const SizedBox(height: 16),
                               Text(
-                                'ミッションを完了したら、達成を記録しましょう！',
+                                'グッジョブを完了したら、達成を記録しましょう！',
                                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                                       color: Colors.black,
                                     ),
@@ -338,7 +338,7 @@ class _MissionDetailPageState extends ConsumerState<MissionDetailPage> {
                               ),
                             )
                           : Text(
-                              'ミッション完了を記録する',
+                              'グッジョブ完了を記録する',
                               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                                     color: Colors.white,
                                     fontWeight: FontWeight.w700,
@@ -352,7 +352,7 @@ class _MissionDetailPageState extends ConsumerState<MissionDetailPage> {
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     child: Text(
-                      '※成果物の内容が認められない場合、ミッション達成と獲得ポイントが取り消される場合があります。正確な内容を記入いただくようお願いいたします。',
+                      '※成果物の内容が認められない場合、グッジョブ達成と獲得ポイントが取り消される場合があります。正確な内容を記入いただくようお願いいたします。',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                             color: const Color(0xFF18181B),
                             letterSpacing: 2,
@@ -378,7 +378,7 @@ class _MissionDetailPageState extends ConsumerState<MissionDetailPage> {
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          'このミッションは達成済みです！',
+                          'このグッジョブは達成済みです！',
                           style: Theme.of(context).textTheme.titleMedium?.copyWith(
                                 color: const Color(0xFF166534),
                                 fontWeight: FontWeight.w700,

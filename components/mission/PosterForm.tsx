@@ -27,7 +27,7 @@ export function PosterForm({ disabled }: PosterFormProps) {
       <div>
         <p>原則ポスターマップ上での報告をお願いします。</p>
         <p>
-          ポスターマップ上で報告をすることで、自動的にミッションクリアとなります。
+          ポスターマップ上で報告をすることで、自動的にグッジョブクリアとなります。
         </p>
         <Button
           size={"lg"}

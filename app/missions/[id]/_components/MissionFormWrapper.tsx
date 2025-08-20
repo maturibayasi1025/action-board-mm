@@ -162,7 +162,7 @@ export function MissionFormWrapper({
 
   const renderForm = () => {
     if (mission.required_artifact_type === ARTIFACT_TYPES.QUIZ.key) {
-      // クイズミッションの場合
+      // クイズグッジョブの場合
       return (
         <div className="space-y-4">
           <QuizComponent
@@ -187,7 +187,7 @@ export function MissionFormWrapper({
       );
     }
 
-    // LINK_ACCESSミッションの場合
+    // LINK_ACCESSグッジョブの場合
     if (
       mission.required_artifact_type === ARTIFACT_TYPES.LINK_ACCESS.key &&
       mainLink
@@ -226,7 +226,7 @@ export function MissionFormWrapper({
 
           {!isCompleted && (
             <div className="text-sm text-muted-foreground">
-              リンクを開くとミッションクリアとなります
+              リンクを開くとグッジョブクリアとなります
             </div>
           )}
 
@@ -240,7 +240,7 @@ export function MissionFormWrapper({
       );
     }
 
-    // 通常のアーティファクト提出ミッションの場合
+    // 通常のアーティファクト提出グッジョブの場合
     return (
       <form ref={formRef} action={handleSubmit} className="flex flex-col gap-4">
         <input type="hidden" name="missionId" value={mission.id} />
@@ -266,7 +266,7 @@ export function MissionFormWrapper({
         </SubmitButton>
         <p className="text-sm text-muted-foreground">
           ※
-          成果物の内容が認められない場合、ミッションの達成が取り消される場合があります。正確な内容をご記入ください。
+          成果物の内容が認められない場合、グッジョブの達成が取り消される場合があります。正確な内容をご記入ください。
         </p>
         {errorMessage && (
           <div className="p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg flex items-center">
@@ -302,7 +302,7 @@ export function MissionFormWrapper({
           mission.max_achievement_count === null)) && (
         <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 text-center">
           <p className="text-sm font-medium text-gray-800">
-            このミッションは達成済みです。
+            このグッジョブは達成済みです。
           </p>
           <div className="flex flex-col gap-2 mt-2">
             <Button
@@ -317,7 +317,7 @@ export function MissionFormWrapper({
             </Button>
             <Link href="/#featured-missions">
               <Button variant="outline" className="w-full">
-                ミッション一覧へ
+                グッジョブ一覧へ
               </Button>
             </Link>
           </div>

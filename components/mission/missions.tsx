@@ -15,14 +15,14 @@ export default async function Missions({
   maxSize,
   showAchievedMissions,
   filterFeatured,
-  title = "📈 ミッション",
+  title = "📈 グッジョブ",
   id,
 }: MissionsProps) {
   const supabase = await createClient();
 
-  // ユーザーが達成したミッションIDのリスト
+  // ユーザーが達成したグッジョブIDのリスト
   let achievedMissionIds: string[] = [];
-  // ユーザーの各ミッションに対する達成回数のマップ
+  // ユーザーの各グッジョブに対する達成回数のマップ
   let userAchievementCountMap = new Map<string, number>();
 
   if (userId) {
@@ -32,11 +32,11 @@ export default async function Missions({
       .select("mission_id")
       .eq("user_id", userId);
 
-    // 達成したミッションIDのリストを作成
+    // 達成したグッジョブIDのリストを作成
     achievedMissionIds =
       achievements?.map((achievement) => achievement.mission_id ?? "") ?? [];
 
-    // 各ミッションの達成回数をカウント
+    // 各グッジョブの達成回数をカウント
     if (achievements && achievements.length > 0) {
       const missionCounts = achievements.reduce((counts, achievement) => {
         const missionId = achievement.mission_id;
@@ -50,7 +50,7 @@ export default async function Missions({
     }
   }
 
-  // すべてのミッションに対する達成人数を取得
+  // すべてのグッジョブに対する達成人数を取得
   const { data: achievement_count } = await supabase
     .from("mission_achievement_count_view")
     .select("mission_id, achievement_count");
@@ -64,7 +64,7 @@ export default async function Missions({
   let query = supabase
     .from("missions")
     .select()
-    .eq("is_hidden", false) // 非表示のミッションを除外
+    .eq("is_hidden", false) // 非表示のグッジョブを除外
     .order("difficulty", { ascending: true })
     .order("created_at", { ascending: false });
   if (filterFeatured) {
@@ -104,10 +104,10 @@ export default async function Missions({
           ) : (
             <div className="col-span-full text-center py-12">
               <p className="text-gray-500 text-lg">
-                未達成のミッションはありません
+                未達成のグッジョブはありません
               </p>
               <p className="text-gray-400 text-sm mt-2">
-                新しいミッションが追加されるまでお待ちください
+                新しいグッジョブが追加されるまでお待ちください
               </p>
             </div>
           )}

@@ -1,6 +1,6 @@
--- 期間別ミッションランキング取得関数の追加
+-- 期間別グッジョブランキング取得関数の追加
 
--- 期間別のミッションランキングを取得する関数
+-- 期間別のグッジョブランキングを取得する関数
 CREATE OR REPLACE FUNCTION get_period_mission_ranking(
     p_mission_id UUID,
     p_limit INTEGER DEFAULT 10,
@@ -33,13 +33,13 @@ BEGIN
         FROM get_mission_ranking(p_mission_id, p_limit) mr;
     ELSE
         -- 期間指定がある場合
-        -- POSTINGタイプのミッションかどうか確認
+        -- POSTINGタイプのグッジョブかどうか確認
         IF EXISTS (
             SELECT 1 FROM missions m 
             WHERE m.id = p_mission_id 
             AND m.required_artifact_type = 'POSTING'
         ) THEN
-            -- POSTINGミッションの場合は posting_activities テーブルから集計
+            -- POSTINGグッジョブの場合は posting_activities テーブルから集計
             RETURN QUERY
             WITH period_posting AS (
                 SELECT 
@@ -91,7 +91,7 @@ BEGIN
             ORDER BY ru.rank
             LIMIT p_limit;
         ELSE
-            -- 通常のミッションの場合は achievements テーブルから集計
+            -- 通常のグッジョブの場合は achievements テーブルから集計
             RETURN QUERY
             WITH period_achievements AS (
                 SELECT 
@@ -148,7 +148,7 @@ BEGIN
 END;
 $$;
 
--- 特定ユーザーの期間別ミッションランキング情報を取得する関数
+-- 特定ユーザーの期間別グッジョブランキング情報を取得する関数
 CREATE OR REPLACE FUNCTION get_user_period_mission_ranking(
     p_mission_id UUID,
     p_user_id UUID,
@@ -181,13 +181,13 @@ BEGIN
         FROM get_user_mission_ranking(p_mission_id, p_user_id) umr;
     ELSE
         -- 期間指定がある場合
-        -- POSTINGタイプのミッションかどうか確認
+        -- POSTINGタイプのグッジョブかどうか確認
         IF EXISTS (
             SELECT 1 FROM missions m 
             WHERE m.id = p_mission_id 
             AND m.required_artifact_type = 'POSTING'
         ) THEN
-            -- POSTINGミッションの場合
+            -- POSTINGグッジョブの場合
             RETURN QUERY
             WITH period_posting AS (
                 SELECT 
@@ -238,7 +238,7 @@ BEGIN
             FROM all_ranked_users aru
             WHERE aru.user_id = p_user_id;
         ELSE
-            -- 通常のミッションの場合
+            -- 通常のグッジョブの場合
             RETURN QUERY
             WITH period_achievements AS (
                 SELECT 
@@ -298,5 +298,5 @@ $$;
 GRANT EXECUTE ON FUNCTION get_period_mission_ranking TO authenticated;
 GRANT EXECUTE ON FUNCTION get_user_period_mission_ranking TO authenticated;
 
-COMMENT ON FUNCTION get_period_mission_ranking IS '期間別のミッションランキングを取得する関数';
-COMMENT ON FUNCTION get_user_period_mission_ranking IS '特定ユーザーの期間別ミッションランキング情報を取得する関数';
+COMMENT ON FUNCTION get_period_mission_ranking IS '期間別のグッジョブランキングを取得する関数';
+COMMENT ON FUNCTION get_user_period_mission_ranking IS '特定ユーザーの期間別グッジョブランキング情報を取得する関数';

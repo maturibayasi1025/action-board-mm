@@ -15,17 +15,17 @@ describe("achievements テーブルのRLSテスト", () => {
     user1 = await createTestUser(`${crypto.randomUUID()}@example.com`);
     user2 = await createTestUser(`${crypto.randomUUID()}@example.com`);
 
-    // テスト用ミッションを作成（管理者権限で）
+    // テスト用グッジョブを作成（管理者権限で）
     const missionData = {
       id: crypto.randomUUID(),
-      title: "テストミッション",
-      content: "これはテスト用のミッションです",
+      title: "テストグッジョブ",
+      content: "これはテスト用のグッジョブです",
       difficulty: 1,
       slug: `test-mission-${crypto.randomUUID()}`,
     };
 
     const { error } = await adminClient.from("missions").insert(missionData);
-    if (error) throw new Error(`ミッション作成エラー: ${error.message}`);
+    if (error) throw new Error(`グッジョブ作成エラー: ${error.message}`);
 
     missionId = missionData.id;
   });
@@ -38,7 +38,7 @@ describe("achievements テーブルのRLSテスト", () => {
     await cleanupTestUser(user2.user.userId);
   });
 
-  test("認証済みユーザーは自分のミッション達成記録を作成できる", async () => {
+  test("認証済みユーザーは自分のグッジョブ達成記録を作成できる", async () => {
     const achievementId = crypto.randomUUID();
     const { data, error } = await user1.client
       .from("achievements")
@@ -54,7 +54,7 @@ describe("achievements テーブルのRLSテスト", () => {
     expect(data?.[0]?.id).toBe(achievementId);
   });
 
-  test("認証済みユーザーは他のユーザーのミッション達成記録を作成できない", async () => {
+  test("認証済みユーザーは他のユーザーのグッジョブ達成記録を作成できない", async () => {
     const achievementId = crypto.randomUUID();
     const { data, error } = await user1.client.from("achievements").insert({
       id: achievementId,
@@ -66,7 +66,7 @@ describe("achievements テーブルのRLSテスト", () => {
     expect(data).toBeNull();
   });
 
-  test("匿名ユーザーはミッション達成記録を作成できない", async () => {
+  test("匿名ユーザーはグッジョブ達成記録を作成できない", async () => {
     const anonClient = getAnonClient();
     const achievementId = crypto.randomUUID();
 
@@ -80,7 +80,7 @@ describe("achievements テーブルのRLSテスト", () => {
     expect(data).toBeNull();
   });
 
-  test("すべてのユーザーはすべてのミッション達成記録を読み取れる", async () => {
+  test("すべてのユーザーはすべてのグッジョブ達成記録を読み取れる", async () => {
     // まずuser1が達成記録を作成
     const achievementId = crypto.randomUUID();
     await user1.client.from("achievements").insert({
@@ -113,7 +113,7 @@ describe("achievements テーブルのRLSテスト", () => {
     expect(anonData?.user_id).toBe(user1.user.userId);
   });
 
-  test("認証済みユーザーは自分のミッション達成記録を削除できる", async () => {
+  test("認証済みユーザーは自分のグッジョブ達成記録を削除できる", async () => {
     // まずuser1が達成記録を作成
     const achievementId = crypto.randomUUID();
     await user1.client.from("achievements").insert({

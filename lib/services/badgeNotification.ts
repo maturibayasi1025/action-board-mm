@@ -51,7 +51,7 @@ export async function markBadgeNotificationAsSeen(
 }
 
 /**
- * ミッションのタイトルを取得するヘルパー関数
+ * グッジョブのタイトルを取得するヘルパー関数
  */
 async function getMissionTitle(missionSlug: string): Promise<string> {
   const supabase = await createServiceClient();
@@ -83,7 +83,7 @@ export async function getBadgeDescription(badge: UserBadge): Promise<string> {
       break;
     case "MISSION": {
       const missionTitle = await getMissionTitle(badge.sub_type || "");
-      description = `「${missionTitle}」ミッションのランキングで${badge.rank}位を達成しました！`;
+      description = `「${missionTitle}」グッジョブのランキングで${badge.rank}位を達成しました！`;
       break;
     }
   }

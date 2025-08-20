@@ -72,7 +72,7 @@ export function calculateLevel(xp: number): number {
 }
 
 /**
- * ミッションの難易度に基づいてXPを計算する
+ * グッジョブの難易度に基づいてXPを計算する
  */
 export function calculateMissionXp(difficulty: number): number {
   switch (difficulty) {

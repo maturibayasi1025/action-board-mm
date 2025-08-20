@@ -55,7 +55,7 @@ export async function getMissionRanking(
     if (rankingsError) {
       console.error("Failed to fetch mission rankings:", rankingsError);
       throw new Error(
-        `ミッションランキングデータの取得に失敗しました: ${rankingsError.message}`,
+        `グッジョブランキングデータの取得に失敗しました: ${rankingsError.message}`,
       );
     }
 
@@ -149,7 +149,7 @@ export async function getUserMissionRanking(
     if (rankingsError) {
       console.error("Failed to fetch user mission ranking:", rankingsError);
       throw new Error(
-        `ユーザーのミッションランキングデータの取得に失敗しました: ${rankingsError.message}`,
+        `ユーザーのグッジョブランキングデータの取得に失敗しました: ${rankingsError.message}`,
       );
     }
 

@@ -1,4 +1,4 @@
--- referralミッションの追加
+-- referralグッジョブの追加
 INSERT INTO missions (id, title, icon_url, content, difficulty, event_date, required_artifact_type, max_achievement_count, ogp_image_url)
 VALUES (
   'f570446b-b1fd-f456-fc4b-935c2b493089',

@@ -91,7 +91,7 @@ export async function GET(
   }
 
   // titleに()や（）が含まれる場合は(や（の手前で改行する
-  const title = pageData?.mission.title ?? "ミッションが見つかりません";
+  const title = pageData?.mission.title ?? "グッジョブが見つかりません";
   const titleWithLineBreak = title.replace(/（/g, "\n（").replace(/\(/g, "\n(");
 
   const fontData = await loadGoogleFont(

@@ -67,8 +67,8 @@ test.describe('ポスター掲示板マップのe2eテスト', () => {
     await expect(signedInPage).toHaveURL(/\/map\/poster\/fukuoka/, { timeout: 10000 });
     await signedInPage.goto('/map/poster');
 
-    // ミッション一覧に戻る
-    await signedInPage.getByRole('link', { name: 'ミッション一覧に戻る' }).click();
+    // グッジョブ一覧に戻る
+    await signedInPage.getByRole('link', { name: 'グッジョブ一覧に戻る' }).click();
     await expect(signedInPage).toHaveURL(/\/#featured-missions/, { timeout: 10000 });
   });
 });

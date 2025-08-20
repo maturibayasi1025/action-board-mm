@@ -53,7 +53,6 @@ interface ProfileFormProps {
   } | null;
   initialPrivateUser: {
     id?: string;
-    postcode?: string;
   } | null;
 }
 
@@ -380,45 +379,16 @@ export default function ProfileForm({
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="postcode">郵便番号(ハイフンなし半角7桁)</Label>
-            <p className="text-sm text-gray-500">この項目は公開されません</p>
-            {/* 郵便番号が必要な理由の説明エリア（折りたたみ可能） */}
-            <CollapsibleInfo title="なぜ郵便番号が必要ですか？" variant="gray">
-              <p>
-                郵便番号は、ポスティングなど地域別のミッションを適切に届けるために必要です。
-              </p>
-              <p>
-                プライバシーポリシーに従って厳重に管理され、他の目的には使用されません。
-              </p>
-            </CollapsibleInfo>
-            {selectedPrefecture === "海外" && (
-              <p className="text-sm text-red-600">
-                海外在住の方は0000000を入力ください
-              </p>
-            )}
-            <Input
-              id="postcode"
-              name="postcode"
-              type="text"
-              defaultValue={initialPrivateUser?.postcode || ""}
-              placeholder="郵便番号(ハイフンなし半角7桁)"
-              pattern="[0-9]{7}"
-              maxLength={7}
-              required
-              disabled={isPending}
-            />
-          </div>
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
+            {/* <div className="flex items-center gap-2">
               <Label htmlFor="x_username">X(旧Twitter)のユーザー名</Label>
               <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
                 オプション
               </span>
-            </div>
-            <p className="text-sm text-gray-500">
+            </div> */}
+            {/* <p className="text-sm text-gray-500">
               Xのユーザー名を設定すると、あなたのプロフィールに表示することができます。
-            </p>
-            <Input
+            </p> */}
+            {/* <Input
               id="x_username"
               name="x_username"
               type="text"
@@ -426,9 +396,9 @@ export default function ProfileForm({
               placeholder="@を除いたユーザー名"
               disabled={isPending}
               maxLength={50}
-            />
+            /> */}
           </div>
-          {!isNew && (
+          {/* {!isNew && (
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <Label htmlFor="github_username">GitHubのユーザー名</Label>
@@ -449,7 +419,7 @@ export default function ProfileForm({
                 maxLength={39}
               />
             </div>
-          )}
+          )} */}
           {state?.success && (
             <p className="text-center text-sm text-green-600">
               {isNew

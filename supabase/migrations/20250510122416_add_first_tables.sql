@@ -148,7 +148,7 @@ for each row
 execute function sync_public_user_profile();
 
 
--- ミッションを保持するテーブル。
+-- グッジョブを保持するテーブル。
 CREATE TABLE missions (
     id UUID PRIMARY KEY,
     title VARCHAR(200) NOT NULL,
@@ -162,13 +162,13 @@ CREATE TABLE missions (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-COMMENT ON TABLE missions IS '達成可能なミッション情報';
-COMMENT ON COLUMN missions.id IS 'ミッションID';
-COMMENT ON COLUMN missions.title IS 'ミッションのタイトル';
+COMMENT ON TABLE missions IS '達成可能なグッジョブ情報';
+COMMENT ON COLUMN missions.id IS 'グッジョブID';
+COMMENT ON COLUMN missions.title IS 'グッジョブのタイトル';
 COMMENT ON COLUMN missions.icon_url IS 'アイコン画像URL(NULL可能)';
 COMMENT ON COLUMN missions.content IS '説明文(Markdown対応)';
-COMMENT ON COLUMN missions.required_artifact_type IS 'ミッション達成に必要な成果物の種類 (LINK, IMAGE, NONE)';
-COMMENT ON COLUMN missions.max_achievement_count IS 'ミッションの最大達成可能回数。NULLの場合は無制限。'; -- 追加
+COMMENT ON COLUMN missions.required_artifact_type IS 'グッジョブ達成に必要な成果物の種類 (LINK, IMAGE, NONE)';
+COMMENT ON COLUMN missions.max_achievement_count IS 'グッジョブの最大達成可能回数。NULLの場合は無制限。'; -- 追加
 COMMENT ON COLUMN missions.created_at IS '作成日時(UTC)';
 COMMENT ON COLUMN missions.updated_at IS '更新日時(UTC)';
 
@@ -181,7 +181,7 @@ CREATE POLICY select_all_missions
 -- それ以外は許可しない
 
 
--- ミッション達成を保持するテーブル。
+-- グッジョブ達成を保持するテーブル。
 CREATE TABLE achievements (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     mission_id UUID REFERENCES missions(id),
@@ -189,14 +189,14 @@ CREATE TABLE achievements (
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-COMMENT ON TABLE achievements IS 'ユーザーによるミッション達成の記録';
-COMMENT ON COLUMN achievements.mission_id IS '達成したミッションのID';
-COMMENT ON COLUMN achievements.user_id IS 'ミッションを達成したユーザーのID';
+COMMENT ON TABLE achievements IS 'ユーザーによるグッジョブ達成の記録';
+COMMENT ON COLUMN achievements.mission_id IS '達成したグッジョブのID';
+COMMENT ON COLUMN achievements.user_id IS 'グッジョブを達成したユーザーのID';
 COMMENT ON COLUMN achievements.created_at IS '記録日時(UTC)';
 
 -- RLS設定
 ALTER TABLE achievements ENABLE ROW LEVEL SECURITY;
--- ミッション達成は、その本人だけが追加できる
+-- グッジョブ達成は、その本人だけが追加できる
 CREATE POLICY insert_own_achievement
   ON achievements FOR INSERT
   WITH CHECK (auth.uid() = user_id);
@@ -204,13 +204,13 @@ CREATE POLICY insert_own_achievement
 CREATE POLICY select_all_achievements
   ON achievements FOR SELECT
   USING (true);
--- ミッション達成は、その本人だけが削除できる
+-- グッジョブ達成は、その本人だけが削除できる
 CREATE POLICY delete_own_achievement
   ON achievements FOR DELETE
   USING (auth.uid() = user_id);
 
 
--- ミッション成果物を保持するテーブル (新規追加)
+-- グッジョブ成果物を保持するテーブル (新規追加)
 CREATE TABLE mission_artifacts (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     achievement_id UUID NOT NULL REFERENCES achievements(id) ON DELETE CASCADE,
@@ -229,9 +229,9 @@ CREATE TABLE mission_artifacts (
     )
 );
 
-COMMENT ON TABLE mission_artifacts IS 'ミッション達成時に提出された成果物';
+COMMENT ON TABLE mission_artifacts IS 'グッジョブ達成時に提出された成果物';
 COMMENT ON COLUMN mission_artifacts.id IS '成果物ID';
-COMMENT ON COLUMN mission_artifacts.achievement_id IS '関連するミッション達成記録のID';
+COMMENT ON COLUMN mission_artifacts.achievement_id IS '関連するグッジョブ達成記録のID';
 COMMENT ON COLUMN mission_artifacts.user_id IS '成果物を提出したユーザーのID';
 COMMENT ON COLUMN mission_artifacts.artifact_type IS '提出された成果物の種類 (LINK, IMAGE)';
 COMMENT ON COLUMN mission_artifacts.link_url IS '成果物がリンクの場合のURL';
@@ -309,7 +309,7 @@ FROM achievements a
 JOIN public_user_profiles p ON a.user_id = p.id
 JOIN missions m ON a.mission_id = m.id;
 
--- ミッション達成数を取得するView
+-- グッジョブ達成数を取得するView
 CREATE VIEW mission_achievement_count_view AS
 SELECT
   m.id as mission_id,
@@ -449,7 +449,7 @@ CREATE POLICY select_all_weekly_event_count_by_prefecture_summary
   ON weekly_event_count_by_prefecture_summary FOR SELECT
   USING (true);
 
--- ミッション成果物ファイル用のストレージバケットを作成 (新規追加)
+-- グッジョブ成果物ファイル用のストレージバケットを作成 (新規追加)
 INSERT INTO storage.buckets (id, name, public, avif_autodetection, file_size_limit, allowed_mime_types)
 VALUES (
   'mission_artifact_files', -- 変更
@@ -509,3 +509,12 @@ VALUES
   ('0f4f16e5-35eb-4756-a966-607895a61b0e', '安野たかひろの公式Xをフォローしよう', '/img/mission_fallback_icon.png', '<a href="https://x.com/takahiroanno">安野たかひろ</a>の公式Xをフォローしてください。', 1, NULL, 'NONE', NULL),  
   ('9071a1eb-e272-43be-9c6b-e08b258a41c3', '公式Youtubeチャンネルを登録しよう', '/img/mission_fallback_icon.png', '<a href="https://www.youtube.com/channel/UCiMwbmcCSMORJ-85XWhStBw">チームみらいの公式Youtubeチャンネル</a>をチャンネル登録してください。', 1, NULL, 'NONE', NULL),
   ('e7a03d8b-ef29-406f-b2fb-065285855997', '公式LINEアカウントを友達申請しよう', '/img/mission_fallback_icon.png', '<a href="https://line.me/R/ti/p/@465hhyop?oat_content=url&ts=05062204">チームみらいのLINEアカウント</a>に友達申請してください。', 1, NULL, 'NONE', NULL);
+
+-- updated_atを自動更新する関数
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = now();
+    RETURN NEW;
+END;
+$$ language 'plpgsql';

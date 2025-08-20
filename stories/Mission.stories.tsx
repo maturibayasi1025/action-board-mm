@@ -18,8 +18,8 @@ const dummyMission: Tables<"missions"> = {
   id: "mission-1",
   slug: "mission-1",
   title:
-    "ミッションタイトルです。ミッションタイトルです。ミッションタイトルです。",
-  content: "これはサンプルのミッション内容です。",
+    "グッジョブタイトルです。グッジョブタイトルです。グッジョブタイトルです。",
+  content: "これはサンプルのグッジョブ内容です。",
   created_at: "2024-01-01T00:00:00Z",
   updated_at: "2024-01-02T00:00:00Z",
   icon_url: null,
@@ -41,7 +41,7 @@ export const Default: Story = {
   },
 };
 
-// 日付付きミッション
+// 日付付きグッジョブ
 const dummyMissionWithDate = {
   ...dummyMission,
   difficulty: 5,

@@ -84,13 +84,13 @@ export default async function MissionPage({ params }: Props) {
   const pageData = await getMissionPageData(id, user?.id);
 
   if (!pageData) {
-    return <div className="p-4">ミッションが見つかりません。</div>;
+    return <div className="p-4">グッジョブが見つかりません。</div>;
   }
 
   const { mission, submissions, userAchievementCount, referralCode, mainLink } =
     pageData;
 
-  // クイズミッションの場合は問題を事前取得
+  // クイズグッジョブの場合は問題を事前取得
   let quizQuestions = null;
   if (mission.required_artifact_type === ARTIFACT_TYPES.QUIZ.key) {
     try {
@@ -103,12 +103,12 @@ export default async function MissionPage({ params }: Props) {
     }
   }
 
-  // ユーザーのミッション別ランキング情報を取得
+  // ユーザーのグッジョブ別ランキング情報を取得
   const userWithMissionRanking = user
     ? await getUserMissionRanking(id, user.id)
     : null;
 
-  // ミッションタイプに応じてbadgeTextを生成、ポスティングミッションの場合はポスティング枚数を取得
+  // グッジョブタイプに応じてbadgeTextを生成、ポスティンググッジョブの場合はポスティング枚数を取得
   const isPostingMission = mission.required_artifact_type === "POSTING";
   const userPostingCount =
     user && isPostingMission ? await getUserPostingCount(user.id) : 0;
@@ -143,7 +143,7 @@ export default async function MissionPage({ params }: Props) {
                 mainLink={mainLink}
               />
             </Suspense>
-            {/* ミッションの達成回数が無制限の場合のみ、ユーザーのランキングを表示 */}
+            {/* グッジョブの達成回数が無制限の場合のみ、ユーザーのランキングを表示 */}
             {mission.max_achievement_count === null && (
               <>
                 <div className="mt-6">
@@ -171,10 +171,10 @@ export default async function MissionPage({ params }: Props) {
                 <Shield className="h-6 w-6 text-muted-foreground" />
               </div>
               <CardTitle className="text-xl">
-                ログインしてミッションを達成しよう
+                ログインしてグッジョブを達成しよう
               </CardTitle>
               <CardDescription>
-                ミッションの達成を報告するには、アカウントにログインしてください。
+                グッジョブの達成を報告するには、アカウントにログインしてください。
               </CardDescription>
             </CardHeader>
             <CardContent className="text-center">

@@ -39,12 +39,6 @@ const updateProfileFormSchema = z.object({
     .regex(/^\d{4}-\d{2}-\d{2}$/, {
       message: "生年月日はYYYY-MM-DD形式で入力してください",
     }),
-  postcode: z
-    .string()
-    .nonempty({ message: "郵便番号を入力してください" })
-    .regex(/^\d{7}$/, {
-      message: "郵便番号はハイフンなし7桁で入力してください",
-    }),
   x_username: z
     .string()
     .max(50, { message: "Xユーザー名は50文字以内で入力してください" })
@@ -75,7 +69,6 @@ export async function updateProfile(
   const name = formData.get("name")?.toString();
   const address_prefecture = formData.get("address_prefecture")?.toString();
   const date_of_birth = formData.get("date_of_birth")?.toString();
-  const postcode = formData.get("postcode")?.toString();
   const x_username = formData.get("x_username")?.toString() || "";
   const github_username = formData.get("github_username")?.toString() || "";
 
@@ -84,7 +77,6 @@ export async function updateProfile(
     name,
     address_prefecture,
     date_of_birth,
-    postcode,
     x_username,
     github_username,
   });
@@ -223,7 +215,6 @@ export async function updateProfile(
         name: validatedData.name,
         address_prefecture: validatedData.address_prefecture,
         date_of_birth: validatedData.date_of_birth,
-        postcode: validatedData.postcode,
         x_username: validatedData.x_username || null,
         avatar_url: avatar_path,
         hubspot_contact_id: null, // 初期値はnull、HubSpot連携後に更新
@@ -250,7 +241,6 @@ export async function updateProfile(
         name: validatedData.name,
         address_prefecture: validatedData.address_prefecture,
         date_of_birth: validatedData.date_of_birth,
-        postcode: validatedData.postcode,
         x_username: validatedData.x_username || null,
         avatar_url: avatar_path,
         updated_at: new Date().toISOString(),

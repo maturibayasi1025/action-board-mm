@@ -123,8 +123,8 @@ jest.mock("lucide-react", () => ({
 
 const mockMission: Tables<"missions"> = {
   id: "test-mission-1",
-  title: "テストミッション",
-  content: "テストミッションの内容",
+  title: "テストグッジョブ",
+  content: "テストグッジョブの内容",
   difficulty: 1,
   icon_url: "/test-icon.svg",
   event_date: "2025-06-22",
@@ -139,7 +139,7 @@ const mockMission: Tables<"missions"> = {
 };
 
 describe("Mission", () => {
-  it("ミッション情報が正しく表示される", () => {
+  it("グッジョブ情報が正しく表示される", () => {
     render(
       <Mission
         mission={mockMission}
@@ -149,7 +149,7 @@ describe("Mission", () => {
       />,
     );
 
-    expect(screen.getByText("テストミッション")).toBeInTheDocument();
+    expect(screen.getByText("テストグッジョブ")).toBeInTheDocument();
     expect(screen.getByText("みんなで10回達成")).toBeInTheDocument();
     expect(screen.getByText("詳細を見る →")).toBeInTheDocument();
   });

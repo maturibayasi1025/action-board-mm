@@ -24,7 +24,7 @@ steps:
       - BQ_USER_PASSWORD
       - SMTP_PASS
 
-  # ミッションデータの同期
+  # グッジョブデータの同期
   - name: 'node:22'
     entrypoint: "bash"
     args:

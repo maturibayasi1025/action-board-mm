@@ -26,18 +26,18 @@ jest.mock("lucide-react", () => ({
 const mockMissions = [
   {
     id: "mission-1",
-    title: "テストミッション1",
-    description: "テスト用のミッション1",
+    title: "テストグッジョブ1",
+    description: "テスト用のグッジョブ1",
   },
   {
     id: "mission-2",
-    title: "テストミッション2",
-    description: "テスト用のミッション2",
+    title: "テストグッジョブ2",
+    description: "テスト用のグッジョブ2",
   },
   {
     id: "mission-3",
-    title: "テストミッション3",
-    description: "テスト用のミッション3",
+    title: "テストグッジョブ3",
+    description: "テスト用のグッジョブ3",
   },
 ] as any;
 
@@ -50,7 +50,7 @@ describe("MissionSelect", () => {
     it("ラベルが正しく表示される", () => {
       render(<MissionSelect missions={mockMissions} />);
 
-      expect(screen.getByText("ミッションを選択")).toBeInTheDocument();
+      expect(screen.getByText("グッジョブを選択")).toBeInTheDocument();
     });
 
     it("セレクトボックスが表示される", () => {
@@ -67,24 +67,24 @@ describe("MissionSelect", () => {
       expect(screen.getByTestId("chevron-down")).toBeInTheDocument();
     });
 
-    it("すべてのミッションオプションが表示される", () => {
+    it("すべてのグッジョブオプションが表示される", () => {
       render(<MissionSelect missions={mockMissions} />);
 
-      expect(screen.getByText("テストミッション1")).toBeInTheDocument();
-      expect(screen.getByText("テストミッション2")).toBeInTheDocument();
-      expect(screen.getByText("テストミッション3")).toBeInTheDocument();
+      expect(screen.getByText("テストグッジョブ1")).toBeInTheDocument();
+      expect(screen.getByText("テストグッジョブ2")).toBeInTheDocument();
+      expect(screen.getByText("テストグッジョブ3")).toBeInTheDocument();
     });
   });
 
   describe("初期値の設定", () => {
-    it("URLパラメータがない場合は最初のミッションが選択される", () => {
+    it("URLパラメータがない場合は最初のグッジョブが選択される", () => {
       render(<MissionSelect missions={mockMissions} />);
 
       const select = screen.getByRole("combobox") as HTMLSelectElement;
       expect(select.value).toBe("mission-1");
     });
 
-    it("URLパラメータがある場合はそのミッションが選択される", () => {
+    it("URLパラメータがある場合はそのグッジョブが選択される", () => {
       const originalURLSearchParams = global.URLSearchParams;
       global.URLSearchParams = jest.fn().mockImplementation(() => ({
         get: jest.fn().mockReturnValue("mission-2"),
@@ -99,8 +99,8 @@ describe("MissionSelect", () => {
     });
   });
 
-  describe("ミッション変更時の動作", () => {
-    it("ミッションを変更するとrouterのpushが呼ばれる", () => {
+  describe("グッジョブ変更時の動作", () => {
+    it("グッジョブを変更するとrouterのpushが呼ばれる", () => {
       render(<MissionSelect missions={mockMissions} />);
 
       const select = screen.getByRole("combobox");
@@ -122,22 +122,22 @@ describe("MissionSelect", () => {
   });
 
   describe("エッジケース", () => {
-    it("ミッションが空の場合でもエラーにならない", () => {
+    it("グッジョブが空の場合でもエラーにならない", () => {
       render(<MissionSelect missions={[]} />);
 
       const select = screen.getByRole("combobox");
       expect(select).toBeInTheDocument();
     });
 
-    it("単一のミッションの場合", () => {
+    it("単一のグッジョブの場合", () => {
       const singleMission = [mockMissions[0]];
       render(<MissionSelect missions={singleMission} />);
 
-      expect(screen.getByText("テストミッション1")).toBeInTheDocument();
-      expect(screen.queryByText("テストミッション2")).not.toBeInTheDocument();
+      expect(screen.getByText("テストグッジョブ1")).toBeInTheDocument();
+      expect(screen.queryByText("テストグッジョブ2")).not.toBeInTheDocument();
     });
 
-    it("無効なmissionIdがURLにある場合は最初のミッションが選択される", () => {
+    it("無効なmissionIdがURLにある場合は最初のグッジョブが選択される", () => {
       const originalURLSearchParams = global.URLSearchParams;
       global.URLSearchParams = jest.fn().mockImplementation(() => ({
         get: jest.fn().mockReturnValue("invalid-mission"),

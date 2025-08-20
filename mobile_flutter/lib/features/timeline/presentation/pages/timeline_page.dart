@@ -110,7 +110,7 @@ class TimelinePage extends ConsumerWidget {
               // 投稿内容
               Text(
                 isAchievement
-                    ? 'ミッション「地域清掃活動」を達成しました！'
+                    ? 'グッジョブ「地域清掃活動」を達成しました！'
                     : '今日もアクションを起こしています。みんなで頑張りましょう！',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   height: 1.5,
@@ -118,7 +118,7 @@ class TimelinePage extends ConsumerWidget {
               ),
               if (isAchievement) ...[
                 const SizedBox(height: 12),
-                // ミッション情報
+                // グッジョブ情報
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(

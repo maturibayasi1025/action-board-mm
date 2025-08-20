@@ -1,4 +1,4 @@
--- 既存ミッションデータのupsertおよび新しいミッションの追加（ogp_image_url、artifact_label含む）
+-- 既存グッジョブデータのupsertおよび新しいグッジョブの追加（ogp_image_url、artifact_label含む）
 
 -- missionsテーブルにartifact_labelカラムを追加
 ALTER TABLE missions
@@ -6,10 +6,10 @@ ADD COLUMN artifact_label VARCHAR(100);
 
 COMMENT ON COLUMN missions.artifact_label IS '成果物の入力欄のラベル表示用テキスト';
 
--- 全ミッションのupsert（既存ミッション更新 + 新しいミッション追加）
+-- 全グッジョブのupsert（既存グッジョブ更新 + 新しいグッジョブ追加）
 INSERT INTO missions (id, title, icon_url, content, difficulty, event_date, required_artifact_type, max_achievement_count, ogp_image_url, artifact_label)
 VALUES
-  -- 既存のミッションデータ（初期データから取得し、更新内容を反映）
+  -- 既存のグッジョブデータ（初期データから取得し、更新内容を反映）
   ('05814416-9cd8-4582-a940-ced9a832efee', 'Youtube動画を切り抜こう', '/img/mission_fallback.svg', '推し候補の魅力を、もっと多くの人に届けよう。<a href="https://www.youtube.com/channel/UCiMwbmcCSMORJ-85XWhStBw">チームみらいの公式Youtube動画</a>や、チームみらいの候補者が出演している動画から、心に響いたワンシーンを切り抜いてショート動画にしてみよう。<br />SNSでの拡散や、仲間との共有も大歓迎！あなたの編集が、新しい支持を生み出すかもしれません。', 3, NULL, 'LINK', NULL, 'https://tibsocpjqvxxipszbwui.supabase.co/storage/v1/object/public/ogp//6_clip_youtube_video.png', 'YouTubeショートのURL'),
   ('41dedf9a-2290-4609-bb73-5469ee8dd909', 'いどばた政策サイトからマニフェストを提案しよう', '/img/mission_fallback.svg', 'AIと一緒に、あなたの意見を政策にしよう。<a href="https://policy.team-mir.ai/view/README.md">いどばた政策</a>は、AIとチャットしながら政策に意見を出せる新しい仕組みです。気になるテーマに質問したり、自分の考えを提案としてまとめると、実際に「チームみらい」へ提出されます。提案にはURLが付き、どう検討されたかも追跡できます。', 3, NULL, 'LINK', NULL, 'https://tibsocpjqvxxipszbwui.supabase.co/storage/v1/object/public/ogp//9_propose_manifest_policy.png', '提案したページのURL'),
   ('56c03661-8243-42c6-bf81-9dba56c5abfe', 'マニフェストの感想をSNSでシェアしよう', '/img/mission_fallback.svg', '<a href="https://policy.team-mir.ai/view/README.md">いどばた政策</a>でマニフェストを読み、気になった政策や共感した提案について、あなたの言葉でSNSに感想を発信してみよう。難しく考えなくてOK。「ここがいいな」「もっとこうしてほしい」など、素直な声が広がることで、政治はもっと身近になります。', 2, NULL, 'LINK', NULL, 'https://tibsocpjqvxxipszbwui.supabase.co/storage/v1/object/public/ogp//10_share_manifest_feedback.png', 'シェアした投稿のURL'),

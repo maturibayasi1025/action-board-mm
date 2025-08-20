@@ -1,4 +1,4 @@
--- ポスティングミッション機能の追加
+-- ポスティンググッジョブ機能の追加
 
 -- 1. mission_artifactsテーブルのartifact_typeにPOSTINGを追加
 ALTER TABLE public.mission_artifacts
@@ -106,7 +106,7 @@ CREATE POLICY "Users can manage their own posting activities"
 
 
 
--- 9. ポスティングミッションのサンプル追加
+-- 9. ポスティンググッジョブのサンプル追加
 INSERT INTO missions (
     id, 
     title, 

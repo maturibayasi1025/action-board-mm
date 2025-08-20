@@ -149,11 +149,11 @@ export default function EmailSignUpForm({
       <h1 className="text-2xl font-medium text-center mb-2">
         メールアドレスとパスワードを入力
       </h1>
-      <p className="text-sm text-foreground text-center">
+      {/* <p className="text-sm text-foreground text-center">
         <Link className="text-primary font-medium underline" href="/sign-up">
           他の方法でアカウント作成
         </Link>
-      </p>
+      </p> */}
 
       {/* サーバーアクションからのメッセージを表示 */}
       {state && <FormMessage className="mt-8" message={state} />}

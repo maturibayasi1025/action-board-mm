@@ -8,10 +8,10 @@ import {
 } from "@/lib/types/badge";
 
 /**
- * ミッションバッジにタイトル情報を追加する
+ * グッジョブバッジにタイトル情報を追加する
  */
 async function enrichMissionBadges(badges: UserBadge[]): Promise<UserBadge[]> {
-  // ミッションタイプのバッジのミッションslugを収集
+  // グッジョブタイプのバッジのグッジョブslugを収集
   const missionSlugs = badges
     .filter((badge) => badge.badge_type === "MISSION" && badge.sub_type)
     .map((badge) => badge.sub_type as string);
@@ -22,7 +22,7 @@ async function enrichMissionBadges(badges: UserBadge[]): Promise<UserBadge[]> {
 
   const supabase = await createServiceClient();
 
-  // ミッション情報を取得（IDも含める）
+  // グッジョブ情報を取得（IDも含める）
   const { data: missions, error: missionError } = await supabase
     .from("missions")
     .select("id, slug, title")
@@ -33,12 +33,12 @@ async function enrichMissionBadges(badges: UserBadge[]): Promise<UserBadge[]> {
     return badges;
   }
 
-  // ミッションslugとミッション情報のマップを作成
+  // グッジョブslugとグッジョブ情報のマップを作成
   const missionMap = new Map(
     missions.map((m) => [m.slug, { id: m.id, title: m.title }]),
   );
 
-  // バッジにミッションタイトルとIDを追加
+  // バッジにグッジョブタイトルとIDを追加
   return badges.map((badge) => {
     if (badge.badge_type === "MISSION" && badge.sub_type) {
       const missionInfo = missionMap.get(badge.sub_type);
@@ -136,7 +136,7 @@ export async function updateBadge({
 }
 
 /**
- * ユーザーの現在のバッジを取得（ミッション情報付き）
+ * ユーザーの現在のバッジを取得（グッジョブ情報付き）
  */
 export async function getUserBadges(userId: string): Promise<UserBadge[]> {
   const supabase = await createServiceClient();
@@ -149,18 +149,25 @@ export async function getUserBadges(userId: string): Promise<UserBadge[]> {
     .order("rank");
 
   if (error) {
-    console.error("Error fetching user badges:", error);
+    console.error("Error fetching user badges:", {
+      error: error,
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+      code: error.code,
+      userId: userId,
+    });
     return [];
   }
 
   const badges = (data || []) as UserBadge[];
 
-  // ミッションバッジのタイトルを取得
+  // グッジョブバッジのタイトルを取得
   return enrichMissionBadges(badges);
 }
 
 /**
- * ユーザーの最高ランクのバッジを取得（ミッション情報付き）
+ * ユーザーの最高ランクのバッジを取得（グッジョブ情報付き）
  */
 export async function getUserTopBadge(
   userId: string,
@@ -193,13 +200,20 @@ export async function getUnnotifiedBadges(
     .order("created_at", { ascending: false });
 
   if (error) {
-    console.error("Error fetching unnotified badges:", error);
+    console.error("Error fetching unnotified badges:", {
+      error: error,
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+      code: error.code,
+      userId: userId,
+    });
     return [];
   }
 
   const badges = (data || []) as UserBadge[];
 
-  // ミッションバッジのタイトルを取得
+  // グッジョブバッジのタイトルを取得
   return enrichMissionBadges(badges);
 }
 

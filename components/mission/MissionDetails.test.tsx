@@ -27,8 +27,8 @@ jest.mock("@/lib/formatter", () => ({
 
 const mockMission: Tables<"missions"> = {
   id: "test-mission-1",
-  title: "テストミッション",
-  content: "<p>テストミッションの<strong>詳細</strong>内容</p>",
+  title: "テストグッジョブ",
+  content: "<p>テストグッジョブの<strong>詳細</strong>内容</p>",
   difficulty: 2,
   icon_url: "/test-icon.svg",
   event_date: "2025-06-22",
@@ -43,17 +43,17 @@ const mockMission: Tables<"missions"> = {
 };
 
 describe("MissionDetails", () => {
-  it("ミッション詳細が正しく表示される", () => {
+  it("グッジョブ詳細が正しく表示される", () => {
     render(<MissionDetails mission={mockMission} />);
 
-    expect(screen.getByText("テストミッション")).toBeInTheDocument();
+    expect(screen.getByText("テストグッジョブ")).toBeInTheDocument();
     expect(screen.getByText("2025年6月22日")).toBeInTheDocument();
   });
 
   it("アイコンが表示される", () => {
     render(<MissionDetails mission={mockMission} />);
 
-    const icon = screen.getByAltText("テストミッション");
+    const icon = screen.getByAltText("テストグッジョブ");
     expect(icon).toBeInTheDocument();
     expect(icon).toHaveAttribute("src", "/test-icon.svg");
   });
@@ -63,7 +63,7 @@ describe("MissionDetails", () => {
 
     render(<MissionDetails mission={missionWithoutIcon} />);
 
-    expect(screen.queryByAltText("テストミッション")).not.toBeInTheDocument();
+    expect(screen.queryByAltText("テストグッジョブ")).not.toBeInTheDocument();
   });
 
   it("イベント日付がない場合は日付バッジが表示されない", () => {
@@ -74,17 +74,17 @@ describe("MissionDetails", () => {
     expect(screen.queryByText("2025年6月22日")).not.toBeInTheDocument();
   });
 
-  it("ミッション内容がHTMLとして表示される", () => {
+  it("グッジョブ内容がHTMLとして表示される", () => {
     render(<MissionDetails mission={mockMission} />);
 
     const contentElement = document.querySelector(".mission-content");
     expect(contentElement).toBeInTheDocument();
     expect(contentElement?.innerHTML).toBe(
-      "<p>テストミッションの<strong>詳細</strong>内容</p>",
+      "<p>テストグッジョブの<strong>詳細</strong>内容</p>",
     );
   });
 
-  it("YouTubeミッションの場合はYouTubeボタンが表示される", () => {
+  it("YouTubeグッジョブの場合はYouTubeボタンが表示される", () => {
     const youtubeMission = { ...mockMission, id: "youtube-mission-id" };
 
     render(<MissionDetails mission={youtubeMission} />);
@@ -95,13 +95,13 @@ describe("MissionDetails", () => {
     ).toBeInTheDocument();
   });
 
-  it("通常のミッションの場合はYouTubeボタンが表示されない", () => {
+  it("通常のグッジョブの場合はYouTubeボタンが表示されない", () => {
     render(<MissionDetails mission={mockMission} />);
 
     expect(screen.queryByTestId("youtube-button")).not.toBeInTheDocument();
   });
 
-  it("ミッション内容がnullの場合でもエラーにならない", () => {
+  it("グッジョブ内容がnullの場合でもエラーにならない", () => {
     const missionWithoutContent = { ...mockMission, content: null };
 
     render(<MissionDetails mission={missionWithoutContent} />);

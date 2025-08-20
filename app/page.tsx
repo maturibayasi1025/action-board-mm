@@ -8,6 +8,7 @@ import MissionsByCategory from "@/components/mission/MissionsByCategory";
 import Missions from "@/components/mission/missions";
 import RankingTop from "@/components/ranking/ranking-top";
 import RankingSection from "@/components/top/ranking-section";
+import UserMissionsSection from "@/components/top/user-missions-section";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { generateRootMetadata } from "@/lib/metadata";
@@ -50,7 +51,7 @@ export default async function Home({
     }
 
     // レベルアップ通知をチェック
-    // 自動ミッション（紹介など）でレベルアップした場合の通知を表示するため有効化
+    // 自動グッジョブ（紹介など）でレベルアップした場合の通知を表示するため有効化
     const levelUpCheck = await checkLevelUpNotification(user.id);
     if (levelUpCheck.shouldNotify && levelUpCheck.levelUp) {
       levelUpNotification = levelUpCheck.levelUp;
@@ -63,7 +64,7 @@ export default async function Home({
     }
   }
 
-  //フューチャードミッションの存在確認
+  //フューチャードグッジョブの存在確認
   const showFeatured = await hasFeaturedMissions();
 
   return (
@@ -86,19 +87,19 @@ export default async function Home({
       {/* メトリクスセクション */}
       <MetricsWithSuspense />
 
-      {/* ランキングセクション */}
-      <section className="py-12 md:py-16 bg-white">
+      {/* ランキングセクション - 一時的に非表示 */}
+      {/* <section className="py-12 md:py-16 bg-white">
         <RankingSection />
-      </section>
+      </section> */}
 
-      {/* フューチャードミッションセクション */}
+      {/* フューチャードグッジョブセクション */}
       {showFeatured && (
         <section className="py-12 md:py-16 bg-white">
           <FeaturedMissions userId={user?.id} showAchievedMissions={true} />
         </section>
       )}
 
-      {/* ミッションセクション */}
+      {/* グッジョブセクション */}
       <section className="py-12 md:py-16 bg-white">
         <MissionsByCategory
           userId={user?.id}
@@ -107,10 +108,13 @@ export default async function Home({
         />
       </section>
 
-      {/* アクティビティセクション */}
-      <section className="py-12 md:py-16 bg-white">
+      {/* ユーザーグッジョブセクション */}
+      <UserMissionsSection />
+
+      {/* アクティビティセクション - 一時的に非表示 */}
+      {/* <section className="py-12 md:py-16 bg-white">
         <Activities />
-      </section>
+      </section> */}
     </div>
   );
 }

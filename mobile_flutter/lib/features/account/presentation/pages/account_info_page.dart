@@ -237,11 +237,11 @@ class AccountInfoPage extends ConsumerWidget {
                                   Row(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
-                                      // クリアしたミッション
+                                      // クリアしたグッジョブ
                                       Row(
                                         children: [
                                           Text(
-                                            'クリアしたミッション',
+                                            'クリアしたグッジョブ',
                                             style: Theme.of(context)
                                                 .textTheme
                                                 .bodySmall
@@ -272,11 +272,11 @@ class AccountInfoPage extends ConsumerWidget {
                                         color: const Color(0xFF99A9B0),
                                       ),
                                       const SizedBox(width: 12),
-                                      // 総ミッション
+                                      // 総グッジョブ
                                       Row(
                                         children: [
                                           Text(
-                                            '総ミッション',
+                                            '総グッジョブ',
                                             style: Theme.of(context)
                                                 .textTheme
                                                 .labelSmall

@@ -11,7 +11,7 @@ FROM quiz_questions qq
 INNER JOIN quiz_categories qc ON qq.category_id = qc.id
 WHERE qq.is_active = true AND qc.is_active = true;
 
--- ミッションのクイズ問題とミッションリンクを取得するビュー
+-- グッジョブのクイズ問題とグッジョブリンクを取得するビュー
 CREATE OR REPLACE VIEW mission_quiz_with_links AS
 SELECT 
     qq.mission_id,
@@ -58,7 +58,7 @@ GROUP BY
     qc.name,
     qc.description;
 
--- ミッションごとのリンク一覧を取得する関数
+-- グッジョブごとのリンク一覧を取得する関数
 CREATE OR REPLACE FUNCTION get_mission_links(p_mission_id UUID)
 RETURNS TABLE (
     link TEXT,
@@ -77,7 +77,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- ミッションのクイズ問題を順番に取得する関数
+-- グッジョブのクイズ問題を順番に取得する関数
 CREATE OR REPLACE FUNCTION get_mission_quiz_questions(p_mission_id UUID)
 RETURNS TABLE (
     question_id UUID,
@@ -120,6 +120,6 @@ $$ LANGUAGE plpgsql;
 -- ビューは自動的に基になるテーブルのRLSポリシーを継承するため、追加の設定は不要
 
 COMMENT ON VIEW quiz_questions_with_category IS 'クイズ問題とカテゴリ情報を結合したビュー';
-COMMENT ON VIEW mission_quiz_with_links IS 'ミッションのクイズ問題とカテゴリリンク情報を含むビュー';
-COMMENT ON FUNCTION get_mission_links IS '指定されたミッションのリンク一覧を取得する関数';
-COMMENT ON FUNCTION get_mission_quiz_questions IS '指定されたミッションのクイズ問題を順番に取得する関数';
+COMMENT ON VIEW mission_quiz_with_links IS 'グッジョブのクイズ問題とカテゴリリンク情報を含むビュー';
+COMMENT ON FUNCTION get_mission_links IS '指定されたグッジョブのリンク一覧を取得する関数';
+COMMENT ON FUNCTION get_mission_quiz_questions IS '指定されたグッジョブのクイズ問題を順番に取得する関数';

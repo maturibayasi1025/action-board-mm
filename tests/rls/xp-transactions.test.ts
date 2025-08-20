@@ -17,18 +17,18 @@ describe("xp_transactions テーブルのRLSテスト", () => {
     user1 = await createTestUser(`${crypto.randomUUID()}@example.com`);
     user2 = await createTestUser(`${crypto.randomUUID()}@example.com`);
 
-    // テスト用ミッションを作成
+    // テスト用グッジョブを作成
     missionId = crypto.randomUUID();
     const { error: missionError } = await adminClient.from("missions").insert({
       id: missionId,
-      title: "XPテスト用ミッション",
+      title: "XPテスト用グッジョブ",
       content: "XP取引テスト用",
       difficulty: 2,
       slug: `test-xp-mission-${crypto.randomUUID()}`,
     });
 
     if (missionError) {
-      throw new Error(`ミッション作成エラー: ${missionError.message}`);
+      throw new Error(`グッジョブ作成エラー: ${missionError.message}`);
     }
 
     // テスト用のxp_transactionsデータを作成（管理者権限で）
@@ -43,7 +43,7 @@ describe("xp_transactions テーブルのRLSテスト", () => {
         xp_amount: 50,
         source_type: "MISSION_COMPLETION",
         source_id: missionId,
-        description: "ミッション完了による獲得",
+        description: "グッジョブ完了による獲得",
       });
 
     const { error: tx2Error } = await adminClient
@@ -102,7 +102,7 @@ describe("xp_transactions テーブルのRLSテスト", () => {
     expect(error).toBeNull();
     expect(data).toBeTruthy();
     expect(data?.[0].xp_amount).toBe(50); // 更新されていない
-    expect(data?.[0].description).toBe("ミッション完了による獲得"); // 更新されていない
+    expect(data?.[0].description).toBe("グッジョブ完了による獲得"); // 更新されていない
   });
 
   test("認証済みユーザーは自分のXP履歴でも削除できない", async () => {
@@ -123,7 +123,7 @@ describe("xp_transactions テーブルのRLSテスト", () => {
     expect(data?.[0].xp_amount).toBe(50); // 元のXP量が残っている
     expect(data?.[0].source_type).toBe("MISSION_COMPLETION"); // 元のソースタイプが残っている
     expect(data?.[0].source_id).toBe(missionId); // 元のソースIDが残っている
-    expect(data?.[0].description).toBe("ミッション完了による獲得"); // 元の説明が残っている
+    expect(data?.[0].description).toBe("グッジョブ完了による獲得"); // 元の説明が残っている
   });
 
   test("認証済みユーザーはxp_transactionsにINSERTできない", async () => {

@@ -31,8 +31,8 @@ test.describe('アクションボード（Web版）のe2eテスト', () => {
     await expect(signedInPage.getByRole('link', { name: /伊藤愛子 愛知県 Lv.7 465pt/ })).toBeVisible();
     await expect(signedInPage.getByRole('link', { name: 'トップ100を見る' })).toBeVisible();
 
-    // 重要ミッションの表示を確認
-    await expect(signedInPage.getByRole('heading', { name: /重要ミッション/ })).toBeVisible();
+    // 重要グッジョブの表示を確認
+    await expect(signedInPage.getByRole('heading', { name: /重要グッジョブ/ })).toBeVisible();
 
     // 活動タイムラインの表示を確認
     await expect(signedInPage.getByRole('heading', { name: /活動タイムライン/ })).toBeVisible();
@@ -114,33 +114,33 @@ test.describe('アクションボード（Web版）のe2eテスト', () => {
     await expect(signedInPage.getByText('活動タイムライン')).toBeVisible();
   });
 
-  test('ミッションページ遷移 → ミッション完了 → ミッション取消が正常に動作する', async ({
+  test('グッジョブページ遷移 → グッジョブ完了 → グッジョブ取消が正常に動作する', async ({
     signedInPage,
   }) => {
     await assertAuthState(signedInPage, true);
 
-    // ミッションページに遷移（ゴミ拾いミッションをクリック）
+    // グッジョブページに遷移（ゴミ拾いグッジョブをクリック）
     await signedInPage.getByRole('button', { name: '詳細を見る →' }).first().click();
     await expect(signedInPage).toHaveURL(/\/missions\/[^\/]+$/, { timeout: 10000 });
 
-    // ミッションページの表示内容を確認
+    // グッジョブページの表示内容を確認
     await expect(signedInPage.getByText('(seed) ゴミ拾いをしよう (成果物不要)', { exact: true })).toBeVisible();
     await expect(signedInPage.getByText('近所のゴミを拾ってみよう！清掃活動の報告は任意です。')).toBeVisible();
     await expect(signedInPage.getByText('実行したら記録しよう！')).toBeVisible();
-    await expect(signedInPage.getByRole('button', { name: 'ミッション完了を記録する' })).toBeVisible();
-    await expect(signedInPage.getByText('※ 成果物の内容が認められない場合、ミッションの達成が取り消される場合があります。正確な内容をご記入ください。')).toBeVisible();
+    await expect(signedInPage.getByRole('button', { name: 'グッジョブ完了を記録する' })).toBeVisible();
+    await expect(signedInPage.getByText('※ 成果物の内容が認められない場合、グッジョブの達成が取り消される場合があります。正確な内容をご記入ください。')).toBeVisible();
     await expect(signedInPage.getByRole('heading', { name: '「(seed) ゴミ拾いをしよう (成果物不要)」トップ10' })).toBeVisible();
 
-    // ミッション完了ページに遷移
-    await signedInPage.getByRole('button', { name: 'ミッション完了を記録する' }).click();
+    // グッジョブ完了ページに遷移
+    await signedInPage.getByRole('button', { name: 'グッジョブ完了を記録する' }).click();
     await expect(signedInPage.getByText('おめでとうございます！')).toBeVisible({ timeout: 10000 });
     await expect(signedInPage.getByText('「(seed) ゴミ拾いをしよう (成果物不要)」を達成しました！')).toBeVisible();
     await signedInPage.getByRole('button', { name: 'このまま閉じる' }).click();
 
-    await expect(signedInPage.getByText('このミッションは達成済みです。')).toBeVisible();
+    await expect(signedInPage.getByText('このグッジョブは達成済みです。')).toBeVisible();
     await expect(signedInPage.getByText('50ポイント獲得しました！')).toBeVisible({ timeout: 10000 });
 
-    // ミッション完了後のポイントの変動を確認
+    // グッジョブ完了後のポイントの変動を確認
     await signedInPage.goto('/');
     await expect(signedInPage.getByRole('dialog', { name: 'サポーターレベルが アップしました！' })).toBeVisible();
     await signedInPage.getByRole('button', { name: 'Close' }).click();
@@ -151,7 +151,7 @@ test.describe('アクションボード（Web版）のe2eテスト', () => {
     await expect(signedInPage.getByText('あなたのランク')).toBeVisible();
     await expect(signedInPage.getByRole('link', { name: 'テストユーザー 東京都 Lv.2 50pt' })).toBeVisible({ timeout: 10000 });
 
-    // ミッション取消後のポイントの変動を確認
+    // グッジョブ取消後のポイントの変動を確認
     await signedInPage.goto('/');
     await signedInPage.getByRole('button', { name: '詳細を見る →' }).first().click();
     await expect(signedInPage).toHaveURL(/\/missions\/[^\/]+$/, { timeout: 10000 });
@@ -191,11 +191,11 @@ test.describe('アクションボード（Web版）のe2eテスト', () => {
     await expect(signedInPage.getByRole('heading', { name: '東京都トップ' })).toBeVisible();
     await expect(signedInPage.getByRole('link', { name: /安野たかひろ 東京都 Lv.20 3,325pt/ })).toBeVisible();
 
-    await signedInPage.getByText('ミッション別').click();
+    await signedInPage.getByText('グッジョブ別').click();
     await expect(signedInPage).toHaveURL('/ranking/ranking-mission', { timeout: 10000 });
-    await expect(signedInPage.getByText('ミッションを選択')).toBeVisible();
+    await expect(signedInPage.getByText('グッジョブを選択')).toBeVisible();
     await expect(signedInPage.getByRole('heading', { name: '「(seed) ゴミ拾いをしよう (成果物不要)」トップ100' })).toBeVisible();
-    // TODO: ミッションランキングに表示されるseedデータを投入する必要あり //
+    // TODO: グッジョブランキングに表示されるseedデータを投入する必要あり //
 
     await signedInPage.getByText('全体').click();
     await expect(signedInPage).toHaveURL('/ranking', { timeout: 10000 });

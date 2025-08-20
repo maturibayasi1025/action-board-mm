@@ -9,9 +9,9 @@ CREATE TABLE mission_main_links (
     CONSTRAINT unique_mission_main_link UNIQUE (mission_id)
 );
 
-COMMENT ON TABLE mission_main_links IS 'ミッションのメインリンク情報（1:1関係）';
+COMMENT ON TABLE mission_main_links IS 'グッジョブのメインリンク情報（1:1関係）';
 COMMENT ON COLUMN mission_main_links.id IS 'レコードの一意識別子';
-COMMENT ON COLUMN mission_main_links.mission_id IS '関連するミッションのID';
+COMMENT ON COLUMN mission_main_links.mission_id IS '関連するグッジョブのID';
 COMMENT ON COLUMN mission_main_links.label IS 'リンクボタンのラベルテキスト';
 COMMENT ON COLUMN mission_main_links.link IS 'リンク先URL';
 COMMENT ON COLUMN mission_main_links.created_at IS 'レコード作成日時';

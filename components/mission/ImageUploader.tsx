@@ -39,7 +39,7 @@ export function ImageUploader({
       !mission?.id
     ) {
       setUploadError(
-        "ファイルが選択されていないか、ユーザーまたはミッション情報がありません。",
+        "ファイルが選択されていないか、ユーザーまたはグッジョブ情報がありません。",
       );
       return;
     }

@@ -97,9 +97,9 @@ const mockUser = {
 
 const mockMission = {
   id: "mission-1",
-  title: "テストミッション",
-  description: "テスト用のミッション",
-  name: "テストミッション",
+  title: "テストグッジョブ",
+  description: "テスト用のグッジョブ",
+  name: "テストグッジョブ",
 } as any;
 
 describe("CurrentUserCardMission", () => {

@@ -36,7 +36,7 @@ npm run test:rls
 - **select_all_achievements**: すべてのユーザーがすべての達成記録を参照可能
 
 ### missions
-- **select_all_missions**: すべてのユーザーがすべてのミッションを参照可能
+- **select_all_missions**: すべてのユーザーがすべてのグッジョブを参照可能
 - 挿入・更新・削除のポリシーはない（管理者のみが可能）
 
 ## 新しいテーブルのテスト追加方法

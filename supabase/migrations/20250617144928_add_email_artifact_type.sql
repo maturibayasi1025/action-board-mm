@@ -78,4 +78,4 @@ UPDATE missions SET
 WHERE title = 'サポーターSlackに入ろう';
 
 -- 4. missionsテーブルのrequired_artifact_typeコメントを更新
-COMMENT ON COLUMN missions.required_artifact_type IS 'ミッション達成に必要な成果物の種類 (LINK, TEXT, EMAIL, IMAGE, NONE)';
+COMMENT ON COLUMN missions.required_artifact_type IS 'グッジョブ達成に必要な成果物の種類 (LINK, TEXT, EMAIL, IMAGE, NONE)';

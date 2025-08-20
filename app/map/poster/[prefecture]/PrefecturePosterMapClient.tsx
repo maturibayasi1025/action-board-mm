@@ -213,14 +213,14 @@ export default function PrefecturePosterMapClient({
     }
   };
 
-  // 掲示板でミッション達成済みかチェック
+  // 掲示板でグッジョブ達成済みかチェック
   const checkBoardMissionCompleted = async (
     boardId: string,
     userId: string,
   ): Promise<boolean> => {
     const supabase = createClient();
 
-    // put-up-poster-on-boardミッションのIDを取得
+    // put-up-poster-on-boardグッジョブのIDを取得
     const { data: mission } = await supabase
       .from("missions")
       .select("id")
@@ -229,7 +229,7 @@ export default function PrefecturePosterMapClient({
 
     if (!mission) return false;
 
-    // この掲示板で既にミッション達成しているかチェック
+    // この掲示板で既にグッジョブ達成しているかチェック
     const { data: activities } = await supabase
       .from("poster_activities")
       .select(`
@@ -248,7 +248,7 @@ export default function PrefecturePosterMapClient({
     return !!(activities && activities.length > 0);
   };
 
-  // ミッション達成処理
+  // グッジョブ達成処理
   const completePosterBoardMission = async (
     board: PosterBoard,
   ): Promise<void> => {
@@ -260,7 +260,7 @@ export default function PrefecturePosterMapClient({
       .single();
 
     if (!mission) {
-      // ミッションが見つからない場合は静かに終了
+      // グッジョブが見つからない場合は静かに終了
       return;
     }
 
@@ -281,7 +281,7 @@ export default function PrefecturePosterMapClient({
     const result = await achieveMissionAction(formData);
 
     if (result.success) {
-      toast.success(`ミッション達成！ +${result.xpGranted}XP獲得`);
+      toast.success(`グッジョブ達成！ +${result.xpGranted}XP獲得`);
     }
   };
 
@@ -292,7 +292,7 @@ export default function PrefecturePosterMapClient({
     try {
       await updateBoardStatus(selectedBoard.id, updateStatus, updateNote);
 
-      // ステータスが「完了」に変更された場合のみミッション達成処理
+      // ステータスが「完了」に変更された場合のみグッジョブ達成処理
       if (updateStatus === "done") {
         const supabase = createClient();
         const {
@@ -300,14 +300,14 @@ export default function PrefecturePosterMapClient({
         } = await supabase.auth.getUser();
 
         if (user) {
-          // この掲示板で既にミッション達成済みかチェック
+          // この掲示板で既にグッジョブ達成済みかチェック
           const hasCompleted = await checkBoardMissionCompleted(
             selectedBoard.id,
             user.id,
           );
 
           if (!hasCompleted) {
-            // ミッション達成処理を実行（非同期で実行し、失敗してもステータス更新は成功扱い）
+            // グッジョブ達成処理を実行（非同期で実行し、失敗してもステータス更新は成功扱い）
             completePosterBoardMission(selectedBoard).catch(() => {
               // エラーは無視して、ステータス更新自体は成功として扱う
             });

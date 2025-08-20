@@ -1,4 +1,4 @@
--- イベント運営ミッションを追加
+-- イベント運営グッジョブを追加
 
 INSERT INTO missions (id, title, icon_url, content, difficulty, event_date, required_artifact_type, max_achievement_count, ogp_image_url, artifact_label)
 VALUES

@@ -35,7 +35,7 @@ export default function PrivacyPolicy() {
             <li>SNSアカウント</li>
             <li>ソーシャルログイン情報</li>
             <li>
-              ミッション成果物（写真・動画のURL、SNS投稿リンク、位置情報等）
+              グッジョブ成果物（写真・動画のURL、SNS投稿リンク、位置情報等）
             </li>
             <li>アクセスログ（IPアドレス、ブラウザ情報、Cookie情報等）</li>
           </ul>
@@ -52,7 +52,7 @@ export default function PrivacyPolicy() {
             <li>本サービスの提供・運営のため</li>
             <li>ユーザー認証およびログイン管理のため</li>
             <li>ポイント集計・ランキング機能提供のため</li>
-            <li>ミッション実施状況の確認および不正防止のため</li>
+            <li>グッジョブ実施状況の確認および不正防止のため</li>
             <li>地域に応じた演説会・説明会などのお知らせ送信のため</li>
             <li>アクセス状況の分析およびサービス改善のため</li>
             <li>
@@ -92,10 +92,10 @@ export default function PrivacyPolicy() {
 
         <section>
           <h2 className="text-2xl font-semibold text-gray-900 mb-4 border-b-2 border-blue-500 pb-2">
-            6. ミッション成果物の取り扱い
+            6. グッジョブ成果物の取り扱い
           </h2>
           <p className="text-gray-700 leading-relaxed">
-            ユーザーが提出したミッションの成果物（写真、動画URL、SNS投稿リンク、位置情報等）は、当団体内部での確認・記録・不正防止の目的に限って利用され、ユーザーの事前の同意がない限り公開されることはありません。
+            ユーザーが提出したグッジョブの成果物（写真、動画URL、SNS投稿リンク、位置情報等）は、当団体内部での確認・記録・不正防止の目的に限って利用され、ユーザーの事前の同意がない限り公開されることはありません。
           </p>
         </section>
 

@@ -26,7 +26,7 @@ class MissionListPage extends ConsumerWidget {
             flexibleSpace: FlexibleSpaceBar(
               centerTitle: true,
               title: Text(
-                '🎯ミッション一覧',
+                '🎯グッジョブ一覧',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   color: AppColors.textPrimary,
                   fontWeight: FontWeight.w700,
@@ -39,11 +39,11 @@ class MissionListPage extends ConsumerWidget {
             data: (missions) {
               if (missions.isEmpty) {
                 return const SliverFillRemaining(
-                  child: Center(child: Text('ミッションがありません')),
+                  child: Center(child: Text('グッジョブがありません')),
                 );
               }
 
-              // ミッションを難易度でグループ化
+              // グッジョブを難易度でグループ化
               final groupedMissions = _groupMissionsByDifficulty(missions);
 
               return SliverList(
@@ -83,13 +83,13 @@ class MissionListPage extends ConsumerWidget {
           category = '🎯 まずはここから！';
           break;
         case 2:
-          category = '🎯 ポスティング系ミッション';
+          category = '🎯 ポスティング系グッジョブ';
           break;
         case 3:
           category = '🎯 高ポイントが獲得できる';
           break;
         default:
-          category = '🎯 その他のミッション';
+          category = '🎯 その他のグッジョブ';
       }
 
       grouped.putIfAbsent(category, () => []).add(mission);
@@ -122,7 +122,7 @@ class MissionListPage extends ConsumerWidget {
               ),
             ),
           ),
-          // 横スクロールのミッションリスト
+          // 横スクロールのグッジョブリスト
           SizedBox(
             height: 240,
             child: ListView.builder(

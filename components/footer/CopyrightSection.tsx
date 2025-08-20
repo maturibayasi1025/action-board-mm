@@ -8,7 +8,7 @@ export function CopyrightSection() {
         <div className="text-center">
           <div className="flex justify-center items-center gap-2 text-sm">
             <Link
-              href="https://team-mir.ai/"
+              href="https://maisonmarc.com/"
               target="_blank"
               rel="noopener noreferrer"
               className="hover:text-teal-700 transition-colors duration-200 text-teal-600"
@@ -17,14 +17,14 @@ export function CopyrightSection() {
             </Link>
             <span>|</span>
             <Link
-              href="/terms"
+              href="/"
               className="hover:text-teal-700 transition-colors duration-200 text-teal-600"
             >
               利用規約
             </Link>
             <span>|</span>
             <Link
-              href="/privacy"
+              href="/"
               className="hover:text-teal-700 transition-colors duration-200 text-teal-600"
             >
               プライバシーポリシー
@@ -41,7 +41,7 @@ export function CopyrightSection() {
           </div>
         </div>
         <p className="text-sm text-muted-foreground text-center mt-4">
-          © 2025 Team Mirai. All rights reserved.
+          © 2025 MAISON MARC. All rights reserved.
         </p>
       </div>
     </div>

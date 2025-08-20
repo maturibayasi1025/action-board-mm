@@ -2,7 +2,7 @@
 drop function if exists get_mission_ranking(uuid, integer);
 drop function if exists get_user_mission_ranking(uuid, uuid);
 
--- ミッションランキング関数を再作成（ポイント集計を追加）
+-- グッジョブランキング関数を再作成（ポイント集計を追加）
 create function get_mission_ranking(mission_id uuid, limit_count integer default 10)
 returns table (
   user_id uuid,
@@ -48,12 +48,12 @@ as $$
   from public_user_profiles u
   left join user_ranking_view r on u.id = r.user_id
   left join mission_stats ms on u.id = ms.user_id
-  where ms.mission_clear_count > 0  -- ミッションをクリアした人のみ表示
+  where ms.mission_clear_count > 0  -- グッジョブをクリアした人のみ表示
   order by rank
   limit get_mission_ranking.limit_count;
 $$;
 
--- ユーザーのミッションランキング関数も再作成
+-- ユーザーのグッジョブランキング関数も再作成
 create function get_user_mission_ranking(mission_id uuid, user_id uuid)
 returns table (
   user_id uuid,

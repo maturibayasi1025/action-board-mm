@@ -244,16 +244,16 @@ function LoginSelectionPhase({
       )}
 
       {/* LINEログインボタン */}
-      <Button
+      {/* <Button
         type="button"
         onClick={handleLINELogin}
         disabled={isLoading}
         className="w-full h-12 bg-[#00B900] hover:bg-[#00A000] text-white"
       >
         {isLoading ? "LINE連携中..." : "LINEでアカウント作成"}
-      </Button>
+      </Button> */}
 
-      <div className="relative my-4">
+      {/* <div className="relative my-4">
         <div className="absolute inset-0 flex items-center">
           <span className="w-full border-t" />
         </div>
@@ -262,7 +262,7 @@ function LoginSelectionPhase({
             または
           </span>
         </div>
-      </div>
+      </div> */}
 
       {/* Email + Passwordフォームへのリンク */}
       <Button

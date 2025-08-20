@@ -30,7 +30,7 @@ export function RankingTabs({ children }: RankingTabsProps) {
           <Link href="/ranking/ranking-prefecture">都道府県別</Link>
         </TabsTrigger>
         <TabsTrigger value="mission" asChild>
-          <Link href="/ranking/ranking-mission">ミッション別</Link>
+          <Link href="/ranking/ranking-mission">グッジョブ別</Link>
         </TabsTrigger>
       </TabsList>
       <TabsContent value={getTabValue()}>{children}</TabsContent>

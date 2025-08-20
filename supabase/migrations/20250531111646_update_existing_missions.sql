@@ -1,6 +1,6 @@
--- 既存ミッションデータの更新および新しいミッションの追加
+-- 既存グッジョブデータの更新および新しいグッジョブの追加
 
--- 既存ミッションの更新
+-- 既存グッジョブの更新
 UPDATE missions SET 
   title = 'Youtube動画を切り抜こう',
   content = 'チームみらいのYoutube動画を切り抜いてYoutubeショートにアップロードしてください。成果物として、そのURLを入力してください。'
@@ -39,7 +39,7 @@ UPDATE missions SET
   max_achievement_count = 1
 WHERE id = 'e7a03d8b-ef29-406f-b2fb-065285855997';
 
--- 新しいミッションの追加
+-- 新しいグッジョブの追加
 INSERT INTO missions (id, title, icon_url, content, difficulty, event_date, required_artifact_type, max_achievement_count)
 VALUES
   ('1776d950-34f4-44e6-a5c5-2e40fa9038a3', '公式noteをフォローしよう', '/img/mission_fallback_icon.png', '<a href="https://note.com/annotakahiro24">チームみらいの公式note</a>をフォローしてください。成果物として、あなたのnoteのアカウント名を入力してください。', 1, NULL, 'TEXT', 1),

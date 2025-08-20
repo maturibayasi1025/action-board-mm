@@ -19,7 +19,7 @@ describe("missionsRanking service", () => {
   describe("getMissionRanking", () => {
     const missionId = "mission-123";
 
-    describe("全期間のミッションランキング取得", () => {
+    describe("全期間のグッジョブランキング取得", () => {
       it("デフォルトで全期間のランキングを取得する", async () => {
         const mockRankingData = [
           {
@@ -81,7 +81,7 @@ describe("missionsRanking service", () => {
       });
     });
 
-    describe("期間別ミッションランキング取得", () => {
+    describe("期間別グッジョブランキング取得", () => {
       it("日間ランキングを取得する", async () => {
         const mockRankingData = [
           {
@@ -154,7 +154,7 @@ describe("missionsRanking service", () => {
       });
 
       await expect(getMissionRanking(missionId)).rejects.toThrow(
-        "ミッションランキングデータの取得に失敗しました: Database error",
+        "グッジョブランキングデータの取得に失敗しました: Database error",
       );
     });
 
@@ -173,7 +173,7 @@ describe("missionsRanking service", () => {
     const missionId = "mission-123";
     const userId = "user-456";
 
-    describe("全期間のユーザーミッションランキング取得", () => {
+    describe("全期間のユーザーグッジョブランキング取得", () => {
       it("特定ユーザーのランキング情報を取得する", async () => {
         const mockRankingData = [
           {
@@ -212,7 +212,7 @@ describe("missionsRanking service", () => {
       });
     });
 
-    describe("期間別ユーザーミッションランキング取得", () => {
+    describe("期間別ユーザーグッジョブランキング取得", () => {
       it("日間のユーザーランキングを取得する", async () => {
         const mockRankingData = [
           {
@@ -269,7 +269,7 @@ describe("missionsRanking service", () => {
       });
 
       await expect(getUserMissionRanking(missionId, userId)).rejects.toThrow(
-        "ユーザーのミッションランキングデータの取得に失敗しました: Database error",
+        "ユーザーのグッジョブランキングデータの取得に失敗しました: Database error",
       );
     });
   });

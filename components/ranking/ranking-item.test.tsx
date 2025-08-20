@@ -121,13 +121,13 @@ describe("RankingItem", () => {
     });
   });
 
-  describe("ミッション別ランキング表示", () => {
+  describe("グッジョブ別ランキング表示", () => {
     const mission = {
       id: "test-mission",
-      name: "テストミッション",
+      name: "テストグッジョブ",
     };
 
-    it("ミッション別ランキングの場合はポイントが表示される", () => {
+    it("グッジョブ別ランキングの場合はポイントが表示される", () => {
       render(
         <RankingItem
           user={mockUserRanking}
@@ -141,7 +141,7 @@ describe("RankingItem", () => {
       expect(screen.getByText("5回達成")).toBeInTheDocument();
     });
 
-    it("ミッション別ランキングの場合はレベル表示されない", () => {
+    it("グッジョブ別ランキングの場合はレベル表示されない", () => {
       render(
         <RankingItem
           user={mockUserRanking}

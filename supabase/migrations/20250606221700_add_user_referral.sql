@@ -1,4 +1,4 @@
--- ユーザー別リファラルコード（紹介ミッション用）を保持するテーブルの作成
+-- ユーザー別リファラルコード（紹介グッジョブ用）を保持するテーブルの作成
 
 create table user_referral (
   user_id uuid primary key references auth.users(id) on delete cascade,

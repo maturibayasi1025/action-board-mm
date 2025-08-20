@@ -101,7 +101,7 @@ describe("utils", () => {
     });
   });
 
-  describe("ミッション経験値計算", () => {
+  describe("グッジョブ経験値計算", () => {
     describe("calculateMissionXp", () => {
       it("難易度1（★1 Easy）は50XP", () => {
         expect(calculateMissionXp(1)).toBe(50);

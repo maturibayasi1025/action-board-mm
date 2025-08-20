@@ -377,7 +377,7 @@ missions:
   - slug: quiz-teammirai-anno
     title: チームみらいクイズ（安野編）に挑戦しよう
     icon_url: /img/mission_fallback.svg
-    content: チームみらいの党首・安野たかひろについてのクイズです。全問正解でミッション達成！
+    content: チームみらいの党首・安野たかひろについてのクイズです。全問正解でグッジョブ達成！
     difficulty: 2
     required_artifact_type: QUIZ
     max_achievement_count: 3
@@ -388,7 +388,7 @@ missions:
   - slug: quiz-teammirai-vision
     title: チームみらいクイズ（ビジョン編）に挑戦しよう
     icon_url: /img/mission_fallback.svg
-    content: チームみらいのビジョンについてのクイズです。全問正解でミッション達成！
+    content: チームみらいのビジョンについてのクイズです。全問正解でグッジョブ達成！
     difficulty: 2
     required_artifact_type: QUIZ
     max_achievement_count: 3
@@ -399,7 +399,7 @@ missions:
   - slug: quiz-teammirai-values
     title: チームみらいクイズ（価値観編）に挑戦しよう
     icon_url: /img/mission_fallback.svg
-    content: チームみらいの価値観についてのクイズです。全問正解でミッション達成！
+    content: チームみらいの価値観についてのクイズです。全問正解でグッジョブ達成！
     difficulty: 2
     required_artifact_type: QUIZ
     max_achievement_count: 3
@@ -410,7 +410,7 @@ missions:
   - slug: quiz-policy-vision
     title: 政策クイズ（ビジョン編）に挑戦しよう
     icon_url: /img/mission_fallback.svg
-    content: チームみらいの政策ビジョンについてのクイズです。全問正解でミッション達成！
+    content: チームみらいの政策ビジョンについてのクイズです。全問正解でグッジョブ達成！
     difficulty: 2
     required_artifact_type: QUIZ
     max_achievement_count: 3
@@ -421,7 +421,7 @@ missions:
   - slug: quiz-policy-step1
     title: 政策クイズ（ステップ１）に挑戦しよう
     icon_url: /img/mission_fallback.svg
-    content: チームみらいの政策ステップ１についてのクイズです。全問正解でミッション達成！
+    content: チームみらいの政策ステップ１についてのクイズです。全問正解でグッジョブ達成！
     difficulty: 2
     required_artifact_type: QUIZ
     max_achievement_count: 3
@@ -432,7 +432,7 @@ missions:
   - slug: quiz-policy-step2
     title: 政策クイズ（ステップ２）に挑戦しよう
     icon_url: /img/mission_fallback.svg
-    content: チームみらいの政策ステップ２についてのクイズです。全問正解でミッション達成！
+    content: チームみらいの政策ステップ２についてのクイズです。全問正解でグッジョブ達成！
     difficulty: 2
     required_artifact_type: QUIZ
     max_achievement_count: 3
@@ -442,7 +442,7 @@ missions:
   - slug: quiz-policy-step3
     title: 政策クイズ（ステップ３）に挑戦しよう
     icon_url: /img/mission_fallback.svg
-    content: チームみらいの政策ステップ３についてのクイズです。全問正解でミッション達成！
+    content: チームみらいの政策ステップ３についてのクイズです。全問正解でグッジョブ達成！
     difficulty: 2
     required_artifact_type: QUIZ
     max_achievement_count: 3
@@ -452,7 +452,7 @@ missions:
   - slug: quiz-policy-100days
     title: 政策クイズ（100日プラン）に挑戦しよう
     icon_url: /img/mission_fallback.svg
-    content: チームみらいの国政政党成立後１００日プランについてのクイズです。全問正解でミッション達成！
+    content: チームみらいの国政政党成立後１００日プランについてのクイズです。全問正解でグッジョブ達成！
     difficulty: 2
     required_artifact_type: QUIZ
     max_achievement_count: 3
@@ -462,7 +462,7 @@ missions:
   - slug: "quiz-electionlaw-basic"
     title: 公職選挙法クイズ（基礎編）に挑戦しよう
     icon_url: /img/mission_fallback.svg
-    content: 公職選挙法の基礎についてのクイズです。全問正解でミッション達成！
+    content: 公職選挙法の基礎についてのクイズです。全問正解でグッジョブ達成！
     difficulty: 2
     required_artifact_type: QUIZ
     max_achievement_count: 3
@@ -472,7 +472,7 @@ missions:
   - slug: "quiz-electionlaw-period"
     title: 公職選挙法クイズ（選挙期間編）に挑戦しよう
     icon_url: /img/mission_fallback.svg
-    content: 選挙期間に関する公職選挙法のクイズです。全問正解でミッション達成！
+    content: 選挙期間に関する公職選挙法のクイズです。全問正解でグッジョブ達成！
     difficulty: 2
     required_artifact_type: QUIZ
     max_achievement_count: 3
@@ -482,7 +482,7 @@ missions:
   - slug: "quiz-electionlaw-electionday"
     title: 公職選挙法クイズ（投票日当日編）に挑戦しよう
     icon_url: /img/mission_fallback.svg
-    content: 投票日当日に関する公職選挙法のクイズです。全問正解でミッション達成！
+    content: 投票日当日に関する公職選挙法のクイズです。全問正解でグッジョブ達成！
     difficulty: 2
     required_artifact_type: QUIZ
     max_achievement_count: 3

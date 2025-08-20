@@ -15,21 +15,21 @@ jest.mock("@/components/ui/card", () => ({
 
 describe("MissionAchievementCard", () => {
   describe("基本的な表示", () => {
-    it("ミッションタイトルが正しく表示される", () => {
-      render(<MissionAchievementCard title="テストミッション" count={5} />);
+    it("グッジョブタイトルが正しく表示される", () => {
+      render(<MissionAchievementCard title="テストグッジョブ" count={5} />);
 
-      expect(screen.getByText("テストミッション")).toBeInTheDocument();
+      expect(screen.getByText("テストグッジョブ")).toBeInTheDocument();
     });
 
     it("達成回数が正しく表示される", () => {
-      render(<MissionAchievementCard title="テストミッション" count={3} />);
+      render(<MissionAchievementCard title="テストグッジョブ" count={3} />);
 
       expect(screen.getByText("3")).toBeInTheDocument();
       expect(screen.getByText("回")).toBeInTheDocument();
     });
 
     it("Cardコンポーネントが使用される", () => {
-      render(<MissionAchievementCard title="テストミッション" count={1} />);
+      render(<MissionAchievementCard title="テストグッジョブ" count={1} />);
 
       expect(screen.getByTestId("card")).toBeInTheDocument();
     });
@@ -37,21 +37,21 @@ describe("MissionAchievementCard", () => {
 
   describe("様々な値での表示", () => {
     it("達成回数が0の場合も正しく表示される", () => {
-      render(<MissionAchievementCard title="未達成ミッション" count={0} />);
+      render(<MissionAchievementCard title="未達成グッジョブ" count={0} />);
 
       expect(screen.getByText("0")).toBeInTheDocument();
       expect(screen.getByText("回")).toBeInTheDocument();
     });
 
     it("達成回数が大きい数値の場合も正しく表示される", () => {
-      render(<MissionAchievementCard title="人気ミッション" count={999} />);
+      render(<MissionAchievementCard title="人気グッジョブ" count={999} />);
 
       expect(screen.getByText("999")).toBeInTheDocument();
       expect(screen.getByText("回")).toBeInTheDocument();
     });
 
     it("長いタイトルの場合も表示される", () => {
-      const longTitle = "これは非常に長いミッションタイトルのテストです";
+      const longTitle = "これは非常に長いグッジョブタイトルのテストです";
       render(<MissionAchievementCard title={longTitle} count={2} />);
 
       expect(screen.getByText(longTitle)).toBeInTheDocument();

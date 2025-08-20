@@ -13,9 +13,9 @@ export const defaultUrl =
 // ==========================================
 
 export const config = {
-  title: "チームみらい アクションボード",
+  title: "MAISON MARC アクションボード",
   description:
-    "政治活動をもっと身近に。政治活動をゲーム感覚で楽しめる、チームみらいのアクションボード。",
+    "これまでMAISON MARCのカルチャーをゲーム感覚で楽しめる、MAISON MARCのアクションボード。",
   defaultImage: "/img/ogp-default.png",
   icons: {
     icon: [

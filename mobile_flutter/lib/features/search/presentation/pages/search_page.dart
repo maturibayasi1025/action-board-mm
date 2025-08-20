@@ -43,7 +43,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
               focusNode: _focusNode,
               style: Theme.of(context).textTheme.bodyLarge,
               decoration: InputDecoration(
-                hintText: 'ミッションを検索',
+                hintText: 'グッジョブを検索',
                 hintStyle: Theme.of(context).textTheme.bodyLarge?.copyWith(
                   color: AppColors.textTertiary,
                 ),
@@ -128,7 +128,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
         final category = categories[index];
         return InkWell(
           onTap: () {
-            // TODO: カテゴリー別ミッション一覧へ遷移
+            // TODO: カテゴリー別グッジョブ一覧へ遷移
           },
           borderRadius: BorderRadius.circular(12),
           child: Container(

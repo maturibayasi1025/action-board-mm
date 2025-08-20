@@ -8,7 +8,7 @@ export default function FeaturedMissions(
     <Missions
       {...props}
       filterFeatured={true}
-      title="📈 重要ミッション"
+      title="📈 重要グッジョブ"
       id="featured-missions"
     />
   );

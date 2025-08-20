@@ -47,7 +47,7 @@ export function useQuizMission({
   const [quizKey, setQuizKey] = useState(0); // QuizComponentを再マウントするためのkey
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // ミッションがQUIZタイプの場合、DBからカテゴリを取得
+  // グッジョブがQUIZタイプの場合、DBからカテゴリを取得
   useEffect(() => {
     if (mission.required_artifact_type === ARTIFACT_TYPES.QUIZ.key) {
       getMissionQuizCategoryAction(mission.id).then((result) => {
@@ -69,7 +69,7 @@ export function useQuizMission({
     // スクロールはQuizComponent内で結果カードまでスクロールするため、ここでは行わない
   };
 
-  // クイズミッション達成時の処理
+  // クイズグッジョブ達成時の処理
   const handleQuizSubmit = async () => {
     // 連続報告を防ぐため、提出中や結果がない場合は早期リターン
     if (isSubmitting || !quizPassed || !quizResults) {
@@ -80,7 +80,7 @@ export function useQuizMission({
       setIsSubmitting(true);
       onErrorMessage?.(null);
 
-      // achieveMissionActionを呼び出してミッション達成を記録
+      // achieveMissionActionを呼び出してグッジョブ達成を記録
       const formData = new FormData();
       formData.append("missionId", mission.id);
       formData.append("requiredArtifactType", ARTIFACT_TYPES.QUIZ.key);
@@ -97,7 +97,7 @@ export function useQuizMission({
         setQuizPassed(false);
         setQuizKey((prev) => prev + 1); // QuizComponentを再マウント
 
-        toast.success("クイズミッション達成！");
+        toast.success("クイズグッジョブ達成！");
         onDialogOpen?.();
 
         // XPアニメーション表示
@@ -116,7 +116,7 @@ export function useQuizMission({
         }
       } else {
         console.error("achieveMissionAction failed:", result.error);
-        onErrorMessage?.(result.error || "ミッションの達成に失敗しました");
+        onErrorMessage?.(result.error || "グッジョブの達成に失敗しました");
       }
     } catch (error) {
       console.error("Quiz submission error:", error);

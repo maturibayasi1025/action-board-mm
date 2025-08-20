@@ -27,10 +27,10 @@ const mockMissionCategoryViewData = [
     category_kbn: "A",
     category_sort_no: 1,
     mission_id: "mission-1",
-    title: "ミッション1",
+    title: "グッジョブ1",
     icon_url: "/icon1.svg",
     difficulty: 1,
-    content: "ミッション1の内容",
+    content: "グッジョブ1の内容",
     created_at: "2025-06-22T00:00:00Z",
     artifact_label: null,
     max_achievement_count: null,
@@ -48,10 +48,10 @@ const mockMissionCategoryViewData = [
     category_kbn: "B",
     category_sort_no: 2,
     mission_id: "mission-2",
-    title: "ミッション2",
+    title: "グッジョブ2",
     icon_url: "/icon2.svg",
     difficulty: 2,
-    content: "ミッション2の内容",
+    content: "グッジョブ2の内容",
     created_at: "2025-06-21T00:00:00Z",
     artifact_label: null,
     max_achievement_count: 3,
@@ -70,7 +70,7 @@ describe("MissionsByCategory", () => {
     jest.clearAllMocks();
   });
 
-  it("カテゴリ別にミッションが表示される", async () => {
+  it("カテゴリ別にグッジョブが表示される", async () => {
     const component = await MissionsByCategory({
       showAchievedMissions: true,
     });
@@ -100,7 +100,7 @@ describe("MissionsByCategory", () => {
 
     await waitFor(() => {
       expect(
-        screen.getByText("ミッションが見つかりませんでした"),
+        screen.getByText("グッジョブが見つかりませんでした"),
       ).toBeInTheDocument();
     });
   });

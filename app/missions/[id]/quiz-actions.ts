@@ -12,7 +12,7 @@ export interface QuizQuestion {
   category?: string; // カテゴリー名を追加
 }
 
-// ミッションリンクの型定義
+// グッジョブリンクの型定義
 export interface MissionLink {
   link: string;
   remark: string | null;
@@ -39,7 +39,7 @@ interface MissionQuizQuestion extends DbQuizQuestion {
   };
 }
 
-// ミッションのクイズカテゴリ取得関数
+// グッジョブのクイズカテゴリ取得関数
 async function getMissionQuizCategory(
   missionId: string,
 ): Promise<string | null> {
@@ -68,13 +68,13 @@ async function getMissionQuizCategory(
   return category?.name || null;
 }
 
-// ミッション用のクイズ問題取得関数
+// グッジョブ用のクイズ問題取得関数
 async function getQuestionsByMission(
   missionId: string,
 ): Promise<QuizQuestion[]> {
   const supabase = await createServiceClient();
 
-  // ミッションに紐づく問題を直接取得
+  // グッジョブに紐づく問題を直接取得
   const { data, error } = await supabase
     .from("quiz_questions")
     .select(`
@@ -124,7 +124,7 @@ async function getQuestionsByMission(
 
 // === クイズ関連のServer Actions ===
 
-// ミッションのクイズカテゴリを取得する
+// グッジョブのクイズカテゴリを取得する
 export const getMissionQuizCategoryAction = async (missionId: string) => {
   try {
     const category = await getMissionQuizCategory(missionId);
@@ -142,7 +142,7 @@ export const getMissionQuizCategoryAction = async (missionId: string) => {
   }
 };
 
-// ミッションのリンクを取得する
+// グッジョブのリンクを取得する
 export const getMissionLinksAction = async (missionId: string) => {
   try {
     const supabase = await createServiceClient();
@@ -176,16 +176,16 @@ export const getMissionLinksAction = async (missionId: string) => {
   }
 };
 
-// ミッションのクイズ問題を取得する
+// グッジョブのクイズ問題を取得する
 export const getQuizQuestionsAction = async (missionId: string) => {
   try {
-    // ミッションに紐づく問題を取得
+    // グッジョブに紐づく問題を取得
     const questions = await getQuestionsByMission(missionId);
 
     if (!questions || questions.length === 0) {
       return {
         success: false,
-        error: "このミッションにはクイズ問題が設定されていません",
+        error: "このグッジョブにはクイズ問題が設定されていません",
       };
     }
 
@@ -224,13 +224,13 @@ export const checkQuizAnswersAction = async (
       return { success: false, error: "認証が必要です" };
     }
 
-    // ミッションに紐づく問題を取得（正解と照合するため）
+    // グッジョブに紐づく問題を取得（正解と照合するため）
     const questions = await getQuestionsByMission(missionId);
 
     if (!questions || questions.length === 0) {
       return {
         success: false,
-        error: "このミッションにはクイズ問題が設定されていません",
+        error: "このグッジョブにはクイズ問題が設定されていません",
       };
     }
 

@@ -179,19 +179,19 @@ sender_name = "env(SMTP_SENDER_NAME)"
 # subject = "You have been invited"
 # content_path = "./supabase/templates/invite.html"
 [auth.email.template.confirmation]
-subject = "チームみらいアクションボード メールアドレス確認"
+subject = "MAISON MARC アクションボード メールアドレス確認"
 content_path = "./supabase/templates/confirmation.html"
 [auth.email.template.invite]
-subject = "チームみらいアクションボード 招待メール"
+subject = "MAISON MARC アクションボード 招待メール"
 content_path = "./supabase/templates/invite.html"
 [auth.email.template.recovery]
-subject = "チームみらいアクションボード パスワードリセット"
+subject = "MAISON MARC アクションボード パスワードリセット"
 content_path = "./supabase/templates/recovery.html"
 [auth.email.template.magic_link]
-subject = "チームみらいアクションボード ログインメール"
+subject = "MAISON MARC アクションボード ログインメール"
 content_path = "./supabase/templates/magic_link.html"
 [auth.email.template.email_change]
-subject = "チームみらいアクションボード メールアドレス変更"
+subject = "MAISON MARC アクションボード メールアドレス変更"
 content_path = "./supabase/templates/email_change.html"
 
 [auth.sms]

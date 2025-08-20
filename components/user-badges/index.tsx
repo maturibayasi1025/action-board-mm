@@ -101,10 +101,10 @@ export function UserBadges({ userId }: UserBadgesProps) {
         </div>
       )}
 
-      {/* ミッションランキングバッジ */}
+      {/* グッジョブランキングバッジ */}
       {groupedBadges.MISSION && (
         <div>
-          <h4 className="text-sm font-medium mb-2">ミッションランキング</h4>
+          <h4 className="text-sm font-medium mb-2">グッジョブランキング</h4>
           <div className="flex flex-wrap gap-2">
             {groupedBadges.MISSION.map((badge) => (
               <BadgeItem key={badge.id} badge={badge} />

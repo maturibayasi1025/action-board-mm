@@ -142,7 +142,7 @@ class ActivityPage extends ConsumerWidget {
       {
         'type': 'achievement',
         'user': 'ユーザーA',
-        'action': 'ミッション「海岸清掃」を達成しました',
+        'action': 'グッジョブ「海岸清掃」を達成しました',
         'time': '5分前',
         'icon': Icons.check_circle,
         'color': AppColors.success,
@@ -166,7 +166,7 @@ class ActivityPage extends ConsumerWidget {
       {
         'type': 'milestone',
         'user': 'コミュニティ',
-        'action': '合計10,000ミッション達成！',
+        'action': '合計10,000グッジョブ達成！',
         'time': '30分前',
         'icon': Icons.celebration,
         'color': AppColors.warning,

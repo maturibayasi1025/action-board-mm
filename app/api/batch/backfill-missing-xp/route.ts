@@ -24,11 +24,11 @@ type AchievementWithMission = {
 };
 
 /**
- * ポイントが加算されていないミッション達成にポイントを付与するバッチ処理
+ * ポイントが加算されていないグッジョブ達成にポイントを付与するバッチ処理
  *
  * 本APIは管理者が実行する想定で、以下の処理を行います：
- * 1. XPトランザクションが記録されていないミッション達成を検索
- * 2. 各達成にミッション難易度に応じたXPを付与
+ * 1. XPトランザクションが記録されていないグッジョブ達成を検索
+ * 2. 各達成にグッジョブ難易度に応じたXPを付与
  * 3. 処理結果をレポートとして返却
  */
 export async function POST(request: NextRequest) {
@@ -69,12 +69,12 @@ export async function POST(request: NextRequest) {
 
     if (allAchievementsError) {
       console.error(
-        "全ミッション達成データの取得に失敗しました:",
+        "全グッジョブ達成データの取得に失敗しました:",
         allAchievementsError,
       );
       return NextResponse.json(
         {
-          error: "全ミッション達成データの取得に失敗しました",
+          error: "全グッジョブ達成データの取得に失敗しました",
           details: allAchievementsError.message,
         },
         { status: 500 },
@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
     if (!typedAchievements || typedAchievements.length === 0) {
       return NextResponse.json({
         success: true,
-        message: "処理対象のミッション達成が見つかりませんでした",
+        message: "処理対象のグッジョブ達成が見つかりませんでした",
         processed: 0,
         skipped: 0,
         errors: 0,
@@ -141,7 +141,7 @@ export async function POST(request: NextRequest) {
     if (missingXpAchievements.length === 0) {
       return NextResponse.json({
         success: true,
-        message: "XP未付与のミッション達成は見つかりませんでした",
+        message: "XP未付与のグッジョブ達成は見つかりませんでした",
         processed: 0,
         skipped: 0,
         errors: 0,
@@ -180,7 +180,7 @@ export async function POST(request: NextRequest) {
 
       if (!mission) {
         console.warn(
-          `達成ID ${achievement.id} のミッション情報が見つかりません`,
+          `達成ID ${achievement.id} のグッジョブ情報が見つかりません`,
         );
         skippedCount++;
         results.push({
@@ -188,13 +188,13 @@ export async function POST(request: NextRequest) {
           userId: achievement.user_id,
           missionTitle: "不明",
           status: "skipped",
-          error: "ミッション情報が見つかりません",
+          error: "グッジョブ情報が見つかりません",
         });
         continue;
       }
 
       const xpToGrant = calculateMissionXp(mission.difficulty);
-      const description = `ミッション「${mission.title}」達成による経験値獲得`;
+      const description = `グッジョブ「${mission.title}」達成による経験値獲得`;
 
       batchTransactions.push({
         userId: achievement.user_id,
@@ -374,8 +374,8 @@ export async function GET() {
       },
       message:
         missingXpCount > 0
-          ? `${missingXpCount} 件のミッション達成にXPが付与されていません`
-          : "すべてのミッション達成にXPが付与されています",
+          ? `${missingXpCount} 件のグッジョブ達成にXPが付与されていません`
+          : "すべてのグッジョブ達成にXPが付与されています",
     });
   } catch (error) {
     console.error("統計取得でエラーが発生しました:", error);

@@ -1,4 +1,4 @@
--- Xでチームみらいに関する投稿をしよう ミッションを追加
+-- Xでチームみらいに関する投稿をしよう グッジョブを追加
 INSERT INTO missions (id, title, icon_url, content, difficulty, event_date, required_artifact_type, max_achievement_count, ogp_image_url, artifact_label, is_featured, is_hidden)
 VALUES (
   '8f923e4a-bc5d-4a7e-9e1f-2c8d7b6a4e9f',

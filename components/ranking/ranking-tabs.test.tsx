@@ -69,7 +69,7 @@ describe("RankingTabs", () => {
 
       expect(screen.getByText("全体")).toBeInTheDocument();
       expect(screen.getByText("都道府県別")).toBeInTheDocument();
-      expect(screen.getByText("ミッション別")).toBeInTheDocument();
+      expect(screen.getByText("グッジョブ別")).toBeInTheDocument();
     });
 
     it("リンクが正しく設定される", () => {
@@ -117,7 +117,7 @@ describe("RankingTabs", () => {
       expect(tabsContent).toHaveAttribute("data-value", "overall");
     });
 
-    it("ミッション別ランキングページの場合はmissionが選択される", () => {
+    it("グッジョブ別ランキングページの場合はmissionが選択される", () => {
       mockPathname.mockReturnValue("/ranking/ranking-mission");
 
       render(
@@ -149,7 +149,7 @@ describe("RankingTabs", () => {
       expect(tabsContent).toHaveAttribute("data-value", "prefecture");
     });
 
-    it("ミッション別ランキングページのサブパスでもmissionが選択される", () => {
+    it("グッジョブ別ランキングページのサブパスでもmissionが選択される", () => {
       mockPathname.mockReturnValue("/ranking/ranking-mission/some-mission");
 
       render(

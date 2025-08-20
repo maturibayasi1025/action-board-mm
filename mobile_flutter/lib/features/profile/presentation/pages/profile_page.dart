@@ -126,9 +126,9 @@ class ProfilePage extends ConsumerWidget {
                   _buildMenuItem(
                     context: context,
                     icon: Icons.bookmark,
-                    title: '保存したミッション',
+                    title: '保存したグッジョブ',
                     onTap: () {
-                      // TODO: 保存したミッション画面へ遷移
+                      // TODO: 保存したグッジョブ画面へ遷移
                     },
                   ),
                   _buildMenuItem(

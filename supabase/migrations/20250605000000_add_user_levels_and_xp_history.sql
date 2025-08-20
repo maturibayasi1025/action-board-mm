@@ -26,7 +26,7 @@ CREATE TABLE xp_transactions (
         REFERENCES auth.users(id) ON DELETE CASCADE,
     xp_amount INTEGER NOT NULL,
     source_type TEXT NOT NULL CHECK (source_type IN ('MISSION_COMPLETION', 'BONUS', 'PENALTY')),
-    source_id UUID, -- ミッション達成IDなど、ソースに応じたID
+    source_id UUID, -- グッジョブ達成IDなど、ソースに応じたID
     description TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -36,7 +36,7 @@ COMMENT ON COLUMN xp_transactions.id IS 'トランザクションID';
 COMMENT ON COLUMN xp_transactions.user_id IS 'ユーザーID';
 COMMENT ON COLUMN xp_transactions.xp_amount IS 'XP増減量（正数で獲得、負数で消費）';
 COMMENT ON COLUMN xp_transactions.source_type IS 'XP獲得源の種類';
-COMMENT ON COLUMN xp_transactions.source_id IS 'ソースとなったレコードのID（ミッション達成IDなど）';
+COMMENT ON COLUMN xp_transactions.source_id IS 'ソースとなったレコードのID（グッジョブ達成IDなど）';
 COMMENT ON COLUMN xp_transactions.description IS 'XP獲得の詳細説明';
 COMMENT ON COLUMN xp_transactions.created_at IS '記録日時(UTC)';
 

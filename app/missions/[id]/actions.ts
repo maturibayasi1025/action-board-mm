@@ -37,7 +37,7 @@ export {
 
 // 基本スキーマ（共通項目）
 const baseMissionFormSchema = z.object({
-  missionId: z.string().nonempty({ message: "ミッションIDが必要です" }),
+  missionId: z.string().nonempty({ message: "グッジョブIDが必要です" }),
   requiredArtifactType: z
     .string()
     .nonempty({ message: "提出タイプが必要です" }),
@@ -214,7 +214,7 @@ const achieveMissionFormSchema = z.discriminatedUnion("requiredArtifactType", [
 // 提出キャンセルアクションのバリデーションスキーマ
 const cancelSubmissionFormSchema = z.object({
   achievementId: z.string().nonempty({ message: "達成IDが必要です" }),
-  missionId: z.string().nonempty({ message: "ミッションIDが必要です" }),
+  missionId: z.string().nonempty({ message: "グッジョブIDが必要です" }),
 });
 
 export const achieveMissionAction = async (formData: FormData) => {
@@ -269,7 +269,7 @@ export const achieveMissionAction = async (formData: FormData) => {
     boardLong,
   });
 
-  // ポスティングボーナスXP + ミッション達成XP 用の変数
+  // ポスティングボーナスXP + グッジョブ達成XP 用の変数
   let totalXpGranted = 0;
 
   if (!validatedFields.success) {
@@ -299,7 +299,7 @@ export const achieveMissionAction = async (formData: FormData) => {
     };
   }
 
-  // ミッション情報を取得して、max_achievement_count を確認
+  // グッジョブ情報を取得して、max_achievement_count を確認
   const { data: missionData, error: missionFetchError } = await supabase
     .from("missions")
     .select("max_achievement_count")
@@ -310,7 +310,7 @@ export const achieveMissionAction = async (formData: FormData) => {
     console.error(`Mission fetch error: ${missionFetchError.message}`);
     return {
       success: false,
-      error: "ミッション情報の取得に失敗しました。",
+      error: "グッジョブ情報の取得に失敗しました。",
     };
   }
 
@@ -341,7 +341,7 @@ export const achieveMissionAction = async (formData: FormData) => {
     ) {
       return {
         success: false,
-        error: "あなたはこのミッションの達成回数の上限に達しています。",
+        error: "あなたはこのグッジョブの達成回数の上限に達しています。",
       };
     }
   }
@@ -377,7 +377,7 @@ export const achieveMissionAction = async (formData: FormData) => {
     }
   }
 
-  // ミッション達成を記録
+  // グッジョブ達成を記録
   const achievementPayload = {
     user_id: authUser.id,
     mission_id: validatedMissionId,
@@ -395,7 +395,7 @@ export const achieveMissionAction = async (formData: FormData) => {
     );
     return {
       success: false,
-      error: `ミッション達成の記録に失敗しました: ${achievementError.message}`,
+      error: `グッジョブ達成の記録に失敗しました: ${achievementError.message}`,
     };
   }
 
@@ -631,7 +631,7 @@ export const achieveMissionAction = async (formData: FormData) => {
       const pointsPerUnit = POSTING_POINTS_PER_UNIT; // 固定値（フェーズ1では固定、フェーズ2で設定テーブルから取得予定）
       const totalPoints = validatedData.postingCount * pointsPerUnit;
 
-      // 通常のXP（ミッション難易度ベース）に加えて、ポスティングボーナスXPを付与
+      // 通常のXP（グッジョブ難易度ベース）に加えて、ポスティングボーナスXPを付与
       const bonusXpResult = await grantXp(
         authUser.id,
         totalPoints,
@@ -645,7 +645,7 @@ export const achieveMissionAction = async (formData: FormData) => {
           "ポスティングボーナスXP付与に失敗しました:",
           bonusXpResult.error,
         );
-        // ボーナスXP付与の失敗はミッション達成の成功を妨げない
+        // ボーナスXP付与の失敗はグッジョブ達成の成功を妨げない
       } else {
         totalXpGranted += totalPoints;
       }
@@ -693,7 +693,7 @@ export const achieveMissionAction = async (formData: FormData) => {
       const pointsPerUnit = POSTER_POINTS_PER_UNIT;
       const totalPoints = MAX_POSTER_COUNT * pointsPerUnit;
 
-      // 通常のXP（ミッション難易度ベース）に加えて、ポスターボーナスXPを付与
+      // 通常のXP（グッジョブ難易度ベース）に加えて、ポスターボーナスXPを付与
       const bonusXpResult = await grantXp(
         authUser.id,
         totalPoints,
@@ -707,14 +707,14 @@ export const achieveMissionAction = async (formData: FormData) => {
           "ポスターボーナスXP付与に失敗しました:",
           bonusXpResult.error,
         );
-        // ボーナスXP付与の失敗はミッション達成の成功を妨げない
+        // ボーナスXP付与の失敗はグッジョブ達成の成功を妨げない
       } else {
         totalXpGranted += totalPoints;
       }
     }
   }
 
-  // ミッション達成時にXPを付与
+  // グッジョブ達成時にXPを付与
   const xpResult = await grantMissionCompletionXp(
     authUser.id,
     validatedMissionId,
@@ -723,12 +723,12 @@ export const achieveMissionAction = async (formData: FormData) => {
 
   if (!xpResult.success) {
     console.error("XP付与に失敗しました:", xpResult.error);
-    // XP付与の失敗はミッション達成の成功を妨げない
+    // XP付与の失敗はグッジョブ達成の成功を妨げない
   }
   totalXpGranted += xpResult?.xpGranted ?? 0;
   return {
     success: true,
-    message: "ミッションを達成しました！",
+    message: "グッジョブを達成しました！",
     xpGranted: totalXpGranted,
     userLevel: xpResult.userLevel,
   };
@@ -788,11 +788,11 @@ export const cancelSubmissionAction = async (formData: FormData) => {
   if (!achievement.mission_id) {
     return {
       success: false,
-      error: "ミッションIDが見つかりません。",
+      error: "グッジョブIDが見つかりません。",
     };
   }
 
-  // ミッション情報を取得してXP計算のための難易度を確認
+  // グッジョブ情報を取得してXP計算のための難易度を確認
   const { data: missionData, error: missionFetchError } = await supabase
     .from("missions")
     .select("difficulty, title, slug")
@@ -803,7 +803,7 @@ export const cancelSubmissionAction = async (formData: FormData) => {
     console.error("Mission fetch error:", missionFetchError);
     return {
       success: false,
-      error: "ミッション情報の取得に失敗しました。",
+      error: "グッジョブ情報の取得に失敗しました。",
     };
   }
 
@@ -821,7 +821,7 @@ export const cancelSubmissionAction = async (formData: FormData) => {
     };
   }
 
-  // XPを減算する（ミッション達成時に付与されたXPを取り消し）
+  // XPを減算する（グッジョブ達成時に付与されたXPを取り消し）
   const xpToRevoke = calculateMissionXp(missionData.difficulty);
   const isBonusMission = [
     "posting-magazine",
@@ -837,7 +837,7 @@ export const cancelSubmissionAction = async (formData: FormData) => {
     -totalXpToRevoke, // 負の値でXPを減算
     "MISSION_CANCELLATION",
     validatedAchievementId,
-    `ミッション「${missionData.title}」の提出取り消しによる経験値減算`,
+    `グッジョブ「${missionData.title}」の提出取り消しによる経験値減算`,
   );
 
   if (!xpResult.success) {
