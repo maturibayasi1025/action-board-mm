@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/card";
 import { LikeButton } from "@/components/user-mission/like-button";
 import { createClient } from "@/lib/supabase/server";
+import type { PraisedUser } from "@/lib/types/user-missions";
 import { ArrowRight, Heart, Plus, User } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
@@ -26,6 +27,12 @@ async function getUserMissionsServer() {
       ),
       user_mission_likes (
         user_id
+      ),
+      user_mission_praised_users (
+        praised_user_id,
+        private_users!praised_user_id (
+          name
+        )
       )
     `)
     .eq("status", "approved")
@@ -48,7 +55,10 @@ async function getUserMissionsServer() {
     createdBy: mission.created_by,
     title: mission.title,
     content: mission.content,
-    praisedPersonName: mission.praised_person_name,
+    praisedUsers:
+      mission.user_mission_praised_users
+        ?.map((p) => (p as unknown as PraisedUser).private_users?.name)
+        .filter((name): name is string => Boolean(name)) || [],
     status: mission.status,
     rejectionReason: mission.rejection_reason,
     createdAt: mission.created_at,
@@ -117,7 +127,7 @@ async function UserMissionsList() {
                 </CardTitle>
                 <CardDescription className="flex items-center gap-2">
                   <User className="h-4 w-4" />
-                  {mission.praisedPersonName}
+                  {mission.praisedUsers.join(", ")}
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex-1">

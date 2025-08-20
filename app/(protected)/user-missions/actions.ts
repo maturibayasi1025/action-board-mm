@@ -414,11 +414,13 @@ async function sendSlackNotificationForLike(
       .single();
 
     // 作成者情報を取得
-    const { data: creator } = await supabase
-      .from("private_users")
-      .select("name")
-      .eq("id", mission?.created_by)
-      .single();
+    const { data: creator } = mission?.created_by
+      ? await supabase
+          .from("private_users")
+          .select("name")
+          .eq("id", mission.created_by)
+          .single()
+      : { data: null };
 
     // Slack通知APIを呼び出し（サーバーサイド）
     const apiUrl =

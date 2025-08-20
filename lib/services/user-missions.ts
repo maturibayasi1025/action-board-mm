@@ -1,9 +1,10 @@
 import { createClient } from "@/lib/supabase/client";
+import type { PraisedUser } from "@/lib/types/user-missions";
 
 export interface CreateUserMissionInput {
   title: string;
   content: string;
-  praisedPersonName: string;
+  praisedUserIds: string[];
   mvvItems: {
     passionateExecution: boolean;
     supremeRelationships: boolean;
@@ -16,7 +17,7 @@ export interface UserMission {
   createdBy: string;
   title: string;
   content: string;
-  praisedPersonName: string;
+  praisedUsers: string[];
   status: "pending" | "approved" | "rejected";
   rejectionReason?: string;
   createdAt: string;
@@ -62,7 +63,6 @@ export async function createUserMission(input: CreateUserMissionInput) {
         created_by: user.id,
         title: input.title,
         content: input.content,
-        praised_person_name: input.praisedPersonName,
         status: "approved", // 自動承認で即時表示
         approved_at: new Date().toISOString(),
         approved_by: user.id, // 自分自身を承認者として設定
@@ -122,9 +122,36 @@ export async function createUserMission(input: CreateUserMissionInput) {
       }
     }
 
+    // 賞賛対象者を挿入
+    if (input.praisedUserIds && input.praisedUserIds.length > 0) {
+      const praisedUsers = input.praisedUserIds.map((userId) => ({
+        user_mission_id: mission.id,
+        praised_user_id: userId,
+      }));
+
+      const { error: praisedError } = await supabase
+        .from("user_mission_praised_users")
+        .insert(praisedUsers);
+
+      if (praisedError) {
+        console.error("賞賛対象者の挿入エラー:", praisedError);
+        // 賞賛対象者の挿入に失敗した場合、グッジョブも削除（ロールバック的な処理）
+        await supabase.from("user_missions").delete().eq("id", mission.id);
+        throw new Error(
+          `賞賛対象者の保存に失敗しました: ${praisedError.message}`,
+        );
+      }
+    }
+
     // Slack通知を送信
     try {
-      await sendSlackNotification(mission);
+      await sendSlackNotification({
+        id: mission.id,
+        title: mission.title,
+        content: mission.content,
+        created_by: mission.created_by,
+        created_at: mission.created_at,
+      });
     } catch (slackError) {
       console.error("Slack通知エラー:", slackError);
       // Slack通知失敗は致命的でないため、処理を続行
@@ -150,6 +177,12 @@ export async function getUserMissions(userId?: string) {
         ),
         user_mission_likes (
           user_id
+        ),
+        user_mission_praised_users (
+          praised_user_id,
+          private_users!praised_user_id (
+            name
+          )
         )
       `)
       .order("created_at", { ascending: false });
@@ -188,7 +221,10 @@ export async function getUserMissions(userId?: string) {
         createdBy: mission.created_by,
         title: mission.title,
         content: mission.content,
-        praisedPersonName: mission.praised_person_name,
+        praisedUsers:
+          mission.user_mission_praised_users
+            ?.map((p) => (p as unknown as PraisedUser).private_users?.name)
+            .filter((name): name is string => Boolean(name)) || [],
         status: mission.status as "pending" | "approved" | "rejected",
         rejectionReason: mission.rejection_reason || undefined,
         createdAt: mission.created_at,
@@ -317,9 +353,11 @@ async function checkAndAwardXP(missionId: string) {
 }
 
 async function sendSlackNotification(mission: {
+  id: string;
   title: string;
   content: string;
   created_by: string;
+  created_at: string;
 }) {
   try {
     // Slack WebhookのURLは環境変数から取得
@@ -328,6 +366,22 @@ async function sendSlackNotification(mission: {
       console.warn("Slack Webhook URLが設定されていません");
       return;
     }
+
+    // 賞賛対象者の情報を取得
+    const supabase = createClient();
+    const { data: praisedUsers } = await supabase
+      .from("user_mission_praised_users")
+      .select(`
+        private_users!praised_user_id (
+          name
+        )
+      `)
+      .eq("user_mission_id", mission.id);
+
+    const praisedUserNames =
+      praisedUsers
+        ?.map((p) => (p as unknown as PraisedUser).private_users?.name)
+        .filter((name): name is string => Boolean(name)) || [];
 
     const message = {
       text: "新しいユーザーグッジョブが作成されました",
@@ -348,7 +402,7 @@ async function sendSlackNotification(mission: {
             },
             {
               type: "mrkdwn",
-              text: `*賞賛対象:*\n${mission.praised_person_name}`,
+              text: `*賞賛対象:*\n${praisedUserNames.join(", ")}`,
             },
           ],
         },
