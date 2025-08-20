@@ -1,0 +1,31 @@
+# wrangler.toml
+name = "action-board-mm"
+compatibility_date = "2024-01-01"
+
+[build]
+command = "npm run build:cf"
+build_output_directory = ".next"
+
+# ファイルサイズとアップロード設定
+[limits]
+max_upload_size_mb = 100
+
+# 除外ファイル
+[build.upload]
+exclude = [
+  "cache/**",
+  ".next/cache/**",
+  "*.pack",
+  "node_modules/**",
+  "**/*.map",
+  "**/*.tsbuildinfo",
+  "**/test-results/**",
+  "**/playwright-report/**",
+  "**/coverage/**",
+  "**/storybook-static/**",
+  "**/.DS_Store",
+  "**/temp/**",
+  "**/raw_data/**",
+  "**/poster_data/temp/**",
+  "**/*.log"
+]

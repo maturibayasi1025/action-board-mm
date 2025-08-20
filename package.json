@@ -1,12 +1,14 @@
 {
   "name": "action-board",
   "version": "0.1.0",
-  "description": "チームみらい Action Board",
+  "description": "Action Board for Maison Marc",
   "license": "AGPL-3.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "npm run clean && next build && npm run clean-cache && npm run build:cf",
+    "build:cf": "npx wrangler pages build .next --minify",
+    "build:next-only": "npm run clean && next build && npm run clean-cache",
     "start": "next start",
     "types": "npx supabase gen types typescript --local > lib/types/supabase.ts && biome check --write lib/types/supabase.ts",
     "biome:check:write": "biome check --write .",
@@ -27,7 +29,9 @@
     "poster:auto-load:log": "./poster_data/auto-load-with-log.sh && npm run poster:mask-names",
     "poster:clear": "./poster_data/clear.sh",
     "poster:mask-names": "tsx poster_data/mask-names.ts",
-    "calculate-badges": "tsx scripts/calculate-badges.ts"
+    "calculate-badges": "tsx scripts/calculate-badges.ts",
+    "clean": "rm -rf .next && rm -rf out && rm -rf .vercel",
+    "clean-cache": "rm -rf .next/cache && rm -rf .next/trace"
   },
   "dependencies": {
     "@geoman-io/leaflet-geoman-free": "^2.18.3",

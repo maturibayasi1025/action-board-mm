@@ -9,6 +9,37 @@ const nextConfig: NextConfig = {
       bodySizeLimit: "10mb",
     },
   },
+  // キャッシュを無効化してビルドサイズを削減
+  onDemandEntries: {
+    // ページをメモリに保持する時間を短縮
+    maxInactiveAge: 25 * 1000,
+    // 同時に保持するページ数を制限
+    pagesBufferLength: 2,
+  },
+  // ビルド時のキャッシュを無効化
+  generateBuildId: async () => {
+    return `build-${Date.now()}`;
+  },
+  // Webpack設定でキャッシュを無効化
+  webpack: (config, { dev, isServer }) => {
+    if (!dev) {
+      // 本番ビルド時にキャッシュを無効化
+      config.cache = false;
+      // 不要なファイルを除外
+      config.optimization = {
+        ...config.optimization,
+        splitChunks: {
+          ...config.optimization.splitChunks,
+          cacheGroups: {
+            ...config.optimization.splitChunks?.cacheGroups,
+            default: false,
+            vendors: false,
+          },
+        },
+      };
+    }
+    return config;
+  },
 };
 
 export default withSentryConfig(nextConfig, {
