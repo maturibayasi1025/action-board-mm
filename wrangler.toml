@@ -5,10 +5,6 @@ compatibility_date = "2024-01-01"
 # Pages用のビルド出力ディレクトリ
 pages_build_output_dir = ".next"
 
-# ファイルサイズ制限
-[limits]
-max_upload_size_mb = 100
-
 # 除外ファイル
 [build.upload]
 exclude = [
