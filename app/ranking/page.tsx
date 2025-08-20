@@ -18,53 +18,63 @@ export default async function RankingPage({ searchParams }: PageProps) {
   const resolvedSearchParams = await searchParams;
   const period = resolvedSearchParams.period || "daily";
 
-  // ユーザー情報取得
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // ユーザー情報取得（エラーハンドリング付き）
+  let user = null;
+  try {
+    const {
+      data: { user: userData },
+    } = await supabase.auth.getUser();
+    user = userData;
+  } catch (error) {
+    console.warn("Failed to get user:", error);
+  }
 
   let userRanking = null;
 
   if (user) {
-    if (period === "all") {
-      // 全期間の場合は既存のビューを使用
-      const { data } = await supabase
-        .from("user_ranking_view")
-        .select("*")
-        .eq("user_id", user.id)
-        .single();
-      userRanking = data;
-    } else {
-      // 期間別の場合は関数を使用
-      const now = new Date();
-      let dateFilter: Date | null = null;
-      if (period === "daily") {
-        // 本日の0時0分を基準にする
-        dateFilter = new Date(
-          now.getFullYear(),
-          now.getMonth(),
-          now.getDate(),
-          0,
-          0,
-          0,
-        );
-      }
+    try {
+      if (period === "all") {
+        // 全期間の場合は既存のビューを使用
+        const { data } = await supabase
+          .from("user_ranking_view")
+          .select("*")
+          .eq("user_id", user.id)
+          .single();
+        userRanking = data;
+      } else {
+        // 期間別の場合は関数を使用
+        const now = new Date();
+        let dateFilter: Date | null = null;
+        if (period === "daily") {
+          // 本日の0時0分を基準にする
+          dateFilter = new Date(
+            now.getFullYear(),
+            now.getMonth(),
+            now.getDate(),
+            0,
+            0,
+            0,
+          );
+        }
 
-      const { data } = await supabase.rpc("get_user_period_ranking", {
-        target_user_id: user.id,
-        start_date: dateFilter?.toISOString(),
-      });
-      if (data && data.length > 0) {
-        userRanking = {
-          user_id: data[0].user_id,
-          address_prefecture: data[0].address_prefecture,
-          level: data[0].level,
-          name: data[0].name,
-          rank: data[0].rank,
-          updated_at: data[0].updated_at,
-          xp: data[0].xp,
-        };
+        const { data } = await supabase.rpc("get_user_period_ranking", {
+          target_user_id: user.id,
+          start_date: dateFilter?.toISOString(),
+        });
+        if (data && data.length > 0) {
+          userRanking = {
+            user_id: data[0].user_id,
+            address_prefecture: data[0].address_prefecture,
+            level: data[0].level,
+            name: data[0].name,
+            rank: data[0].rank,
+            updated_at: data[0].updated_at,
+            xp: data[0].xp,
+          };
+        }
       }
+    } catch (error) {
+      console.warn("Failed to fetch user ranking:", error);
     }
   }
 

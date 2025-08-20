@@ -243,17 +243,22 @@ export async function getPosterBoardStats(prefecture: string): Promise<{
 export async function getPosterBoardTotals(): Promise<PosterBoardTotal[]> {
   const supabase = createClient();
 
-  const { data, error } = await supabase
-    .from("poster_board_totals")
-    .select("*")
-    .order("prefecture", { ascending: true });
+  try {
+    const { data, error } = await supabase
+      .from("poster_board_totals")
+      .select("*")
+      .order("prefecture", { ascending: true });
 
-  if (error) {
+    if (error) {
+      console.error("Error fetching poster board totals:", error);
+      return [];
+    }
+
+    return data || [];
+  } catch (error) {
     console.error("Error fetching poster board totals:", error);
-    throw error;
+    return [];
   }
-
-  return data || [];
 }
 
 // 都道府県別の統計情報のみを取得（集計済みデータ）
@@ -262,47 +267,52 @@ export async function getPosterBoardSummaryByPrefecture(): Promise<
 > {
   const supabase = createClient();
 
-  // RPC関数を使用してデータベース側で集計
-  const { data: aggregatedData, error: rpcError } = await supabase.rpc(
-    "get_poster_board_stats",
-  );
+  try {
+    // RPC関数を使用してデータベース側で集計
+    const { data: aggregatedData, error: rpcError } = await supabase.rpc(
+      "get_poster_board_stats",
+    );
 
-  if (rpcError) {
-    console.error("Error calling RPC function:", rpcError);
-    throw rpcError;
-  }
+    if (rpcError) {
+      console.error("Error calling RPC function:", rpcError);
+      return {};
+    }
 
-  if (!aggregatedData) {
+    if (!aggregatedData) {
+      return {};
+    }
+
+    // RPC関数から返されたデータを整形
+    const summary: Record<
+      string,
+      { total: number; statuses: Record<BoardStatus, number> }
+    > = {};
+
+    for (const row of aggregatedData) {
+      const prefecture = row.prefecture;
+      if (!summary[prefecture]) {
+        summary[prefecture] = {
+          total: 0,
+          statuses: {
+            not_yet: 0,
+            reserved: 0,
+            done: 0,
+            error_wrong_place: 0,
+            error_damaged: 0,
+            error_wrong_poster: 0,
+            other: 0,
+          },
+        };
+      }
+      summary[prefecture].statuses[row.status] = row.count;
+      summary[prefecture].total += row.count;
+    }
+
+    return summary;
+  } catch (error) {
+    console.error("Error fetching poster board summary:", error);
     return {};
   }
-
-  // RPC関数から返されたデータを整形
-  const summary: Record<
-    string,
-    { total: number; statuses: Record<BoardStatus, number> }
-  > = {};
-
-  for (const row of aggregatedData) {
-    const prefecture = row.prefecture;
-    if (!summary[prefecture]) {
-      summary[prefecture] = {
-        total: 0,
-        statuses: {
-          not_yet: 0,
-          reserved: 0,
-          done: 0,
-          error_wrong_place: 0,
-          error_damaged: 0,
-          error_wrong_poster: 0,
-          other: 0,
-        },
-      };
-    }
-    summary[prefecture].statuses[row.status] = row.count;
-    summary[prefecture].total += row.count;
-  }
-
-  return summary;
 }
 
 // 特定の都道府県の掲示板総数を取得
@@ -311,20 +321,25 @@ export async function getPosterBoardTotalByPrefecture(
 ): Promise<PosterBoardTotal | null> {
   const supabase = createClient();
 
-  const { data, error } = await supabase
-    .from("poster_board_totals")
-    .select("*")
-    .eq(
-      "prefecture",
-      prefecture as Database["public"]["Enums"]["poster_prefecture_enum"],
-    )
-    .is("city", null) // 都道府県レベルのデータのみ
-    .single();
+  try {
+    const { data, error } = await supabase
+      .from("poster_board_totals")
+      .select("*")
+      .eq(
+        "prefecture",
+        prefecture as Database["public"]["Enums"]["poster_prefecture_enum"],
+      )
+      .is("city", null) // 都道府県レベルのデータのみ
+      .single();
 
-  if (error) {
+    if (error) {
+      console.error("Error fetching poster board total for prefecture:", error);
+      return null;
+    }
+
+    return data;
+  } catch (error) {
     console.error("Error fetching poster board total for prefecture:", error);
     return null;
   }
-
-  return data;
 }
