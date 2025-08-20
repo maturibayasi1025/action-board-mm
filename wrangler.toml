@@ -1,12 +1,11 @@
-# wrangler.toml
+# Cloudflare Pages用設定
 name = "action-board-mm"
 compatibility_date = "2024-01-01"
 
-[build]
-command = "npm run build:next-only"
-build_output_directory = ".next"
+# Pages用のビルド出力ディレクトリ
+pages_build_output_dir = ".next"
 
-# ファイルサイズとアップロード設定
+# ファイルサイズ制限
 [limits]
 max_upload_size_mb = 100
 
