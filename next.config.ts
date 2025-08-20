@@ -40,6 +40,10 @@ const nextConfig: NextConfig = {
     }
     return config;
   },
+  // Cloudflare Pages用設定
+  images: {
+    unoptimized: true,
+  },
 };
 
 export default withSentryConfig(nextConfig, {

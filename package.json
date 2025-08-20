@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "npm run clean && next build && npm run clean-cache && npm run build:cf",
-    "build:cf": "npx wrangler pages build .next --minify",
+    "build:cf": "npx wrangler pages deploy .next --project-name action-board-mm",
     "build:next-only": "npm run clean && next build && npm run clean-cache",
     "start": "next start",
     "types": "npx supabase gen types typescript --local > lib/types/supabase.ts && biome check --write lib/types/supabase.ts",

@@ -3,7 +3,7 @@ name = "action-board-mm"
 compatibility_date = "2024-01-01"
 
 [build]
-command = "npm run build:cf"
+command = "npm run build:next-only"
 build_output_directory = ".next"
 
 # ファイルサイズとアップロード設定
