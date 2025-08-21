@@ -16,7 +16,9 @@ export default async function NewUserMissionPage() {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/sign-in?message=グッジョブ作成にはログインが必要です");
+    redirect(
+      `/sign-in?message=${encodeURIComponent("グッジョブ作成にはログインが必要です")}`,
+    );
   }
 
   return (
