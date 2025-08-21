@@ -3,6 +3,7 @@
 import type { Database } from "@/lib/types/supabase";
 import { createServerClient } from "@supabase/ssr";
 import { createClient as createClientSupabase } from "@supabase/supabase-js";
+import { checkSupabaseEnvVars } from "./check-env-vars";
 
 import { cookies } from "next/headers";
 
@@ -29,6 +30,15 @@ export const createServiceClient = async () => {
 export const createClient = async () => {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  // 本番環境では環境変数の存在をチェック
+  if (process.env.NODE_ENV === "production") {
+    if (!checkSupabaseEnvVars()) {
+      throw new Error(
+        "Required Supabase environment variables are missing in production",
+      );
+    }
+  }
 
   // ビルド時には環境変数が存在しない場合があるため、フォールバック処理を追加
   if (!supabaseUrl || !supabaseAnonKey) {

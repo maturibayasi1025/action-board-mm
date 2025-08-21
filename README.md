@@ -127,6 +127,37 @@
 
    サービスは [localhost:3000](http://localhost:3000/) でアクセス可能になります。
 
+## 本番環境での環境変数設定
+
+本番環境でアプリケーションをデプロイする際は、以下の環境変数を必ず設定してください：
+
+### 必須環境変数
+
+```bash
+# Supabase設定
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+
+# 環境設定
+NODE_ENV=production
+```
+
+### 環境変数の取得方法
+
+1. [Supabase Dashboard](https://supabase.com/dashboard) にアクセス
+2. プロジェクトを選択
+3. Settings > API から以下を取得：
+   - Project URL → `NEXT_PUBLIC_SUPABASE_URL`
+   - anon public → `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - service_role secret → `SUPABASE_SERVICE_ROLE_KEY`
+
+### 注意事項
+
+- `NEXT_PUBLIC_` で始まる環境変数はクライアントサイドでも利用可能です
+- `SUPABASE_SERVICE_ROLE_KEY` はサーバーサイドでのみ使用され、RLSをバイパスします
+- 本番環境では環境変数が設定されていない場合、アプリケーションは起動しません
+
 
 
 ## 開発ガイドライン

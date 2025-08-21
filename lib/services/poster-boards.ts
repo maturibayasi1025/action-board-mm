@@ -1,5 +1,5 @@
 import { getPosterBoardStatsAction } from "@/lib/actions/poster-boards";
-import { createClient } from "@/lib/supabase/client";
+import { createClient } from "@/lib/supabase/server";
 import type {
   BoardStatus,
   PosterBoard,
@@ -9,7 +9,7 @@ import type { Database } from "@/lib/types/supabase";
 
 // 最小限のデータのみ取得（マップ表示用）
 export async function getPosterBoardsMinimal(prefecture?: string) {
-  const supabase = createClient();
+  const supabase = await createClient();
 
   // 全データを取得するためページネーションを使用
   const allBoards: Pick<
@@ -60,7 +60,7 @@ export async function getPosterBoardsMinimal(prefecture?: string) {
 
 // 全データ取得（既存の関数名を維持）
 export async function getPosterBoards(prefecture?: string) {
-  const supabase = createClient();
+  const supabase = await createClient();
 
   // Fetch all boards with pagination to bypass Supabase's default limit
   let allBoards: PosterBoard[] = [];
@@ -109,7 +109,7 @@ export async function getPosterBoards(prefecture?: string) {
 export async function getPosterBoardDetail(
   boardId: string,
 ): Promise<PosterBoard | null> {
-  const supabase = createClient();
+  const supabase = await createClient();
 
   const { data, error } = await supabase
     .from("poster_boards")
@@ -130,7 +130,7 @@ export async function updateBoardStatus(
   newStatus: BoardStatus,
   note?: string,
 ) {
-  const supabase = createClient();
+  const supabase = await createClient();
 
   // Get current board status
   const { data: currentBoard, error: fetchError } = await supabase
@@ -185,7 +185,7 @@ export async function updateBoardStatus(
 
 // Get unique prefectures that have poster boards
 export async function getPrefecturesWithBoards() {
-  const supabase = createClient();
+  const supabase = await createClient();
 
   // Fetch all records with pagination to get all prefectures
   let allPrefectures: string[] = [];
@@ -241,7 +241,7 @@ export async function getPosterBoardStats(prefecture: string): Promise<{
 
 // 選挙管理委員会から提供された掲示板総数を取得
 export async function getPosterBoardTotals(): Promise<PosterBoardTotal[]> {
-  const supabase = createClient();
+  const supabase = await createClient();
 
   try {
     const { data, error } = await supabase
@@ -265,7 +265,7 @@ export async function getPosterBoardTotals(): Promise<PosterBoardTotal[]> {
 export async function getPosterBoardSummaryByPrefecture(): Promise<
   Record<string, { total: number; statuses: Record<BoardStatus, number> }>
 > {
-  const supabase = createClient();
+  const supabase = await createClient();
 
   try {
     // RPC関数を使用してデータベース側で集計
@@ -319,7 +319,7 @@ export async function getPosterBoardSummaryByPrefecture(): Promise<
 export async function getPosterBoardTotalByPrefecture(
   prefecture: string,
 ): Promise<PosterBoardTotal | null> {
-  const supabase = createClient();
+  const supabase = await createClient();
 
   try {
     const { data, error } = await supabase
