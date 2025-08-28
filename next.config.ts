@@ -9,36 +9,9 @@ const nextConfig: NextConfig = {
       bodySizeLimit: "10mb",
     },
   },
-  // キャッシュを無効化してビルドサイズを削減
-  onDemandEntries: {
-    // ページをメモリに保持する時間を短縮
-    maxInactiveAge: 25 * 1000,
-    // 同時に保持するページ数を制限
-    pagesBufferLength: 2,
-  },
-  // ビルド時のキャッシュを無効化
+  // Cloudflare Pages用のビルド最適化
   generateBuildId: async () => {
     return `build-${Date.now()}`;
-  },
-  // Webpack設定でキャッシュを無効化
-  webpack: (config, { dev, isServer }) => {
-    if (!dev) {
-      // 本番ビルド時にキャッシュを無効化
-      config.cache = false;
-      // 不要なファイルを除外
-      config.optimization = {
-        ...config.optimization,
-        splitChunks: {
-          ...config.optimization.splitChunks,
-          cacheGroups: {
-            ...config.optimization.splitChunks?.cacheGroups,
-            default: false,
-            vendors: false,
-          },
-        },
-      };
-    }
-    return config;
   },
   // Cloudflare Pages用設定
   images: {
@@ -46,50 +19,55 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default withSentryConfig(nextConfig, {
-  // For all available options, see:
-  // https://www.npmjs.com/package/@sentry/webpack-plugin#options
+// Cloudflare Pages向けにSentryを無効化するオプション
+const shouldUseSentry = process.env.DISABLE_SENTRY !== "true";
 
-  org: "team-mirai",
-  project: "action-board",
-  authToken: process.env.SENTRY_AUTH_TOKEN,
+export default shouldUseSentry
+  ? withSentryConfig(nextConfig, {
+      // For all available options, see:
+      // https://www.npmjs.com/package/@sentry/webpack-plugin#options
 
-  // Suppress logs unless UPLOAD_SOURCEMAPS is set
-  silent: !process.env.UPLOAD_SOURCEMAPS,
+      org: "team-mirai",
+      project: "action-board",
+      authToken: process.env.SENTRY_AUTH_TOKEN,
 
-  // For all available options, see:
-  // https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/
+      // Suppress logs unless UPLOAD_SOURCEMAPS is set
+      silent: !process.env.UPLOAD_SOURCEMAPS,
 
-  // Upload a larger set of source maps for prettier stack traces (increases build time)
-  widenClientFileUpload: true,
+      // For all available options, see:
+      // https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/
 
-  // Route browser requests to Sentry through a Next.js rewrite to circumvent ad-blockers.
-  // This can increase your server load as well as your hosting bill.
-  // Note: Check that the configured route will not match with your Next.js middleware, otherwise reporting of client-
-  // side errors will fail.
-  tunnelRoute: "/monitoring",
+      // Upload a larger set of source maps for prettier stack traces (increases build time)
+      widenClientFileUpload: true,
 
-  // Automatically tree-shake Sentry logger statements to reduce bundle size
-  disableLogger: true,
+      // Route browser requests to Sentry through a Next.js rewrite to circumvent ad-blockers.
+      // This can increase your server load as well as your hosting bill.
+      // Note: Check that the configured route will not match with your Next.js middleware, otherwise reporting of client-
+      // side errors will fail.
+      tunnelRoute: "/monitoring",
 
-  // Enables automatic instrumentation of Vercel Cron Monitors. (Does not yet work with App Router route handlers.)
-  // See the following for more information:
-  // https://docs.sentry.io/product/crons/
-  // https://vercel.com/docs/cron-jobs
-  automaticVercelMonitors: false,
+      // Automatically tree-shake Sentry logger statements to reduce bundle size
+      disableLogger: true,
 
-  // Upload source maps to enable readable stack traces in errors
-  // See the following for more information:
-  // https://docs.sentry.io/platforms/javascript/guides/nextjs/sourcemaps/
-  // https://docs.sentry.io/platforms/javascript/guides/nextjs/configuration/build/#source-maps-options
-  sourcemaps: {
-    disable: !process.env.UPLOAD_SOURCEMAPS,
-    ignore: ["**/node_modules/**", "**/.next/cache/**", "**/tests/**"],
-    deleteSourcemapsAfterUpload: true,
-  },
+      // Enables automatic instrumentation of Vercel Cron Monitors. (Does not yet work with App Router route handlers.)
+      // See the following for more information:
+      // https://docs.sentry.io/product/crons/
+      // https://vercel.com/docs/cron-jobs
+      automaticVercelMonitors: false,
 
-  release: {
-    name: process.env.SENTRY_RELEASE,
-    setCommits: undefined,
-  },
-});
+      // Upload source maps to enable readable stack traces in errors
+      // See the following for more information:
+      // https://docs.sentry.io/platforms/javascript/guides/nextjs/sourcemaps/
+      // https://docs.sentry.io/platforms/javascript/guides/nextjs/configuration/build/#source-maps-options
+      sourcemaps: {
+        disable: !process.env.UPLOAD_SOURCEMAPS,
+        ignore: ["**/node_modules/**", "**/.next/cache/**", "**/tests/**"],
+        deleteSourcemapsAfterUpload: true,
+      },
+
+      release: {
+        name: process.env.SENTRY_RELEASE,
+        setCommits: undefined,
+      },
+    })
+  : nextConfig;

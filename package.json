@@ -7,6 +7,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "npm run clean && next build && npm run clean-cache",
+    "build:pages": "npm run clean && NODE_ENV=production next build && npm run clean-cache && npx @cloudflare/next-on-pages",
+    "build:pages:no-sentry": "npm run clean && NODE_ENV=production DISABLE_SENTRY=true next build && npm run clean-cache && npx @cloudflare/next-on-pages",
     "pages:build": "npx @cloudflare/next-on-pages",
     "preview": "npx wrangler pages dev .vercel/output/static",
     "pages:dev": "npx wrangler pages dev .vercel/output/static --compatibility-date=2024-01-01",

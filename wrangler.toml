@@ -1,29 +1,10 @@
 # Cloudflare Pages用設定
 name = "action-board-mm"
 compatibility_date = "2024-01-01"
+pages_build_output_dir = ".vercel/output/static"
 
 [build]
-command = "npm run build && npx @cloudflare/next-on-pages"
+command = "npm run build:pages"
 
-[[build.env]]
+[build.environment]
 NODE_ENV = "production"
-
-# 除外ファイル
-[build.upload]
-exclude = [
-  "cache/**",
-  ".next/cache/**",
-  "*.pack",
-  "node_modules/**",
-  "**/*.map",
-  "**/*.tsbuildinfo",
-  "**/test-results/**",
-  "**/playwright-report/**",
-  "**/coverage/**",
-  "**/storybook-static/**",
-  "**/.DS_Store",
-  "**/temp/**",
-  "**/raw_data/**",
-  "**/poster_data/temp/**",
-  "**/*.log"
-]
