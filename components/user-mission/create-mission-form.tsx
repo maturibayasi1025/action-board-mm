@@ -91,7 +91,7 @@ export function CreateMissionForm() {
       }
     }
     fetchUsers();
-  }, []);
+  }, [supabase]);
 
   // ユーザーを選択/選択解除
   const toggleUser = (userId: string) => {
@@ -231,9 +231,11 @@ export function CreateMissionForm() {
                   {availableUsers.map((user) => (
                     <label
                       key={user.id}
+                      htmlFor={`user-checkbox-${user.id}`}
                       className="flex items-center space-x-2 cursor-pointer hover:bg-muted/50 p-2 rounded"
                     >
                       <Checkbox
+                        id={`user-checkbox-${user.id}`}
                         checked={selectedUsers.includes(user.id)}
                         onCheckedChange={() => toggleUser(user.id)}
                       />

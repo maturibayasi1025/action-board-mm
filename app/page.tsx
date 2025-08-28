@@ -20,6 +20,8 @@ import { Edit3, MessageCircle } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+export const runtime = "edge";
+
 // メタデータ生成を外部関数に委譲
 export const generateMetadata = generateRootMetadata;
 

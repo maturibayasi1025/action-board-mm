@@ -195,7 +195,7 @@ function UserMissionsSkeleton() {
     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
       {Array.from({ length: 6 }, (_, i) => (
         <Card
-          key={`skeleton-card-top-section-${i}`}
+          key={`skeleton-card-top-section-${Date.now()}-${i}`}
           className="h-[300px] animate-pulse"
         >
           <CardHeader>

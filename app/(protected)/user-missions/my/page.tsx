@@ -14,6 +14,8 @@ import { CheckCircle, Clock, Heart, Plus, User, XCircle } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
 
+export const runtime = "edge";
+
 async function getUserMissionsServer(userId: string) {
   const supabase = await createClient();
 
@@ -220,7 +222,7 @@ export default function MyUserMissionsPage() {
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {Array.from({ length: 6 }, (_, i) => (
               <Card
-                key={`skeleton-card-my-missions-${i}`}
+                key={`skeleton-card-my-missions-${Date.now()}-${i}`}
                 className="h-[300px] animate-pulse"
               >
                 <CardHeader>

@@ -1,10 +1,11 @@
-import { readFile } from "node:fs/promises";
-import { join } from "node:path";
+// Edge Runtime互換のため、画像をbase64エンコードして埋め込み
 import { getMissionPageData } from "@/app/missions/[id]/_lib/data";
 import { sanitizeImageUrl } from "@/lib/metadata";
 import { Noto_Sans_JP } from "next/font/google";
 import { ImageResponse } from "next/og";
 import type { NextRequest } from "next/server";
+
+export const runtime = "edge";
 
 // キャッシュ用Mapを定義（メモリキャッシュ）- completeタイプのみキャッシュ
 const MAX_CACHE_SIZE = 100;
@@ -73,22 +74,8 @@ export async function GET(
     }
   }
 
-  let baseImageBase64 = "";
-  try {
-    // ベース画像を読み込み
-    let baseImageFileName = "";
-    if (type === "complete") {
-      baseImageFileName = "public/img/ogp_mission_complete_base.png";
-    } else {
-      baseImageFileName = "public/img/ogp_mission_base.png";
-    }
-    const baseImagePath = join(process.cwd(), baseImageFileName);
-    const baseImageBuffer = await readFile(baseImagePath);
-    baseImageBase64 = `data:image/png;base64,${baseImageBuffer.toString("base64")}`;
-  } catch (error) {
-    console.error("Base image loading failed:", error);
-    return new Response("Base image not found", { status: 500 });
-  }
+  // Edge Runtime互換のため、シンプルなテキストベースのOG画像を生成
+  const backgroundColor = type === "complete" ? "#10b981" : "#3b82f6";
 
   // titleに()や（）が含まれる場合は(や（の手前で改行する
   const title = pageData?.mission.title ?? "グッジョブが見つかりません";
@@ -112,9 +99,7 @@ export async function GET(
           flexDirection: "column",
           alignItems: "center",
           justifyContent: "flex-end",
-          backgroundImage: `url(${baseImageBase64})`,
-          backgroundSize: "cover",
-          backgroundPosition: "center",
+          backgroundColor: backgroundColor,
         }}
       >
         <div
@@ -167,9 +152,7 @@ export async function GET(
           flexDirection: "column",
           alignItems: "flex-end",
           justifyContent: "center",
-          backgroundImage: `url(${baseImageBase64})`,
-          backgroundSize: "cover",
-          backgroundPosition: "center",
+          backgroundColor: backgroundColor,
         }}
       >
         <div

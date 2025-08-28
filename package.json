@@ -7,6 +7,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "npm run clean && next build && npm run clean-cache",
+    "pages:build": "npx @cloudflare/next-on-pages",
+    "pages:dev": "npx wrangler pages dev .vercel/output/static --compatibility-date=2024-01-01",
     "build:next-only": "npm run clean && next build && npm run clean-cache",
     "start": "next start",
     "types": "npx supabase gen types typescript --local > lib/types/supabase.ts && biome check --write lib/types/supabase.ts",
@@ -80,6 +82,7 @@
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
     "@chromatic-com/storybook": "^3.2.6",
+    "@cloudflare/next-on-pages": "^1.13.14",
     "@playwright/test": "^1.52.0",
     "@storybook/addon-essentials": "^8.6.14",
     "@storybook/addon-onboarding": "^8.6.14",
@@ -116,6 +119,7 @@
     "tailwindcss-animate": "^1.0.7",
     "tsx": "^4.7.0",
     "typescript": "^5.8.3",
+    "vercel": "^46.0.4",
     "vitest": "^3.1.4"
   },
   "jest-junit": {

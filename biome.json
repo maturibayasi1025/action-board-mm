@@ -6,7 +6,8 @@
     "useIgnoreFile": false
   },
   "files": {
-    "ignoreUnknown": false,
+    "ignoreUnknown": true,
+    "maxSize": 1048576,
     "ignore": [
       "**/.next/**",
       "**/node_modules/**",
@@ -14,7 +15,22 @@
       "**/playwright-report/**",
       "**/coverage/**",
       "**/mobile_flutter/**",
-      "**/tests/**"
+      "**/tests/**",
+      "**/.vercel/**",
+      "**/terraform/**",
+      "**/poster_data/data/**",
+      "**/*.md",
+      "**/*.yaml",
+      "**/*.yml",
+      "**/*.env*",
+      "**/Dockerfile*",
+      "**/.gitignore",
+      "**/.dockerignore",
+      "**/LICENSE*",
+      "**/*.lock",
+      "**/*.log",
+      "**/mission_data/**",
+      "**/supabase/migrations/**"
     ]
   },
   "formatter": {

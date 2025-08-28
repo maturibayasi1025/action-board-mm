@@ -1,6 +1,6 @@
 "use server";
 
-import { randomBytes } from "node:crypto";
+// Edge Runtime互換のCrypto APIを使用
 import {
   getOrInitializeUserLevel,
   grantMissionCompletionXp,
@@ -654,8 +654,12 @@ export async function handleLineAuthAction(
       }
     }
 
-    // 5. 一時パスワードを設定
-    const tempPassword = randomBytes(32).toString("base64");
+    // 5. 一時パスワードを設定（Edge Runtime互換）
+    const array = new Uint8Array(32);
+    crypto.getRandomValues(array);
+    const tempPassword = Array.from(array)
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
 
     const { error: passwordError } = await supabase.auth.admin.updateUserById(
       userId,
