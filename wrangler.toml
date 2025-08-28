@@ -2,8 +2,11 @@
 name = "action-board-mm"
 compatibility_date = "2024-01-01"
 
-# Pages用のビルド出力ディレクトリ
-pages_build_output_dir = ".next"
+[build]
+command = "npm run build && npx @cloudflare/next-on-pages"
+
+[[build.env]]
+NODE_ENV = "production"
 
 # 除外ファイル
 [build.upload]

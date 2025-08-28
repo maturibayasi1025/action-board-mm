@@ -8,6 +8,7 @@
     "dev": "next dev",
     "build": "npm run clean && next build && npm run clean-cache",
     "pages:build": "npx @cloudflare/next-on-pages",
+    "preview": "npx wrangler pages dev .vercel/output/static",
     "pages:dev": "npx wrangler pages dev .vercel/output/static --compatibility-date=2024-01-01",
     "build:next-only": "npm run clean && next build && npm run clean-cache",
     "start": "next start",
