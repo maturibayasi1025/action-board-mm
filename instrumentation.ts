@@ -1,3 +1,5 @@
+import type { NextRequest } from "next/server";
+
 export async function register() {
   // Sentryが無効化されている場合は何もしない
   if (process.env.DISABLE_SENTRY === "true") {
@@ -21,7 +23,7 @@ export const onRequestError =
     ? undefined
     : async (
         error: Error | unknown,
-        request: Request,
+        request: NextRequest,
         context?: { tags?: Record<string, string> },
       ): Promise<void> => {
         const Sentry = await import("@sentry/nextjs");
