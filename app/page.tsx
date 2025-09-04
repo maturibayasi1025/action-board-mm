@@ -1,3 +1,5 @@
+export const runtime = "edge";
+
 import Activities from "@/components/activities";
 import { BadgeNotificationCheck } from "@/components/badge-notification-check";
 import Hero from "@/components/hero";
@@ -19,8 +21,6 @@ import { createClient } from "@/lib/supabase/server";
 import { Edit3, MessageCircle } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-
-export const runtime = "edge";
 
 // メタデータ生成を外部関数に委譲
 export const generateMetadata = generateRootMetadata;
