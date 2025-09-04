@@ -9,12 +9,8 @@ export default function GlobalError({
   error: Error & { digest?: string };
 }) {
   useEffect(() => {
-    // Sentryが有効な場合のみエラーを送信
-    if (process.env.NEXT_PUBLIC_DISABLE_SENTRY !== "true") {
-      import("@sentry/nextjs").then((Sentry) => {
-        Sentry.captureException(error);
-      });
-    }
+    // Sentryを完全に無効化してCloudflare Pages互換性を確保
+    console.error("Global error occurred:", error);
   }, [error]);
 
   return (
