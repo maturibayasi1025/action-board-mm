@@ -3,3 +3,15 @@ name = "action-board-mm"
 compatibility_date = "2025-08-28"
 compatibility_flags = ["nodejs_compat"]
 pages_build_output_dir = ".vercel/output/static"
+
+# 環境変数（Public環境変数のみ）
+# シークレット環境変数はCloudflareダッシュボードで設定してください
+[vars]
+NEXT_PUBLIC_SUPABASE_URL=https://plzqywjvkteyxsdqmred.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0
+NEXT_PUBLIC_SITE_URL = "https://mm-actionboard.jp"
+NEXT_PUBLIC_APP_ORIGIN = "https://mm-actionboard.jp"
+
+# ビルド時の環境変数
+[build.environment]
+NODE_ENV = "production"
