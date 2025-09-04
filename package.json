@@ -6,11 +6,12 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "npm run clean && next build && npm run clean-cache",
+    "build": "npm run clean && npx next build && npm run clean-cache",
     "build:pages": "npm run clean && NODE_ENV=production next build && npm run clean-cache && npx @cloudflare/next-on-pages",
     "build:pages:no-sentry": "npm run clean && NODE_ENV=production DISABLE_SENTRY=true next build && npm run clean-cache && npx @cloudflare/next-on-pages",
     "build:pages:no-edge": "node remove-edge-runtime.js && npm run clean && NODE_ENV=production DISABLE_SENTRY=true NEXT_PUBLIC_DISABLE_SENTRY=true npx next build && npm run clean-cache && npx @cloudflare/next-on-pages",
     "build:pages:api-edge": "node remove-edge-runtime.js && node add-edge-runtime-api-only.js && npm run clean && NODE_ENV=production DISABLE_SENTRY=true NEXT_PUBLIC_DISABLE_SENTRY=true npx next build && npm run clean-cache && npx @cloudflare/next-on-pages",
+    "build:cloudflare": "npm run clean && NODE_ENV=production npx next build && npm run clean-cache",
     "remove-edge-runtime": "node remove-edge-runtime.js",
     "add-edge-runtime": "node add-edge-runtime.js",
     "add-edge-runtime-api-only": "node add-edge-runtime-api-only.js",
