@@ -1,9 +1,21 @@
 export const runtime = "edge";
 
 import Activities from "@/components/activities";
-import { BadgeNotificationCheck } from "@/components/badge-notification-check";
 import Hero from "@/components/hero";
-import { LevelUpCheck } from "@/components/level-up-check";
+import dynamic from "next/dynamic";
+
+// クライアントコンポーネントを動的インポート（Edge runtime互換性向上）
+const BadgeNotificationCheck = dynamic(() =>
+  import("@/components/badge-notification-check").then((mod) => ({
+    default: mod.BadgeNotificationCheck,
+  })),
+);
+
+const LevelUpCheck = dynamic(() =>
+  import("@/components/level-up-check").then((mod) => ({
+    default: mod.LevelUpCheck,
+  })),
+);
 import MetricsWithSuspense from "@/components/metrics/MetricsWithSuspense";
 import FeaturedMissions from "@/components/mission/FeaturedMissions";
 import MissionsByCategory from "@/components/mission/MissionsByCategory";
