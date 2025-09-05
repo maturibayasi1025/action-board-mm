@@ -98,10 +98,7 @@ async function getUserMissionsServer() {
           content: mission.content,
           praisedUsers:
             praisedUsers
-              ?.map(
-                (p: { private_users?: { name?: string } }) =>
-                  p.private_users?.name,
-              )
+              ?.map((p) => (p as any).private_users?.name)
               .filter((name): name is string => Boolean(name)) || [],
           status: mission.status,
           rejectionReason: mission.rejection_reason,
@@ -114,24 +111,19 @@ async function getUserMissionsServer() {
           mvvItems: {
             passionateExecution:
               mvvItems?.some(
-                (item: { mvv_type: string }) =>
-                  item.mvv_type === "passionate_execution",
+                (item) => (item as any).mvv_type === "passionate_execution",
               ) || false,
             supremeRelationships:
               mvvItems?.some(
-                (item: { mvv_type: string }) =>
-                  item.mvv_type === "supreme_relationships",
+                (item) => (item as any).mvv_type === "supreme_relationships",
               ) || false,
             happinessCirculation:
               mvvItems?.some(
-                (item: { mvv_type: string }) =>
-                  item.mvv_type === "happiness_circulation",
+                (item) => (item as any).mvv_type === "happiness_circulation",
               ) || false,
           },
           isLikedByCurrentUser: user
-            ? likes?.some(
-                (like: { user_id: string }) => like.user_id === user.id,
-              ) || false
+            ? likes?.some((like) => (like as any).user_id === user.id) || false
             : false,
         };
 
