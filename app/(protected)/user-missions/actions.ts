@@ -1,6 +1,4 @@
-export const runtime = "edge";
-
-("use server");
+"use server";
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
@@ -133,20 +131,34 @@ export async function createUserMissionAction(input: CreateUserMissionInput) {
       supabase,
     );
 
-    // Slack通知を送信
-    await sendSlackNotificationForMissionCreation(
-      mission.id,
-      input.title,
-      input.content,
-      user.id,
-      input.praisedUserIds,
-      supabase,
-    );
+    // Slack通知を送信（Cloudflare環境では無効化）
+    if (process.env.NODE_ENV !== "production" || !process.env.CF_PAGES) {
+      try {
+        await sendSlackNotificationForMissionCreation(
+          mission.id,
+          input.title,
+          input.content,
+          user.id,
+          input.praisedUserIds,
+          supabase,
+        );
+      } catch (slackError) {
+        console.error("Slack通知エラー（継続）:", slackError);
+        // Slack通知失敗してもグッジョブ作成処理は継続
+      }
+    }
 
-    // ページを再検証
-    revalidatePath("/user-missions");
-    revalidatePath("/user-missions/my");
-    revalidatePath("/");
+    // ページを再検証（Server-side のみ）
+    if (typeof window === "undefined") {
+      try {
+        revalidatePath("/user-missions");
+        revalidatePath("/user-missions/my");
+        revalidatePath("/");
+      } catch (revalidateError) {
+        console.error("Revalidate エラー（継続）:", revalidateError);
+        // 再検証失敗してもグッジョブ作成処理は継続
+      }
+    }
 
     return { success: true, missionId: mission.id };
   } catch (error) {
@@ -204,14 +216,16 @@ export async function toggleLikeAction(missionId: string) {
       // いいね取り消し時のXP減算（オプション）
       await removeLikeGiverXP(missionId, user.id, supabase);
 
-      // ページを再検証（Edge Runtime対応）
-      try {
-        revalidatePath("/user-missions");
-        revalidatePath("/user-missions/my");
-        revalidatePath("/");
-      } catch (revalidateError) {
-        console.error("Revalidate エラー（継続）:", revalidateError);
-        // 再検証失敗してもいいね取り消し処理は継続
+      // ページを再検証（Server-side のみ）
+      if (typeof window === "undefined") {
+        try {
+          revalidatePath("/user-missions");
+          revalidatePath("/user-missions/my");
+          revalidatePath("/");
+        } catch (revalidateError) {
+          console.error("Revalidate エラー（継続）:", revalidateError);
+          // 再検証失敗してもいいね取り消し処理は継続
+        }
       }
 
       return { liked: false };
@@ -241,14 +255,16 @@ export async function toggleLikeAction(missionId: string) {
       }
     }
 
-    // ページを再検証（Edge Runtime対応）
-    try {
-      revalidatePath("/user-missions");
-      revalidatePath("/user-missions/my");
-      revalidatePath("/");
-    } catch (revalidateError) {
-      console.error("Revalidate エラー（継続）:", revalidateError);
-      // 再検証失敗してもいいね処理は継続
+    // ページを再検証（Server-side のみ）
+    if (typeof window === "undefined") {
+      try {
+        revalidatePath("/user-missions");
+        revalidatePath("/user-missions/my");
+        revalidatePath("/");
+      } catch (revalidateError) {
+        console.error("Revalidate エラー（継続）:", revalidateError);
+        // 再検証失敗してもいいね処理は継続
+      }
     }
 
     return { liked: true };
