@@ -66,10 +66,7 @@ export const getSentryConfig = () => {
     },
 
     // エラーフィルタリング
-    beforeSend(
-      event: { exception?: { values?: { value?: string }[] } },
-      hint: unknown,
-    ) {
+    beforeSend(event: any, hint: any): any {
       // 開発環境ではエラーを送信しない
       if (isDevelopment) {
         console.log("[Sentry] Development mode - not sending:", event);
@@ -77,12 +74,12 @@ export const getSentryConfig = () => {
       }
 
       // Next.jsの内部エラーを除外
-      if (event.exception?.values?.[0]?.value?.includes("NEXT_NOT_FOUND")) {
+      if (event?.exception?.values?.[0]?.value?.includes("NEXT_NOT_FOUND")) {
         return null;
       }
 
       // 404エラーを除外
-      if (event.exception?.values?.[0]?.value?.includes("404")) {
+      if (event?.exception?.values?.[0]?.value?.includes("404")) {
         return null;
       }
 

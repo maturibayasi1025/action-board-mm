@@ -46,7 +46,8 @@
     "rules": {
       "recommended": true,
       "suspicious": {
-        "noArrayIndexKey": "warn"
+        "noArrayIndexKey": "warn",
+        "noExplicitAny": "warn"
       },
       "a11y": {
         "noLabelWithoutControl": "warn"
