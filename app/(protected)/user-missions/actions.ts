@@ -132,7 +132,7 @@ export async function createUserMissionAction(input: CreateUserMissionInput) {
     );
 
     // Slack通知を送信（Cloudflare環境では無効化）
-    if (process.env.NODE_ENV !== "production" || !process.env.CF_PAGES) {
+    if (process.env.NODE_ENV !== "production" && !process.env.CF_PAGES) {
       try {
         await sendSlackNotificationForMissionCreation(
           mission.id,
@@ -246,7 +246,7 @@ export async function toggleLikeAction(missionId: string) {
     await checkAndAwardMilestoneXP(missionId, supabase);
 
     // Slack通知を送信（Cloudflare環境では無効化）
-    if (process.env.NODE_ENV !== "production" || !process.env.CF_PAGES) {
+    if (process.env.NODE_ENV !== "production" && !process.env.CF_PAGES) {
       try {
         await sendSlackNotificationForLike(missionId, user.id, supabase);
       } catch (slackError) {
