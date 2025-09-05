@@ -18,82 +18,132 @@ import { Suspense } from "react";
 async function getUserMissionsServer() {
   const supabase = await createClient();
 
-  const { data, error } = await supabase
-    .from("user_missions")
-    .select(`
-      *,
-      user_mission_mvv_items (
-        mvv_type
-      ),
-      user_mission_likes (
-        user_id
-      ),
-      user_mission_praised_users (
-        praised_user_id,
-        private_users!praised_user_id (
-          name
-        )
-      )
-    `)
-    .eq("status", "approved")
-    .order("created_at", { ascending: false })
-    .limit(6);
+  try {
+    const { data, error } = await supabase
+      .from("user_missions")
+      .select(`
+        id,
+        created_by,
+        title,
+        content,
+        status,
+        rejection_reason,
+        created_at,
+        updated_at,
+        approved_at,
+        approved_by,
+        public_mission_id,
+        likes_count
+      `)
+      .eq("status", "approved")
+      .order("created_at", { ascending: false })
+      .limit(6);
 
-  if (error) {
-    console.error("Error fetching user missions:", error);
+    if (error) {
+      console.error("Error fetching user missions:", error);
+      return [];
+    }
+
+    if (!data) return [];
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    const results = [];
+
+    for (const mission of data) {
+      try {
+        // MVV項目を個別に取得
+        const { data: mvvItems } = await supabase
+          .from("user_mission_mvv_items")
+          .select("mvv_type")
+          .eq("user_mission_id", mission.id);
+
+        // 賞賛対象ユーザーを個別に取得
+        const { data: praisedUsers } = await supabase
+          .from("user_mission_praised_users")
+          .select(`
+            praised_user_id,
+            private_users!praised_user_id (
+              name
+            )
+          `)
+          .eq("user_mission_id", mission.id);
+
+        // いいね情報を個別に取得
+        const { data: likes } = await supabase
+          .from("user_mission_likes")
+          .select("user_id")
+          .eq("user_mission_id", mission.id);
+
+        results.push({
+          id: mission.id,
+          createdBy: mission.created_by,
+          title: mission.title,
+          content: mission.content,
+          praisedUsers:
+            praisedUsers
+              ?.map((p: any) => p.private_users?.name)
+              .filter((name): name is string => Boolean(name)) || [],
+          status: mission.status,
+          rejectionReason: mission.rejection_reason,
+          createdAt: mission.created_at,
+          updatedAt: mission.updated_at,
+          approvedAt: mission.approved_at,
+          approvedBy: mission.approved_by,
+          publicMissionId: mission.public_mission_id,
+          likesCount: mission.likes_count,
+          mvvItems: {
+            passionateExecution:
+              mvvItems?.some(
+                (item: any) => item.mvv_type === "passionate_execution",
+              ) || false,
+            supremeRelationships:
+              mvvItems?.some(
+                (item: any) => item.mvv_type === "supreme_relationships",
+              ) || false,
+            happinessCirculation:
+              mvvItems?.some(
+                (item: any) => item.mvv_type === "happiness_circulation",
+              ) || false,
+          },
+          isLikedByCurrentUser: user
+            ? likes?.some((like: any) => like.user_id === user.id) || false
+            : false,
+        });
+      } catch (itemError) {
+        console.error(`Error processing mission ${mission.id}:`, itemError);
+        // エラーが発生した場合は基本情報のみで続行
+        results.push({
+          id: mission.id,
+          createdBy: mission.created_by,
+          title: mission.title,
+          content: mission.content,
+          praisedUsers: [],
+          status: mission.status,
+          rejectionReason: mission.rejection_reason,
+          createdAt: mission.created_at,
+          updatedAt: mission.updated_at,
+          approvedAt: mission.approved_at,
+          approvedBy: mission.approved_by,
+          publicMissionId: mission.public_mission_id,
+          likesCount: mission.likes_count || 0,
+          mvvItems: {
+            passionateExecution: false,
+            supremeRelationships: false,
+            happinessCirculation: false,
+          },
+          isLikedByCurrentUser: false,
+        });
+      }
+    }
+
+    return results;
+  } catch (error) {
+    console.error("Error in getUserMissionsServer:", error);
     return [];
   }
-
-  if (!data) return [];
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  return data.map((mission) => ({
-    id: mission.id,
-    createdBy: mission.created_by,
-    title: mission.title,
-    content: mission.content,
-    praisedUsers:
-      mission.user_mission_praised_users
-        ?.map((p) => (p as unknown as PraisedUser).private_users?.name)
-        .filter((name): name is string => Boolean(name)) || [],
-    status: mission.status,
-    rejectionReason: mission.rejection_reason,
-    createdAt: mission.created_at,
-    updatedAt: mission.updated_at,
-    approvedAt: mission.approved_at,
-    approvedBy: mission.approved_by,
-    publicMissionId: mission.public_mission_id,
-    likesCount: mission.likes_count,
-    mvvItems: {
-      passionateExecution:
-        mission.user_mission_mvv_items?.some(
-          (item) =>
-            (item as unknown as { mvv_type: string }).mvv_type ===
-            "passionate_execution",
-        ) || false,
-      supremeRelationships:
-        mission.user_mission_mvv_items?.some(
-          (item) =>
-            (item as unknown as { mvv_type: string }).mvv_type ===
-            "supreme_relationships",
-        ) || false,
-      happinessCirculation:
-        mission.user_mission_mvv_items?.some(
-          (item) =>
-            (item as unknown as { mvv_type: string }).mvv_type ===
-            "happiness_circulation",
-        ) || false,
-    },
-    isLikedByCurrentUser: user
-      ? mission.user_mission_likes?.some(
-          (like) =>
-            (like as unknown as { user_id: string }).user_id === user.id,
-        ) || false
-      : false,
-  }));
 }
 
 async function UserMissionsList() {
