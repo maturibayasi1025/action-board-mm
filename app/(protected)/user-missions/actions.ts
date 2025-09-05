@@ -148,8 +148,8 @@ export async function createUserMissionAction(input: CreateUserMissionInput) {
       }
     }
 
-    // ページを再検証（Server-side のみ）
-    if (typeof window === "undefined") {
+    // ページを再検証（Cloudflare Pages環境では無効化）
+    if (!process.env.CF_PAGES) {
       try {
         revalidatePath("/user-missions");
         revalidatePath("/user-missions/my");
@@ -168,6 +168,10 @@ export async function createUserMissionAction(input: CreateUserMissionInput) {
 }
 
 export async function toggleLikeAction(missionId: string) {
+  console.log(
+    `[toggleLikeAction] 開始: missionId=${missionId}, CF_PAGES=${process.env.CF_PAGES}, NODE_ENV=${process.env.NODE_ENV}`,
+  );
+
   const supabase = await createClient();
 
   try {
@@ -176,9 +180,17 @@ export async function toggleLikeAction(missionId: string) {
       error: authError,
     } = await supabase.auth.getUser();
 
-    if (authError || !user) {
+    if (authError) {
+      console.error("[toggleLikeAction] 認証エラー:", authError);
+      throw new Error(`認証エラー: ${authError.message}`);
+    }
+
+    if (!user) {
+      console.error("[toggleLikeAction] ユーザーが見つかりません");
       throw new Error("ログインが必要です");
     }
+
+    console.log(`[toggleLikeAction] ユーザー認証成功: userId=${user.id}`);
 
     // グッジョブの作成者を確認
     const { data: mission, error: missionError } = await supabase
@@ -188,7 +200,10 @@ export async function toggleLikeAction(missionId: string) {
       .single();
 
     if (missionError) {
-      throw new Error("グッジョブ情報の取得に失敗しました");
+      console.error("[toggleLikeAction] グッジョブ取得エラー:", missionError);
+      throw new Error(
+        `グッジョブ情報の取得に失敗しました: ${missionError.message}`,
+      );
     }
 
     // 自分のグッジョブにはいいねできない
@@ -197,27 +212,37 @@ export async function toggleLikeAction(missionId: string) {
     }
 
     // 既存のいいねをチェック
-    const { data: existingLike } = await supabase
+    const { data: existingLike, error: checkError } = await supabase
       .from("user_mission_likes")
       .select()
       .eq("user_mission_id", missionId)
       .eq("user_id", user.id)
       .single();
 
+    // single()はno rowsの場合エラーを返すため、PGRST116エラーは無視
+    if (checkError && checkError.code !== "PGRST116") {
+      console.error("[いいねチェックエラー]:", checkError);
+      throw new Error(`いいね状態の確認に失敗: ${checkError.message}`);
+    }
+
     if (existingLike) {
+      console.log(`[いいね削除] likeId=${existingLike.id}`);
       // いいねを削除
       const { error } = await supabase
         .from("user_mission_likes")
         .delete()
         .eq("id", existingLike.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error("[いいね削除エラー]:", error);
+        throw new Error(`いいね削除に失敗: ${error.message}`);
+      }
 
       // いいね取り消し時のXP減算（オプション）
       await removeLikeGiverXP(missionId, user.id, supabase);
 
-      // ページを再検証（Server-side のみ）
-      if (typeof window === "undefined") {
+      // ページを再検証（Cloudflare Pages環境では無効化）
+      if (!process.env.CF_PAGES) {
         try {
           revalidatePath("/user-missions");
           revalidatePath("/user-missions/my");
@@ -228,16 +253,21 @@ export async function toggleLikeAction(missionId: string) {
         }
       }
 
+      console.log("[toggleLikeAction] 成功: liked=false");
       return { liked: false };
     }
 
     // いいねを追加
+    console.log(`[いいね追加] missionId=${missionId}, userId=${user.id}`);
     const { error } = await supabase.from("user_mission_likes").insert({
       user_mission_id: missionId,
       user_id: user.id,
     });
 
-    if (error) throw error;
+    if (error) {
+      console.error("[いいね追加エラー]:", error);
+      throw new Error(`いいね追加に失敗: ${error.message}`);
+    }
 
     // いいねしたユーザーにXPを付与
     await awardLikeGiverXP(missionId, user.id, supabase);
@@ -255,8 +285,8 @@ export async function toggleLikeAction(missionId: string) {
       }
     }
 
-    // ページを再検証（Server-side のみ）
-    if (typeof window === "undefined") {
+    // ページを再検証（Cloudflare Pages環境では無効化）
+    if (!process.env.CF_PAGES) {
       try {
         revalidatePath("/user-missions");
         revalidatePath("/user-missions/my");
@@ -267,10 +297,15 @@ export async function toggleLikeAction(missionId: string) {
       }
     }
 
+    console.log("[toggleLikeAction] 成功: liked=true");
     return { liked: true };
   } catch (error) {
-    console.error("toggleLikeActionエラー:", error);
-    throw error;
+    console.error("[toggleLikeAction] 総合エラー:", error);
+    // エラーメッセージを適切に伝搬
+    if (error instanceof Error) {
+      throw error;
+    }
+    throw new Error("いいね処理中に予期しないエラーが発生しました");
   }
 }
 
