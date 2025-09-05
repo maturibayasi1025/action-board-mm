@@ -66,6 +66,7 @@ export const getSentryConfig = () => {
     },
 
     // エラーフィルタリング
+    // biome-ignore lint/suspicious/noExplicitAny: Sentryの型定義との互換性のためanyが必要
     beforeSend(event: any, hint: any): any {
       // 開発環境ではエラーを送信しない
       if (isDevelopment) {

@@ -213,11 +213,25 @@ export const signInActionWithState = async (
     email: email || "",
   };
 
+  // 本番環境でのデバッグログ
+  if (process.env.NODE_ENV === "production") {
+    console.log("[Sign In Debug] Attempt:", { email, hasPassword: !!password });
+    console.log(
+      "[Sign In Debug] Supabase URL:",
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+    );
+    console.log(
+      "[Sign In Debug] Has Anon Key:",
+      !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    );
+  }
+
   const validatedFields = signInAndLoginFormSchema.safeParse({
     email,
     password,
   });
   if (!validatedFields.success) {
+    console.log("[Sign In Debug] Validation failed:", validatedFields.error);
     return {
       error: "メールアドレスまたはパスワードが間違っています",
       formData: currentFormData,
@@ -231,27 +245,56 @@ export const signInActionWithState = async (
     };
   }
 
-  const supabase = await createClient();
+  try {
+    const supabase = await createClient();
+    console.log("[Sign In Debug] Supabase client created successfully");
 
-  const { error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
 
-  if (error) {
+    console.log("[Sign In Debug] Auth response:", {
+      hasUser: !!data?.user,
+      hasSession: !!data?.session,
+      error: error ? { code: error.status, message: error.message } : null,
+    });
+
+    if (error) {
+      console.log("[Sign In Debug] Auth error details:", error);
+      return {
+        error: `認証エラー: ${error.message} (コード: ${error.status})`,
+        formData: currentFormData,
+      };
+    }
+
+    if (!data.user || !data.session) {
+      console.log("[Sign In Debug] No user or session returned");
+      return {
+        error: "ユーザーまたはセッションが見つかりません",
+        formData: currentFormData,
+      };
+    }
+
+    // Validate returnUrl before redirecting
+    const validatedReturnUrl = validateReturnUrl(returnUrl);
+
+    console.log(
+      "[Sign In Debug] Login successful, redirecting to:",
+      validatedReturnUrl || "/",
+    );
+
     return {
-      error: "メールアドレスまたはパスワードが間違っています",
+      success: "ログインに成功しました",
+      redirectUrl: validatedReturnUrl || "/",
+    };
+  } catch (error) {
+    console.error("[Sign In Debug] Unexpected error:", error);
+    return {
+      error: `予期しないエラーが発生しました: ${error instanceof Error ? error.message : String(error)}`,
       formData: currentFormData,
     };
   }
-
-  // Validate returnUrl before redirecting
-  const validatedReturnUrl = validateReturnUrl(returnUrl);
-
-  return {
-    success: "ログインに成功しました",
-    redirectUrl: validatedReturnUrl || "/",
-  };
 };
 
 export const forgotPasswordAction = async (formData: FormData) => {
