@@ -1,4 +1,6 @@
-"use server";
+export const runtime = "edge";
+
+("use server");
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
@@ -202,10 +204,15 @@ export async function toggleLikeAction(missionId: string) {
       // いいね取り消し時のXP減算（オプション）
       await removeLikeGiverXP(missionId, user.id, supabase);
 
-      // ページを再検証
-      revalidatePath("/user-missions");
-      revalidatePath("/user-missions/my");
-      revalidatePath("/");
+      // ページを再検証（Edge Runtime対応）
+      try {
+        revalidatePath("/user-missions");
+        revalidatePath("/user-missions/my");
+        revalidatePath("/");
+      } catch (revalidateError) {
+        console.error("Revalidate エラー（継続）:", revalidateError);
+        // 再検証失敗してもいいね取り消し処理は継続
+      }
 
       return { liked: false };
     }
@@ -224,13 +231,25 @@ export async function toggleLikeAction(missionId: string) {
     // グッジョブ作成者にマイルストーンXPを付与
     await checkAndAwardMilestoneXP(missionId, supabase);
 
-    // Slack通知を送信
-    await sendSlackNotificationForLike(missionId, user.id, supabase);
+    // Slack通知を送信（Cloudflare環境では無効化）
+    if (process.env.NODE_ENV !== "production" || !process.env.CF_PAGES) {
+      try {
+        await sendSlackNotificationForLike(missionId, user.id, supabase);
+      } catch (slackError) {
+        console.error("Slack通知エラー（継続）:", slackError);
+        // Slack通知失敗してもいいね処理は継続
+      }
+    }
 
-    // ページを再検証
-    revalidatePath("/user-missions");
-    revalidatePath("/user-missions/my");
-    revalidatePath("/");
+    // ページを再検証（Edge Runtime対応）
+    try {
+      revalidatePath("/user-missions");
+      revalidatePath("/user-missions/my");
+      revalidatePath("/");
+    } catch (revalidateError) {
+      console.error("Revalidate エラー（継続）:", revalidateError);
+      // 再検証失敗してもいいね処理は継続
+    }
 
     return { liked: true };
   } catch (error) {

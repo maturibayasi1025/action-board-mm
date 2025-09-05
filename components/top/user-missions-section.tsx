@@ -10,8 +10,7 @@ import {
 } from "@/components/ui/card";
 import { LikeButton } from "@/components/user-mission/like-button";
 import { createClient } from "@/lib/supabase/server";
-import type { PraisedUser } from "@/lib/types/user-missions";
-import { ArrowRight, Heart, Plus, User } from "lucide-react";
+import { ArrowRight, Plus, User } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
 
@@ -55,13 +54,17 @@ async function getUserMissionsServer() {
     for (const mission of data) {
       try {
         // MVV項目を個別に取得
-        const { data: mvvItems } = await supabase
+        const { data: mvvItems, error: mvvError } = await supabase
           .from("user_mission_mvv_items")
           .select("mvv_type")
           .eq("user_mission_id", mission.id);
 
+        if (mvvError) {
+          console.error(`MVV error for mission ${mission.id}:`, mvvError);
+        }
+
         // 賞賛対象ユーザーを個別に取得
-        const { data: praisedUsers } = await supabase
+        const { data: praisedUsers, error: praisedError } = await supabase
           .from("user_mission_praised_users")
           .select(`
             praised_user_id,
@@ -71,13 +74,24 @@ async function getUserMissionsServer() {
           `)
           .eq("user_mission_id", mission.id);
 
+        if (praisedError) {
+          console.error(
+            `Praised users error for mission ${mission.id}:`,
+            praisedError,
+          );
+        }
+
         // いいね情報を個別に取得
-        const { data: likes } = await supabase
+        const { data: likes, error: likesError } = await supabase
           .from("user_mission_likes")
           .select("user_id")
           .eq("user_mission_id", mission.id);
 
-        results.push({
+        if (likesError) {
+          console.error(`Likes error for mission ${mission.id}:`, likesError);
+        }
+
+        const missionResult = {
           id: mission.id,
           createdBy: mission.created_by,
           title: mission.title,
@@ -111,7 +125,9 @@ async function getUserMissionsServer() {
           isLikedByCurrentUser: user
             ? likes?.some((like: any) => like.user_id === user.id) || false
             : false,
-        });
+        };
+
+        results.push(missionResult);
       } catch (itemError) {
         console.error(`Error processing mission ${mission.id}:`, itemError);
         // エラーが発生した場合は基本情報のみで続行
