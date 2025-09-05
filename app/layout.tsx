@@ -4,6 +4,7 @@ import { ThemeProvider } from "next-themes";
 import Footer from "./footer";
 import "./globals.css";
 import { ReferralCodeHandlerWrapper } from "@/components/ReferralCodeHandlerWrapper";
+import { SentryInitializer } from "@/components/SentryInitializer";
 import { Toaster } from "@/components/ui/sonner";
 import { generateRootMetadata } from "@/lib/metadata";
 import Script from "next/script";
@@ -52,6 +53,7 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
+          <SentryInitializer />
           <Navbar />
           <main className="md:container md:mx-auto flex flex-col items-center">
             <Suspense>

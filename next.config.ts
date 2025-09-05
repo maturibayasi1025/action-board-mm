@@ -7,6 +7,7 @@ const nextConfig: NextConfig = {
     serverActions: {
       bodySizeLimit: "10mb",
     },
+    // instrumentation.tsは最新のNext.jsでは自動で有効化される
   },
   // Cloudflare Pages用のビルド最適化
   generateBuildId: async () => {

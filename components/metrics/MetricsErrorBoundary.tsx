@@ -1,5 +1,6 @@
 "use client";
 
+import logger from "@/lib/logger";
 import React from "react";
 
 interface MetricsErrorBoundaryState {
@@ -24,7 +25,13 @@ export class MetricsErrorBoundary extends React.Component<
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error("Metrics component error:", error, errorInfo);
+    // カスタムロガーでエラーを記録
+    logger.logComponentError(error, errorInfo, "MetricsErrorBoundary");
+
+    // 開発環境ではコンソールにも出力
+    if (process.env.NODE_ENV === "development") {
+      console.error("Metrics component error:", error, errorInfo);
+    }
   }
 
   render() {
