@@ -8,28 +8,43 @@
 import { initSentryServer } from "./sentry.setup";
 
 export async function register() {
+  // 最初にPrisma関連の環境変数を設定（Cloudflare Pages環境のみ）
+  if (process.env.CF_PAGES === "true") {
+    // Prismaとopentelemetryを完全に無効化
+    process.env.PRISMA_DISABLE_INSTRUMENTATION = "true";
+    process.env.OPENTELEMETRY_INSTRUMENTATION_DISABLED = "true";
+    process.env.OTEL_SDK_DISABLED = "true";
+    process.env.PRISMA_HIDE_UPDATE_MESSAGE = "true";
+    process.env.PRISMA_CLIENT_ENGAGEMENT_TIMEOUT = "0";
+
+    // OpenTelemetryのinstrumentationモジュールを無効化
+    if (typeof globalThis !== "undefined") {
+      (globalThis as any).__DISABLE_INSTRUMENTATION__ = true;
+    }
+  }
+
   // Node.jsランタイムでのみ実行
   if (process.env.NEXT_RUNTIME === "nodejs") {
     console.log("[Instrumentation] Initializing server-side monitoring...");
 
-    // Cloudflare Pages環境でのPrisma instrumentationエラー対策
+    // Cloudflare Pages環境でのログ
     if (process.env.CF_PAGES === "true") {
       console.log(
-        "[Instrumentation] Cloudflare Pages環境 - Prisma instrumentationを無効化",
+        "[Instrumentation] Cloudflare Pages環境 - Prisma/OpenTelemetry instrumentationを無効化済み",
       );
-
-      // 環境変数でPrismaのinstrumentationを無効化
-      process.env.PRISMA_DISABLE_INSTRUMENTATION = "true";
-      process.env.OPENTELEMETRY_INSTRUMENTATION_DISABLED = "true";
-      process.env.OTEL_SDK_DISABLED = "true";
     }
 
-    // Sentryの初期化（有効な場合のみ）
+    // Sentryの初期化（有効な場合のみ、かつCloudflare Pages以外）
     if (
       process.env.NEXT_PUBLIC_SENTRY_DSN &&
-      process.env.DISABLE_SENTRY !== "true"
+      process.env.DISABLE_SENTRY !== "true" &&
+      process.env.CF_PAGES !== "true"
     ) {
-      await initSentryServer();
+      try {
+        await initSentryServer();
+      } catch (error) {
+        console.error("[Instrumentation] Sentry初期化エラー:", error);
+      }
     } else {
       console.log("[Instrumentation] Sentry is disabled");
     }

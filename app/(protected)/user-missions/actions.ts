@@ -131,25 +131,31 @@ export async function createUserMissionAction(input: CreateUserMissionInput) {
       supabase,
     );
 
-    // Slack通知を送信（Cloudflare環境では無効化）
-    if (process.env.NODE_ENV !== "production" && !process.env.CF_PAGES) {
-      try {
-        await sendSlackNotificationForMissionCreation(
-          mission.id,
-          input.title,
-          input.content,
-          user.id,
-          input.praisedUserIds,
-          supabase,
-        );
-      } catch (slackError) {
+    // Slack通知を送信（Cloudflare環境とEdge Runtimeでは無効化）
+    const isEdgeRuntime = typeof EdgeRuntime !== "undefined";
+    const shouldSendSlack =
+      process.env.NODE_ENV !== "production" &&
+      !process.env.CF_PAGES &&
+      !isEdgeRuntime;
+
+    if (shouldSendSlack) {
+      // 非同期で実行（待たない）
+      sendSlackNotificationForMissionCreation(
+        mission.id,
+        input.title,
+        input.content,
+        user.id,
+        input.praisedUserIds,
+        supabase,
+      ).catch((slackError) => {
         console.error("Slack通知エラー（継続）:", slackError);
-        // Slack通知失敗してもグッジョブ作成処理は継続
-      }
+      });
     }
 
-    // ページを再検証（Cloudflare Pages環境では無効化）
-    if (!process.env.CF_PAGES) {
+    // ページを再検証（Cloudflare Pages環境とEdge Runtimeでは無効化）
+    const canRevalidate =
+      !process.env.CF_PAGES && typeof EdgeRuntime === "undefined";
+    if (canRevalidate) {
       try {
         revalidatePath("/user-missions");
         revalidatePath("/user-missions/my");
@@ -168,8 +174,9 @@ export async function createUserMissionAction(input: CreateUserMissionInput) {
 }
 
 export async function toggleLikeAction(missionId: string) {
+  const isEdgeRuntime = typeof EdgeRuntime !== "undefined";
   console.log(
-    `[toggleLikeAction] 開始: missionId=${missionId}, CF_PAGES=${process.env.CF_PAGES}, NODE_ENV=${process.env.NODE_ENV}`,
+    `[toggleLikeAction] 開始: missionId=${missionId}, CF_PAGES=${process.env.CF_PAGES}, NODE_ENV=${process.env.NODE_ENV}, EdgeRuntime=${isEdgeRuntime}`,
   );
 
   let supabase: Awaited<ReturnType<typeof createClient>>;
@@ -267,8 +274,10 @@ export async function toggleLikeAction(missionId: string) {
       // いいね取り消し時のXP減算（オプション）
       await removeLikeGiverXP(missionId, user.id, supabase);
 
-      // ページを再検証（Cloudflare Pages環境では無効化）
-      if (!process.env.CF_PAGES) {
+      // ページを再検証（Cloudflare Pages環境とEdge Runtimeでは無効化）
+      const canRevalidate =
+        !process.env.CF_PAGES && typeof EdgeRuntime === "undefined";
+      if (canRevalidate) {
         try {
           revalidatePath("/user-missions");
           revalidatePath("/user-missions/my");
@@ -301,18 +310,26 @@ export async function toggleLikeAction(missionId: string) {
     // グッジョブ作成者にマイルストーンXPを付与
     await checkAndAwardMilestoneXP(missionId, supabase);
 
-    // Slack通知を送信（Cloudflare環境では無効化）
-    if (process.env.NODE_ENV !== "production" && !process.env.CF_PAGES) {
-      try {
-        await sendSlackNotificationForLike(missionId, user.id, supabase);
-      } catch (slackError) {
-        console.error("Slack通知エラー（継続）:", slackError);
-        // Slack通知失敗してもいいね処理は継続
-      }
+    // Slack通知を送信（Cloudflare環境とEdge Runtimeでは無効化）
+    const isEdgeRuntime = typeof EdgeRuntime !== "undefined";
+    const shouldSendSlack =
+      process.env.NODE_ENV !== "production" &&
+      !process.env.CF_PAGES &&
+      !isEdgeRuntime;
+
+    if (shouldSendSlack) {
+      // 非同期で実行（待たない）
+      sendSlackNotificationForLike(missionId, user.id, supabase).catch(
+        (slackError) => {
+          console.error("Slack通知エラー（継続）:", slackError);
+        },
+      );
     }
 
-    // ページを再検証（Cloudflare Pages環境では無効化）
-    if (!process.env.CF_PAGES) {
+    // ページを再検証（Cloudflare Pages環境とEdge Runtimeでは無効化）
+    const canRevalidate =
+      !process.env.CF_PAGES && typeof EdgeRuntime === "undefined";
+    if (canRevalidate) {
       try {
         revalidatePath("/user-missions");
         revalidatePath("/user-missions/my");
@@ -466,6 +483,12 @@ async function sendSlackNotificationForMissionCreation(
   supabase: Awaited<ReturnType<typeof createClient>>,
 ) {
   try {
+    // Edge Runtimeチェック
+    if (typeof EdgeRuntime !== "undefined") {
+      console.log("[Slack通知] Edge Runtimeで実行中 - スキップ");
+      return;
+    }
+
     // 作成者情報を取得
     const { data: creator } = await supabase
       .from("private_users")
@@ -482,9 +505,16 @@ async function sendSlackNotificationForMissionCreation(
     const praisedNames = praisedUsers?.map((u) => u.name).join(", ") || "";
 
     // Slack通知APIを呼び出し（サーバーサイド）
-    const apiUrl =
-      process.env.NEXT_PUBLIC_APP_ORIGIN || "http://localhost:3000";
-    await fetch(`${apiUrl}/api/slack-notification`, {
+    // 絶対URLを構築
+    const baseUrl =
+      process.env.NEXT_PUBLIC_APP_ORIGIN || process.env.VERCEL_URL
+        ? `https://${process.env.VERCEL_URL}`
+        : "http://localhost:3000";
+    const apiUrl = `${baseUrl}/api/slack-notification`;
+
+    console.log("[Slack通知] API URL:", apiUrl);
+
+    await fetch(apiUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -510,6 +540,12 @@ async function sendSlackNotificationForLike(
   supabase: Awaited<ReturnType<typeof createClient>>,
 ) {
   try {
+    // Edge Runtimeチェック
+    if (typeof EdgeRuntime !== "undefined") {
+      console.log("[Slack通知] Edge Runtimeで実行中 - スキップ");
+      return;
+    }
+
     // グッジョブ情報を取得
     const { data: mission } = await supabase
       .from("user_missions")
@@ -534,9 +570,16 @@ async function sendSlackNotificationForLike(
       : { data: null };
 
     // Slack通知APIを呼び出し（サーバーサイド）
-    const apiUrl =
-      process.env.NEXT_PUBLIC_APP_ORIGIN || "http://localhost:3000";
-    await fetch(`${apiUrl}/api/slack-notification`, {
+    // 絶対URLを構築
+    const baseUrl =
+      process.env.NEXT_PUBLIC_APP_ORIGIN || process.env.VERCEL_URL
+        ? `https://${process.env.VERCEL_URL}`
+        : "http://localhost:3000";
+    const apiUrl = `${baseUrl}/api/slack-notification`;
+
+    console.log("[Slack通知] API URL:", apiUrl);
+
+    await fetch(apiUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

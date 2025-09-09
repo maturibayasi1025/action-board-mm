@@ -92,19 +92,33 @@ export const createClient = async () => {
   return createServerClient<Database>(supabaseUrl, supabaseAnonKey, {
     cookies: {
       async getAll() {
-        const cookieStore = await cookies();
-        return cookieStore.getAll();
+        try {
+          const cookieStore = await cookies();
+          return cookieStore.getAll();
+        } catch (error) {
+          console.error("[Supabase] Cookie読み取りエラー:", error);
+          // Edge RuntimeやCloudflare環境でcookiesが使えない場合
+          return [];
+        }
       },
       async setAll(cookiesToSet) {
         try {
           const cookieStore = await cookies();
           for (const { name, value, options } of cookiesToSet) {
-            cookieStore.set(name, value, options);
+            // Edge RuntimeやCloudflare環境での互換性を確保
+            try {
+              cookieStore.set(name, value, options);
+            } catch (setError) {
+              console.warn(`[Supabase] Cookie設定エラー (${name}):`, setError);
+              // Server Componentから呼ばれた場合やEdge Runtimeでは
+              // middlewareがセッションを更新するので無視できる
+            }
           }
         } catch (error) {
           // The `set` method was called from a Server Component.
           // This can be ignored if you have middleware refreshing
           // user sessions.
+          console.warn("[Supabase] Cookie setAll エラー（無視可能）:", error);
         }
       },
     },

@@ -51,9 +51,9 @@ export const getSentryConfig = () => {
     // セッショントラッキングを無効化（Server Componentsとの互換性）
     autoSessionTracking: false,
 
-    // Replay機能を無効化（クライアントサイドの問題を回避）
+    // Replay機能とPrisma integrationを無効化
     integrations: (integrations: { name: string }[]) => {
-      // Replay、ProfilingIntegration等を除外
+      // Replay、ProfilingIntegration、Prisma等を除外
       return integrations.filter((integration) => {
         const name = integration.name;
         return ![
@@ -61,9 +61,15 @@ export const getSentryConfig = () => {
           "ReplayCanvas",
           "ProfilingIntegration",
           "BrowserTracing",
+          "Prisma",
+          "PrismaIntegration",
+          "prismaIntegration",
         ].includes(name);
       });
     },
+
+    // Prisma instrumentationを無効化
+    skipOpenTelemetrySetup: true,
 
     // エラーフィルタリング
     // biome-ignore lint/suspicious/noExplicitAny: Sentryの型定義との互換性のためanyが必要

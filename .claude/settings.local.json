@@ -1,5 +1,6 @@
 {
   "permissions": {
-    "defaultMode": "acceptEdits"
+    "defaultMode": "acceptEdits",
+    "allow": ["Bash(npm run biome:check:write:*)"]
   }
 }
