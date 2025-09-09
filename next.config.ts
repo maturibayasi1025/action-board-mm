@@ -18,26 +18,24 @@ const nextConfig: NextConfig = {
     unoptimized: true,
   },
 
-  // Cloudflare Pages環境でのPrisma instrumentation対策
+  // Cloudflare Pages環境でのPrisma instrumentation対策（シンプル版）
   webpack: (config, { isServer }) => {
     if (process.env.CF_PAGES === "true" && isServer) {
       console.log(
         "[Webpack] Cloudflare Pages環境 - Prisma instrumentation無効化",
       );
 
-      // Prismaのinstrumentationを外部依存として扱う
-      config.externals = config.externals || [];
-      config.externals.push("@prisma/instrumentation");
-      config.externals.push("@opentelemetry/auto-instrumentations-node");
-      config.externals.push("@opentelemetry/instrumentation");
+      // externalsを安全に設定
+      if (!config.externals) {
+        config.externals = [];
+      }
 
-      // Dynamic importエラーを回避
-      config.resolve = config.resolve || {};
-      config.resolve.fallback = {
-        ...config.resolve.fallback,
-        "@prisma/instrumentation": false,
-        "@opentelemetry/instrumentation": false,
-      };
+      // 配列形式でexternalsを追加（resolve.fallbackは使用しない）
+      if (Array.isArray(config.externals)) {
+        config.externals.push("@prisma/instrumentation");
+        config.externals.push("@opentelemetry/auto-instrumentations-node");
+        config.externals.push("@opentelemetry/instrumentation");
+      }
     }
 
     return config;
