@@ -12,6 +12,18 @@ export async function register() {
   if (process.env.NEXT_RUNTIME === "nodejs") {
     console.log("[Instrumentation] Initializing server-side monitoring...");
 
+    // Cloudflare Pages環境でのPrisma instrumentationエラー対策
+    if (process.env.CF_PAGES === "true") {
+      console.log(
+        "[Instrumentation] Cloudflare Pages環境 - Prisma instrumentationを無効化",
+      );
+
+      // 環境変数でPrismaのinstrumentationを無効化
+      process.env.PRISMA_DISABLE_INSTRUMENTATION = "true";
+      process.env.OPENTELEMETRY_INSTRUMENTATION_DISABLED = "true";
+      process.env.OTEL_SDK_DISABLED = "true";
+    }
+
     // Sentryの初期化（有効な場合のみ）
     if (
       process.env.NEXT_PUBLIC_SENTRY_DSN &&
