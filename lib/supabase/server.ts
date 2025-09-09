@@ -31,8 +31,20 @@ export const createClient = async () => {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  // 本番環境では環境変数の存在をチェック
-  if (process.env.NODE_ENV === "production") {
+  // Cloudflare Pages環境での詳細なログ出力
+  if (process.env.CF_PAGES) {
+    console.log("[CF_PAGES] 環境変数チェック:", {
+      NODE_ENV: process.env.NODE_ENV,
+      CF_PAGES: process.env.CF_PAGES,
+      hasSupabaseUrl: !!supabaseUrl,
+      hasSupabaseAnonKey: !!supabaseAnonKey,
+      supabaseUrlLength: supabaseUrl?.length || 0,
+      supabaseAnonKeyLength: supabaseAnonKey?.length || 0,
+    });
+  }
+
+  // 本番環境では環境変数の存在をチェック（Cloudflare Pagesは緩い検証）
+  if (process.env.NODE_ENV === "production" && !process.env.CF_PAGES) {
     if (!checkSupabaseEnvVars()) {
       throw new Error(
         "Required Supabase environment variables are missing in production",
@@ -40,8 +52,23 @@ export const createClient = async () => {
     }
   }
 
-  // ビルド時には環境変数が存在しない場合があるため、フォールバック処理を追加
+  // 環境変数が存在しない場合の処理
   if (!supabaseUrl || !supabaseAnonKey) {
+    const errorMessage = `Supabase環境変数が見つかりません: URL=${!!supabaseUrl}, ANON_KEY=${!!supabaseAnonKey}`;
+
+    // Cloudflare Pages環境では詳細エラーを出力
+    if (process.env.CF_PAGES) {
+      console.error("[CF_PAGES] 環境変数エラー:", {
+        supabaseUrl: supabaseUrl ? "設定済み" : "未設定",
+        supabaseAnonKey: supabaseAnonKey ? "設定済み" : "未設定",
+        allEnvVars: Object.keys(process.env).filter(
+          (key) => key.includes("SUPABASE") || key.includes("NEXT_PUBLIC"),
+        ),
+      });
+      throw new Error(`[Cloudflare] ${errorMessage}`);
+    }
+
+    // 開発環境ではフォールバック処理を使用
     console.warn(
       "Supabase environment variables not found, using fallback values",
     );

@@ -172,7 +172,33 @@ export async function toggleLikeAction(missionId: string) {
     `[toggleLikeAction] 開始: missionId=${missionId}, CF_PAGES=${process.env.CF_PAGES}, NODE_ENV=${process.env.NODE_ENV}`,
   );
 
-  const supabase = await createClient();
+  let supabase: Awaited<ReturnType<typeof createClient>>;
+  try {
+    supabase = await createClient();
+
+    // Cloudflare環境での詳細デバッグ
+    if (process.env.CF_PAGES) {
+      console.log("[CF_PAGES] Supabaseクライアント作成成功");
+      // 簡単な接続テスト
+      const testQuery = await supabase
+        .from("user_missions")
+        .select("id")
+        .limit(1);
+      if (testQuery.error) {
+        console.error("[CF_PAGES] 接続テストエラー:", testQuery.error);
+        throw new Error(`Supabase接続失敗: ${testQuery.error.message}`);
+      }
+      console.log("[CF_PAGES] 接続テスト成功");
+    }
+  } catch (clientError) {
+    console.error(
+      "[toggleLikeAction] Supabaseクライアント作成エラー:",
+      clientError,
+    );
+    throw new Error(
+      `データベース接続に失敗しました: ${clientError instanceof Error ? clientError.message : String(clientError)}`,
+    );
+  }
 
   try {
     const {
@@ -301,9 +327,24 @@ export async function toggleLikeAction(missionId: string) {
     return { liked: true };
   } catch (error) {
     console.error("[toggleLikeAction] 総合エラー:", error);
-    // エラーメッセージを適切に伝搬
+
+    // Cloudflare環境での詳細なエラーログ
+    if (process.env.CF_PAGES) {
+      console.error("[CF_PAGES] エラー詳細:", {
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : "スタックトレースなし",
+        name: error instanceof Error ? error.name : "不明なエラー",
+        cause: error instanceof Error ? error.cause : undefined,
+      });
+    }
+
+    // エラーメッセージを適切に伝搬（本番環境でも詳細情報を提供）
     if (error instanceof Error) {
-      throw error;
+      // 本番環境でもデバッグしやすいエラーメッセージを提供
+      const errorMessage = process.env.CF_PAGES
+        ? `[Cloudflare] ${error.message}`
+        : error.message;
+      throw new Error(errorMessage);
     }
     throw new Error("いいね処理中に予期しないエラーが発生しました");
   }

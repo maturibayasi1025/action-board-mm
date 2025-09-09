@@ -55,7 +55,31 @@ export function LikeButton({
       // ページ再読み込み後は、サーバーからの正確なデータが表示される
     } catch (error) {
       console.error("いいね処理エラー:", error);
-      toast.error("いいねの処理に失敗しました");
+
+      // エラーの詳細をログ出力
+      if (error instanceof Error) {
+        console.error("エラー詳細:", {
+          message: error.message,
+          stack: error.stack,
+          name: error.name,
+        });
+      }
+
+      // ユーザーに表示するエラーメッセージを決定
+      let errorMessage = "いいねの処理に失敗しました";
+      if (error instanceof Error) {
+        if (error.message.includes("データベース接続")) {
+          errorMessage = "データベースに接続できませんでした";
+        } else if (error.message.includes("Cloudflare")) {
+          errorMessage = "サーバーでエラーが発生しました";
+        } else if (error.message.includes("認証")) {
+          errorMessage = "ログインし直してください";
+        } else if (error.message.includes("自分のグッジョブ")) {
+          errorMessage = "自分のグッジョブにはいいねできません";
+        }
+      }
+
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
