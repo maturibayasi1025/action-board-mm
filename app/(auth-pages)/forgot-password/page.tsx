@@ -5,8 +5,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Image from "next/image";
 
-export const runtime = "edge";
-
 export default async function ForgotPassword(props: {
   searchParams: Promise<Message>;
 }) {

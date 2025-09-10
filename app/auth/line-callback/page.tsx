@@ -4,8 +4,6 @@ import { handleLineAuthAction } from "@/app/actions";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 
-export const runtime = "edge";
-
 function LineCallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();

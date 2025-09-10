@@ -12,8 +12,6 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import PrefecturePosterMapClient from "./PrefecturePosterMapClient";
 
-export const runtime = "edge";
-
 export async function generateMetadata({
   params,
 }: {

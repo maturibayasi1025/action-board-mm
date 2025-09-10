@@ -3,8 +3,6 @@ import Image from "next/image";
 import Link from "next/link";
 import SignInForm from "./SignInForm";
 
-export const runtime = "edge";
-
 export default async function Login(props: {
   searchParams: Promise<Message & { returnUrl?: string }>;
 }) {

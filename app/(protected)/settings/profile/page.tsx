@@ -3,8 +3,6 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import ProfileForm from "./ProfileForm";
 
-export const runtime = "edge";
-
 type ProfileSettingsPageSearchParams = {
   new: string;
 } & Message;

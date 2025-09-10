@@ -1,8 +1,6 @@
 import { FormMessage } from "@/components/form-message";
 import Image from "next/image";
 
-export const runtime = "edge";
-
 export default function SignUpSuccess() {
   return (
     <div className="flex-1 flex flex-col min-w-72">

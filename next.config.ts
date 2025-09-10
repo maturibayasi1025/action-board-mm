@@ -8,8 +8,6 @@ const nextConfig: NextConfig = {
     serverActions: {
       bodySizeLimit: "10mb",
     },
-    // Cloudflare Pages環境でのWebpackビルドワーカー無効化
-    webpackBuildWorker: process.env.CF_PAGES === "true" ? false : undefined,
     // instrumentation.tsは最新のNext.jsでは自動で有効化される
   },
 
@@ -23,27 +21,36 @@ const nextConfig: NextConfig = {
     unoptimized: true,
   },
 
-  // コンパイラオプション
-  compiler: {
-    // Emotion、styled-componentsのサポートを無効化（未使用）
-    emotion: false,
-    styledComponents: false,
-    // 本番環境でReact開発者ツールを無効化
-    reactRemoveProperties:
-      process.env.NODE_ENV === "production"
-        ? { properties: ["^data-testid$"] }
-        : false,
-    // console.logを本番環境で削除（Cloudflare環境は除く）
-    removeConsole:
-      process.env.NODE_ENV === "production" && process.env.CF_PAGES !== "true"
-        ? {
-            exclude: ["error", "warn"],
-          }
-        : false,
-  },
+  // コンパイラオプション（Cloudflare環境用に簡素化）
+  compiler:
+    process.env.CF_PAGES === "true"
+      ? {}
+      : {
+          // Emotion、styled-componentsのサポートを無効化（未使用）
+          emotion: false,
+          styledComponents: false,
+          // 本番環境でReact開発者ツールを無効化
+          reactRemoveProperties:
+            process.env.NODE_ENV === "production"
+              ? { properties: ["^data-testid$"] }
+              : false,
+          // console.logを本番環境で削除
+          removeConsole:
+            process.env.NODE_ENV === "production"
+              ? {
+                  exclude: ["error", "warn"],
+                }
+              : false,
+        },
 
   // Cloudflare Pages環境でのPrisma instrumentation対策
   webpack: (config, { isServer, dev }) => {
+    // Cloudflare Pages環境でminificationを無効化してエラーを回避
+    if (process.env.CF_PAGES === "true" && !dev) {
+      config.optimization = config.optimization || {};
+      config.optimization.minimize = false;
+    }
+
     // Cloudflare Pages環境でのみ適用（プロダクションビルドは除外）
     if (process.env.CF_PAGES === "true" && isServer) {
       console.log(
@@ -62,31 +69,9 @@ const nextConfig: NextConfig = {
         config.externals.push("@prisma/client");
         config.externals.push("@prisma/engines");
 
-        // OpenTelemetry関連モジュールを完全に外部化
-        config.externals.push("@opentelemetry/auto-instrumentations-node");
-        config.externals.push("@opentelemetry/instrumentation");
-        config.externals.push("@opentelemetry/api");
-        config.externals.push("@opentelemetry/sdk-node");
-        config.externals.push("@opentelemetry/resources");
-        config.externals.push("@opentelemetry/semantic-conventions");
-
         // その他のinstrumentationモジュール
         config.externals.push("dd-trace");
         config.externals.push("newrelic");
-      }
-    }
-
-    // Cloudflare Pages環境でのエラーハンドリング強化
-    if (process.env.CF_PAGES === "true") {
-      // webpack.IgnorePluginで問題のあるモジュールを無視
-      const webpack = require("next/dist/compiled/webpack/webpack");
-      if (webpack.IgnorePlugin) {
-        config.plugins = config.plugins || [];
-        config.plugins.push(
-          new webpack.IgnorePlugin({
-            resourceRegExp: /^@prisma\/instrumentation$/,
-          }),
-        );
       }
     }
 
