@@ -132,7 +132,7 @@ export async function createUserMissionAction(input: CreateUserMissionInput) {
     );
 
     // Slack通知を送信（Cloudflare環境とEdge Runtimeでは無効化）
-    const isEdgeRuntime = typeof EdgeRuntime !== "undefined";
+    const isEdgeRuntime = process.env.NEXT_RUNTIME === "edge";
     const shouldSendSlack =
       process.env.NODE_ENV !== "production" &&
       !process.env.CF_PAGES &&
@@ -154,7 +154,7 @@ export async function createUserMissionAction(input: CreateUserMissionInput) {
 
     // ページを再検証（Cloudflare Pages環境とEdge Runtimeでは無効化）
     const canRevalidate =
-      !process.env.CF_PAGES && typeof EdgeRuntime === "undefined";
+      !process.env.CF_PAGES && process.env.NEXT_RUNTIME !== "edge";
     if (canRevalidate) {
       try {
         revalidatePath("/user-missions");
@@ -174,7 +174,7 @@ export async function createUserMissionAction(input: CreateUserMissionInput) {
 }
 
 export async function toggleLikeAction(missionId: string) {
-  const isEdgeRuntime = typeof EdgeRuntime !== "undefined";
+  const isEdgeRuntime = process.env.NEXT_RUNTIME === "edge";
   console.log(
     `[toggleLikeAction] 開始: missionId=${missionId}, CF_PAGES=${process.env.CF_PAGES}, NODE_ENV=${process.env.NODE_ENV}, EdgeRuntime=${isEdgeRuntime}`,
   );
@@ -276,7 +276,7 @@ export async function toggleLikeAction(missionId: string) {
 
       // ページを再検証（Cloudflare Pages環境とEdge Runtimeでは無効化）
       const canRevalidate =
-        !process.env.CF_PAGES && typeof EdgeRuntime === "undefined";
+        !process.env.CF_PAGES && process.env.NEXT_RUNTIME !== "edge";
       if (canRevalidate) {
         try {
           revalidatePath("/user-missions");
@@ -311,7 +311,7 @@ export async function toggleLikeAction(missionId: string) {
     await checkAndAwardMilestoneXP(missionId, supabase);
 
     // Slack通知を送信（Cloudflare環境とEdge Runtimeでは無効化）
-    const isEdgeRuntime = typeof EdgeRuntime !== "undefined";
+    const isEdgeRuntime = process.env.NEXT_RUNTIME === "edge";
     const shouldSendSlack =
       process.env.NODE_ENV !== "production" &&
       !process.env.CF_PAGES &&
@@ -328,7 +328,7 @@ export async function toggleLikeAction(missionId: string) {
 
     // ページを再検証（Cloudflare Pages環境とEdge Runtimeでは無効化）
     const canRevalidate =
-      !process.env.CF_PAGES && typeof EdgeRuntime === "undefined";
+      !process.env.CF_PAGES && process.env.NEXT_RUNTIME !== "edge";
     if (canRevalidate) {
       try {
         revalidatePath("/user-missions");
@@ -484,7 +484,7 @@ async function sendSlackNotificationForMissionCreation(
 ) {
   try {
     // Edge Runtimeチェック
-    if (typeof EdgeRuntime !== "undefined") {
+    if (process.env.NEXT_RUNTIME === "edge") {
       console.log("[Slack通知] Edge Runtimeで実行中 - スキップ");
       return;
     }
@@ -541,7 +541,7 @@ async function sendSlackNotificationForLike(
 ) {
   try {
     // Edge Runtimeチェック
-    if (typeof EdgeRuntime !== "undefined") {
+    if (process.env.NEXT_RUNTIME === "edge") {
       console.log("[Slack通知] Edge Runtimeで実行中 - スキップ");
       return;
     }
