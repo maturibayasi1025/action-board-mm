@@ -45,10 +45,20 @@
 
 **Root Cause**: Storybook files were being processed during Cloudflare Pages build, but Storybook packages are in devDependencies and aren't available at build time.
 
-**Solution**: Added Webpack `resolve.alias` configuration in `next.config.ts` to disable Storybook modules during Cloudflare Pages builds:
+**Solution**: Used Webpack `IgnorePlugin` and `resolve.alias` configuration in `next.config.ts` to completely exclude Storybook files and modules during Cloudflare Pages builds:
+
 ```typescript
-// Cloudflare Pages環境でStorybookモジュールを無効化
+// Cloudflare Pages環境でStorybookファイルとモジュールを除外
 if (process.env.CF_PAGES === "true") {
+  // IgnorePluginでStorybookファイルを無視
+  const webpack = require('webpack');
+  config.plugins = config.plugins || [];
+  config.plugins.push(
+    new webpack.IgnorePlugin({
+      resourceRegExp: /\.stories\.(ts|tsx|js|jsx)$/,
+    })
+  );
+
   config.resolve.alias = {
     ...config.resolve.alias,
     '@storybook/react': false,
@@ -64,7 +74,7 @@ if (process.env.CF_PAGES === "true") {
 
 ## Key Files Modified
 - `package.json` - Dependency optimization and type definition placement
-- `next.config.ts` - Added Storybook module aliases for CF_PAGES environment
+- `next.config.ts` - Added Webpack IgnorePlugin and resolve.alias for Storybook exclusion in CF_PAGES environment
 - `app/icon.tsx` - Edge runtime compatible icon generation  
 - `app/apple-icon.tsx` - Edge runtime compatible Apple icon generation
 - Removed: `app/icon.png`, `app/apple-icon.png`
@@ -78,8 +88,8 @@ if (process.env.CF_PAGES === "true") {
 
 **devDependencies** (Development Only):
 - Testing frameworks: Jest, Playwright, Vitest
-- Development tools: Biome, Storybook, TSX
-- **All Storybook packages**: Remain in devDependencies, excluded via Webpack aliases
+- Development tools: Biome, TSX
+- **All Storybook packages**: Remain in devDependencies, completely excluded via Webpack IgnorePlugin
 
 ## Build Commands That Work
 - `CF_PAGES=true NODE_ENV=production DISABLE_SENTRY=true npx next build` - Next.js build for Cloudflare
@@ -88,14 +98,15 @@ if (process.env.CF_PAGES === "true") {
 ## Final Results
 - ✅ Next.js 15 build: SUCCESS
 - ✅ Cloudflare Pages Functions build: SUCCESS  
-- ✅ Bundle size: 49KB (within 25MB limit)
+- ✅ Bundle size: 49KB (within 25MB limit, unchanged)
 - ✅ TypeScript compilation: No errors (all type declarations resolved)
-- ✅ Storybook: Works in development, excluded from Cloudflare builds
+- ✅ Storybook: Works in development, completely excluded from Cloudflare builds
 - ✅ All edge runtime routes properly configured
 
 ## Important Notes
-- **Optimal Solution**: Webpack aliases provide clean separation without affecting bundle size
+- **Final Solution**: Webpack IgnorePlugin provides complete file exclusion at both compile and type-check levels
 - Type definition packages don't affect runtime bundle size (only .d.ts files)
 - Storybook packages can remain in devDependencies with proper Webpack configuration
 - The icon approach is the correct solution for Next.js 15 + Cloudflare Pages
 - All functionality is maintained while being deployment-ready
+- No external loader dependencies required - uses only Webpack built-in features

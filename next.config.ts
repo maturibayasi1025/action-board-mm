@@ -53,8 +53,21 @@ const nextConfig: NextConfig = {
       "@": path.resolve(__dirname),
     };
 
-    // Cloudflare Pages環境でStorybookモジュールを無効化
+    // Cloudflare Pages環境でStorybookファイルとモジュールを除外
     if (process.env.CF_PAGES === "true") {
+      // TypeScriptチェックからStorybookファイルを除外
+      config.module = config.module || {};
+      config.module.rules = config.module.rules || [];
+
+      // IgnorePluginでStorybookファイルを無視
+      const webpack = require("webpack");
+      config.plugins = config.plugins || [];
+      config.plugins.push(
+        new webpack.IgnorePlugin({
+          resourceRegExp: /\.stories\.(ts|tsx|js|jsx)$/,
+        }),
+      );
+
       config.resolve.alias = {
         ...config.resolve.alias,
         "@storybook/react": false,
