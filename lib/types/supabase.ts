@@ -18,9 +18,9 @@ export type Database = {
       graphql: {
         Args: {
           operationName?: string;
+          extensions?: Json;
           query?: string;
           variables?: Json;
-          extensions?: Json;
         };
         Returns: Json;
       };
@@ -1170,6 +1170,13 @@ export type Database = {
         };
         Relationships: [
           {
+            foreignKeyName: "user_mission_praised_users_praised_user_id_fkey";
+            columns: ["praised_user_id"];
+            isOneToOne: false;
+            referencedRelation: "private_users";
+            referencedColumns: ["id"];
+          },
+          {
             foreignKeyName: "user_mission_praised_users_user_mission_id_fkey";
             columns: ["user_mission_id"];
             isOneToOne: false;
@@ -1541,17 +1548,17 @@ export type Database = {
         }[];
       };
       get_mission_ranking: {
-        Args: { mission_id: string; limit_count?: number };
+        Args: { limit_count?: number; mission_id: string };
         Returns: {
-          user_id: string;
           user_name: string;
-          address_prefecture: string;
-          level: number;
-          xp: number;
-          updated_at: string;
-          clear_count: number;
-          total_points: number;
+          user_id: string;
           rank: number;
+          total_points: number;
+          clear_count: number;
+          updated_at: string;
+          xp: number;
+          level: number;
+          address_prefecture: string;
         }[];
       };
       get_period_mission_ranking: {
@@ -1605,14 +1612,14 @@ export type Database = {
         }[];
       };
       get_prefecture_ranking: {
-        Args: { prefecture: string; limit_count?: number };
+        Args: { limit_count?: number; prefecture: string };
         Returns: {
-          user_id: string;
-          user_name: string;
-          address_prefecture: string;
-          rank: number;
-          level: number;
           xp: number;
+          level: number;
+          rank: number;
+          address_prefecture: string;
+          user_name: string;
+          user_id: string;
           updated_at: string;
         }[];
       };
@@ -1692,9 +1699,9 @@ export type Database = {
         Returns: {
           user_id: string;
           name: string;
-          level: number;
-          rank: number;
           xp: number;
+          rank: number;
+          level: number;
         }[];
       };
       get_user_period_ranking: {
@@ -1714,15 +1721,15 @@ export type Database = {
         Returns: number;
       };
       get_user_prefecture_ranking: {
-        Args: { prefecture: string; target_user_id: string };
+        Args: { target_user_id: string; prefecture: string };
         Returns: {
-          user_id: string;
-          user_name: string;
-          address_prefecture: string;
-          rank: number;
           level: number;
-          xp: number;
           updated_at: string;
+          xp: number;
+          rank: number;
+          address_prefecture: string;
+          user_name: string;
+          user_id: string;
         }[];
       };
     };
