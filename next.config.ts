@@ -5,6 +5,14 @@ const nextConfig: NextConfig = {
   /* config options here */
   output: process.env.STANDALONE_BUILD ? "standalone" : undefined,
 
+  // Cloudflare Pages環境では専用のTSConfigを使用
+  typescript:
+    process.env.CF_PAGES === "true"
+      ? {
+          tsconfigPath: "./tsconfig.cloudflare.json",
+        }
+      : undefined,
+
   experimental: {
     serverActions: {
       bodySizeLimit: "10mb",
