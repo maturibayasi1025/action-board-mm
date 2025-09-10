@@ -2,7 +2,7 @@
 
 ## Issues Resolved
 
-### 1. Static Icon Files Dynamic Route Issue
+### 1. Static Icon Files Dynamic Route Issue ✅ RESOLVED
 **Problem**: Next.js 15 automatically converts static icon files (icon.png, apple-icon.png) in `/app` directory to dynamic route handlers as part of the metadata API. Cloudflare Pages requires all routes to have `export const runtime = "edge";`.
 
 **Root Cause**: This is **not a bug** but Next.js 15's intended behavior. The metadata API converts static files to special route handlers for optimal meta tag generation.
@@ -13,31 +13,60 @@
 - Added `export const runtime = "edge";` to both icon files
 - Icons maintain the same teal color (#4fd1c7) with "MM" text overlay
 
-### 2. Bundle Size Exceeded (50MB → 49KB)
+### 2. Bundle Size Exceeded ✅ RESOLVED
 **Problem**: Cloudflare Pages Functions bundle size was 47.7MB, exceeding the 25MB limit.
 
 **Root Cause**: Many packages were moved from `devDependencies` to `dependencies` during earlier build error fixes, causing unnecessary packages to be included in the runtime bundle.
 
-**Solution**: Optimized package.json by moving runtime-unnecessary packages back to devDependencies:
-- **Testing packages**: jest, @playwright/test, playwright, vitest, @vitest/*
-- **Development tools**: @biomejs/biome, tsx, @types/* packages
-- **Storybook packages**: All @storybook/* packages
-- **Build tools**: Kept essential ones (typescript, tailwindcss, postcss, autoprefixer) in dependencies
+**Solution**: Optimized package.json by moving runtime-unnecessary packages back to devDependencies while keeping essential type definitions in dependencies.
 
-**Result**: Final bundle size reduced to 49KB (99.9% size reduction).
+**Result**: Final bundle size: 49KB (99.9% size reduction).
+
+### 3. TypeScript Type Declaration Errors ✅ RESOLVED  
+**Problem**: Cloudflare Pages build failed with "Could not find a declaration file for module 'leaflet'" error because `@types/leaflet` was in devDependencies.
+
+**Root Cause**: Cloudflare Pages build environment doesn't install devDependencies, so TypeScript type definitions were missing at build time.
+
+**Solution**: Moved essential type definition packages to dependencies:
+- `@types/leaflet` - Required for map components
+- `@types/leaflet.markercluster` - Required for map clustering
+- `@types/node` - Required for Node.js APIs
+- `@types/react` - Required for React components  
+- `@types/react-dom` - Required for React DOM APIs
+
+**Bundle Size Impact**: None - Type definition packages contain only TypeScript .d.ts files and don't contribute to runtime bundle size.
 
 ## Key Files Modified
-- `package.json` - Dependency optimization
+- `package.json` - Dependency optimization and type definition placement
 - `app/icon.tsx` - Edge runtime compatible icon generation  
 - `app/apple-icon.tsx` - Edge runtime compatible Apple icon generation
 - Removed: `app/icon.png`, `app/apple-icon.png`
 
+## Current Package Structure
+**dependencies** (Runtime Required):
+- Core libraries: React, Next.js, Supabase
+- UI components: Radix UI, Tailwind CSS
+- Essential type definitions: @types/leaflet, @types/node, @types/react, etc.
+- Build tools: TypeScript, PostCSS, Autoprefixer
+
+**devDependencies** (Development Only):
+- Testing frameworks: Jest, Playwright, Vitest
+- Development tools: Biome, Storybook, TSX
+- Non-essential type definitions: @types/jest, @types/uuid, etc.
+
 ## Build Commands That Work
-- `npm run build:cloudflare` - Next.js build for Cloudflare
+- `CF_PAGES=true NODE_ENV=production DISABLE_SENTRY=true npx next build` - Next.js build for Cloudflare
 - `npx @cloudflare/next-on-pages` - Generate Cloudflare Pages Functions
 
+## Final Results
+- ✅ Next.js 15 build: SUCCESS
+- ✅ Cloudflare Pages Functions build: SUCCESS  
+- ✅ Bundle size: 49KB (within 25MB limit)
+- ✅ TypeScript compilation: No errors
+- ✅ All edge runtime routes properly configured
+
 ## Important Notes
+- Type definition packages don't affect runtime bundle size
 - The icon approach is the correct solution for Next.js 15 + Cloudflare Pages
 - Bundle size optimization was critical for deployment success
-- All edge runtime routes are now properly configured
-- Build process maintains all functionality while being deployment-ready
+- All functionality is maintained while being deployment-ready
