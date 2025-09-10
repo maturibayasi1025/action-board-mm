@@ -23,16 +23,20 @@
 **Result**: Final bundle size: 49KB (99.9% size reduction).
 
 ### 3. TypeScript Type Declaration Errors ✅ RESOLVED  
-**Problem**: Cloudflare Pages build failed with "Could not find a declaration file for module 'leaflet'" error because `@types/leaflet` was in devDependencies.
+**Problem**: Cloudflare Pages build failed with "Could not find a declaration file for module 'leaflet'" and "Could not find a declaration file for module 'js-yaml'" errors because required type definitions were in devDependencies.
 
 **Root Cause**: Cloudflare Pages build environment doesn't install devDependencies, so TypeScript type definitions were missing at build time.
 
-**Solution**: Moved essential type definition packages to dependencies:
+**Solution**: Moved all essential type definition packages to dependencies:
+- `@types/js-yaml` - Required for mission data export/sync scripts
 - `@types/leaflet` - Required for map components
 - `@types/leaflet.markercluster` - Required for map clustering
 - `@types/node` - Required for Node.js APIs
+- `@types/pg` - Required for PostgreSQL database operations
+- `@types/pg-copy-streams` - Required for PostgreSQL bulk operations
 - `@types/react` - Required for React components  
 - `@types/react-dom` - Required for React DOM APIs
+- `@types/uuid` - Required for UUID generation
 
 **Bundle Size Impact**: None - Type definition packages contain only TypeScript .d.ts files and don't contribute to runtime bundle size.
 
@@ -43,16 +47,16 @@
 - Removed: `app/icon.png`, `app/apple-icon.png`
 
 ## Current Package Structure
-**dependencies** (Runtime Required):
+**dependencies** (Runtime Required + Build-Time Types):
 - Core libraries: React, Next.js, Supabase
 - UI components: Radix UI, Tailwind CSS
-- Essential type definitions: @types/leaflet, @types/node, @types/react, etc.
+- Essential type definitions: All @types/* packages needed at build time
 - Build tools: TypeScript, PostCSS, Autoprefixer
 
 **devDependencies** (Development Only):
 - Testing frameworks: Jest, Playwright, Vitest
 - Development tools: Biome, Storybook, TSX
-- Non-essential type definitions: @types/jest, @types/uuid, etc.
+- Development-only type definitions: @types/jest, @types/glob
 
 ## Build Commands That Work
 - `CF_PAGES=true NODE_ENV=production DISABLE_SENTRY=true npx next build` - Next.js build for Cloudflare
@@ -62,11 +66,12 @@
 - ✅ Next.js 15 build: SUCCESS
 - ✅ Cloudflare Pages Functions build: SUCCESS  
 - ✅ Bundle size: 49KB (within 25MB limit)
-- ✅ TypeScript compilation: No errors
+- ✅ TypeScript compilation: No errors (leaflet, js-yaml, uuid, pg resolved)
 - ✅ All edge runtime routes properly configured
 
 ## Important Notes
-- Type definition packages don't affect runtime bundle size
+- Type definition packages don't affect runtime bundle size (only .d.ts files)
+- All required @types/* packages must be in dependencies for Cloudflare Pages builds
 - The icon approach is the correct solution for Next.js 15 + Cloudflare Pages
 - Bundle size optimization was critical for deployment success
 - All functionality is maintained while being deployment-ready
