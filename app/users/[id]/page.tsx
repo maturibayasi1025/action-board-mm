@@ -8,6 +8,8 @@ import { getUserRepeatableMissionAchievements } from "@/lib/services/userMission
 import { createClient } from "@/lib/supabase/server";
 import UserDetailActivities from "./user-detail-activities";
 
+export const runtime = "edge";
+
 const PAGE_SIZE = 20;
 
 type Params = {

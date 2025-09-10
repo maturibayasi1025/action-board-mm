@@ -2,6 +2,8 @@ import Activities from "@/components/activities";
 import Hero from "@/components/hero";
 import dynamic from "next/dynamic";
 
+export const runtime = "edge";
+
 // クライアントコンポーネントを動的インポート（Edge runtime互換性向上）
 const BadgeNotificationCheck = dynamic(() =>
   import("@/components/badge-notification-check").then((mod) => ({
