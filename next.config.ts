@@ -1,3 +1,4 @@
+import * as path from "node:path";
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
@@ -45,6 +46,13 @@ const nextConfig: NextConfig = {
 
   // Cloudflare Pages環境でのPrisma instrumentation対策
   webpack: (config, { isServer, dev }) => {
+    // パスエイリアスの解決設定を追加
+    config.resolve = config.resolve || {};
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      "@": path.resolve(__dirname),
+    };
+
     // Cloudflare Pages環境でminificationを無効化してエラーを回避
     if (process.env.CF_PAGES === "true" && !dev) {
       config.optimization = config.optimization || {};
