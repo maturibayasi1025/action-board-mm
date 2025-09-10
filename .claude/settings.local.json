@@ -1,9 +1,6 @@
 {
   "permissions": {
-    "allow": [
-      "Bash(npm run biome:check:write:*)",
-      "mcp__serena__write_memory"
-    ],
+    "allow": ["Bash(npm run biome:check:write:*)", "mcp__serena__write_memory"],
     "defaultMode": "acceptEdits"
   }
 }
