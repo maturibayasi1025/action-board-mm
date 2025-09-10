@@ -3,9 +3,22 @@ import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
 
 export const updateSession = async (request: NextRequest) => {
-  // This `try/catch` block is only here for the interactive tutorial.
-  // Feel free to remove once you have Supabase connected.
   try {
+    // Cloudflare Pages環境での環境変数チェック
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+    if (!supabaseUrl || !supabaseAnonKey) {
+      console.warn(
+        "[Middleware] Supabase environment variables not configured",
+      );
+      return NextResponse.next({
+        request: {
+          headers: request.headers,
+        },
+      });
+    }
+
     // Create an unmodified response
     let response = NextResponse.next({
       request: {
@@ -14,22 +27,31 @@ export const updateSession = async (request: NextRequest) => {
     });
 
     const supabase = createServerClient<Database>(
-      process.env.NEXT_PUBLIC_SUPABASE_URL ?? "",
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "",
+      supabaseUrl,
+      supabaseAnonKey,
       {
         cookies: {
           getAll() {
-            return request.cookies.getAll();
+            try {
+              return request.cookies.getAll();
+            } catch (error) {
+              console.warn("[Middleware] Cookie access error:", error);
+              return [];
+            }
           },
           setAll(cookiesToSet) {
-            for (const { name, value } of cookiesToSet) {
-              request.cookies.set(name, value);
-            }
-            response = NextResponse.next({
-              request,
-            });
-            for (const { name, value, options } of cookiesToSet) {
-              response.cookies.set(name, value, options);
+            try {
+              for (const { name, value } of cookiesToSet) {
+                request.cookies.set(name, value);
+              }
+              response = NextResponse.next({
+                request,
+              });
+              for (const { name, value, options } of cookiesToSet) {
+                response.cookies.set(name, value, options);
+              }
+            } catch (error) {
+              console.warn("[Middleware] Cookie setting error:", error);
             }
           },
         },
@@ -38,18 +60,22 @@ export const updateSession = async (request: NextRequest) => {
 
     // This will refresh session if expired - required for Server Components
     // https://supabase.com/docs/guides/auth/server-side/nextjs
-    const user = await supabase.auth.getUser();
+    try {
+      const user = await supabase.auth.getUser();
 
-    // protected routes
-    if (request.nextUrl.pathname.startsWith("/protected") && user.error) {
-      return NextResponse.redirect(new URL("/sign-in", request.url));
+      // protected routes
+      if (request.nextUrl.pathname.startsWith("/protected") && user.error) {
+        return NextResponse.redirect(new URL("/sign-in", request.url));
+      }
+    } catch (authError) {
+      console.warn("[Middleware] Auth check error:", authError);
+      // 認証エラーは無視して続行
     }
 
     return response;
   } catch (e) {
-    // If you are here, a Supabase client could not be created!
-    // This is likely because you have not set up environment variables.
-    // Check out http://localhost:3000 for Next Steps.
+    console.warn("[Middleware] General error:", e);
+    // エラーが発生してもアプリケーションを継続
     return NextResponse.next({
       request: {
         headers: request.headers,

@@ -143,6 +143,62 @@ if (process.env.CF_PAGES === "true" || process.env.DISABLE_SENTRY === "true") {
 }
 ```
 
+### 8. Runtime Layout Display Issue ✅ RESOLVED
+**Problem**: After deployment, only the icon image was displayed instead of the full application, indicating the main page component was not rendering properly.
+
+**Root Cause**: Several issues caused the main page to fail:
+1. **Sentry Initialization Errors**: `SentryInitializer` component was trying to initialize Sentry in Cloudflare Pages environment
+2. **Middleware Authentication Errors**: Supabase middleware was failing when environment variables were missing
+3. **Page Component Errors**: Main page component was failing on Supabase operations without proper error handling
+
+**Solution**: Enhanced error handling throughout the application:
+
+**Updated `components/SentryInitializer.tsx`:**
+```typescript
+export function SentryInitializer() {
+  // Cloudflare Pages環境ではSentry初期化をスキップ
+  if (process.env.NEXT_PUBLIC_CLOUDFLARE_PAGES === "true" || 
+      process.env.NEXT_PUBLIC_DISABLE_SENTRY === "true") {
+    return null;
+  }
+  // ... safe initialization with error handling
+}
+```
+
+**Updated `lib/supabase/middleware.ts`:**
+```typescript
+export const updateSession = async (request: NextRequest) => {
+  try {
+    // Cloudflare Pages環境での環境変数チェック
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+    if (!supabaseUrl || !supabaseAnonKey) {
+      console.warn("[Middleware] Supabase environment variables not configured");
+      return NextResponse.next({ /* ... */ });
+    }
+    // ... enhanced error handling for cookies and auth
+  } catch (e) {
+    // ... graceful error handling
+  }
+};
+```
+
+**Updated `app/page.tsx`:**
+```typescript
+export default async function Home({ searchParams }) {
+  try {
+    // Environment variable validation
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+      return <EnvironmentConfigurationFallback />;
+    }
+    // ... comprehensive error handling for all operations
+  } catch (error) {
+    return <ErrorFallbackComponent />;
+  }
+}
+```
+
 ## Key Files Modified
 - `package.json` - Dependency optimization and type definition placement
 - `next.config.ts` - Conditional TypeScript configuration, minification enabled, conditional Sentry wrapper
@@ -151,23 +207,28 @@ if (process.env.CF_PAGES === "true" || process.env.DISABLE_SENTRY === "true") {
 - `sentry.client.config.ts` - **NEW** - Dummy configuration for Cloudflare Pages
 - `sentry.server.config.ts` - **NEW** - Dummy configuration for Cloudflare Pages
 - `sentry.edge.config.ts` - **NEW** - Dummy configuration for Cloudflare Pages
+- `components/SentryInitializer.tsx` - **UPDATED** - Cloudflare Pages compatibility
+- `lib/supabase/middleware.ts` - **UPDATED** - Enhanced error handling
+- `app/page.tsx` - **UPDATED** - Comprehensive error handling and fallbacks
 - `app/icon.tsx` - Edge runtime compatible icon generation  
 - `app/apple-icon.tsx` - Edge runtime compatible Apple icon generation
 - Removed: `app/icon.png`, `app/apple-icon.png`
 
-## Current Package Structure
-**dependencies** (Runtime Required + Build-Time Types):
-- Core libraries: React, Next.js, Supabase
-- UI components: Radix UI, Tailwind CSS
-- Essential type definitions: All @types/* packages needed at build time
-- Build tools: TypeScript, PostCSS, Autoprefixer
-- Monitoring: `@sentry/nextjs` (conditionally used)
+## Required Environment Variables for Cloudflare Pages
 
-**devDependencies** (Development Only):
-- Testing frameworks: Jest, Playwright, Vitest
-- Development tools: Biome, TSX
-- All Storybook packages: Excluded via TypeScript configuration
-- All Vitest packages: Excluded via TypeScript configuration
+**Essential Variables:**
+1. `NEXT_PUBLIC_SUPABASE_URL` - Your Supabase project URL
+2. `NEXT_PUBLIC_SUPABASE_ANON_KEY` - Your Supabase anonymous/public key
+3. `CF_PAGES=true` - Enables Cloudflare Pages build mode
+4. `NODE_ENV=production` - Sets production environment
+5. `DISABLE_SENTRY=true` - Disables Sentry for Cloudflare Pages
+6. `NEXT_PUBLIC_DISABLE_SENTRY=true` - Disables client-side Sentry
+
+**Optional Variables (feature-dependent):**
+- `NEXT_PUBLIC_GA_ID` - Google Analytics tracking ID
+- `NEXT_PUBLIC_LINE_CLIENT_ID` - LINE Login integration
+- `LINE_CLIENT_SECRET` - LINE Login server-side secret
+- `BATCH_ADMIN_KEY` - Admin API access key
 
 ## Build Commands That Work
 - `CF_PAGES=true NODE_ENV=production DISABLE_SENTRY=true NEXT_PUBLIC_DISABLE_SENTRY=true npx next build` - Full Cloudflare Pages build
@@ -180,12 +241,24 @@ if (process.env.CF_PAGES === "true" || process.env.DISABLE_SENTRY === "true") {
 - ✅ TypeScript compilation: No errors
 - ✅ Minification: Enabled for production
 - ✅ Sentry: Properly configured with conditional loading
+- ✅ Error Handling: Comprehensive fallbacks prevent blank pages
 - ✅ All edge runtime routes properly configured
 
-## Important Notes for Deployment
-1. **Environment Variables**: Always set `CF_PAGES=true` and `DISABLE_SENTRY=true` for Cloudflare Pages builds
-2. **Sentry Handling**: Sentry is conditionally loaded based on environment - completely bypassed in Cloudflare Pages
-3. **TypeScript Configuration**: Uses separate config for Cloudflare Pages to exclude development-only files
-4. **Minification**: Enabled for production builds to ensure compatibility
-5. **Bundle Size**: Maintained at 49KB throughout all fixes
-6. **Edge Runtime**: All routes properly configured with edge runtime support
+## Critical Deployment Notes
+
+### For Cloudflare Pages Dashboard:
+1. **Build Command**: `CF_PAGES=true NODE_ENV=production DISABLE_SENTRY=true NEXT_PUBLIC_DISABLE_SENTRY=true npm run build && npx @cloudflare/next-on-pages`
+2. **Output Directory**: `.vercel/output/static`
+3. **Environment Variables**: Must include all required variables listed above
+
+### Error Prevention:
+1. **Always set CF_PAGES=true** for Cloudflare Pages builds
+2. **Include both DISABLE_SENTRY flags** to prevent Sentry-related errors
+3. **Set Supabase environment variables** or application will show configuration error page
+4. **Use dedicated tsconfig.cloudflare.json** to exclude development files
+
+### Troubleshooting:
+- If only icon is displayed: Check that all environment variables are set correctly
+- If build fails: Ensure CF_PAGES=true is set during build
+- If runtime errors: Check browser console for specific error messages
+- If authentication issues: Verify Supabase environment variables are correct
