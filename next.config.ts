@@ -53,6 +53,18 @@ const nextConfig: NextConfig = {
       "@": path.resolve(__dirname),
     };
 
+    // Cloudflare Pages環境でStorybookモジュールを無効化
+    if (process.env.CF_PAGES === "true") {
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        "@storybook/react": false,
+        "@storybook/nextjs": false,
+        "@storybook/addon-essentials": false,
+        "@storybook/blocks": false,
+        "@storybook/test": false,
+      };
+    }
+
     // Cloudflare Pages環境でminificationを無効化してエラーを回避
     if (process.env.CF_PAGES === "true" && !dev) {
       config.optimization = config.optimization || {};
