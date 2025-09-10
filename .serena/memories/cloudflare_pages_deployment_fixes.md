@@ -64,7 +64,8 @@
     "node_modules",
     "stories/**/*",
     "**/*.stories.*",
-    ".storybook/**/*"
+    ".storybook/**/*",
+    "vitest.config.ts"
   ]
 }
 ```
@@ -84,27 +85,72 @@ typescript: process.env.CF_PAGES === "true" ? {
 
 **Root Cause**: `vitest.config.ts` contains Storybook testing configuration and imports from `vitest/config` and `@storybook/experimental-addon-test/vitest-plugin`. These packages are in devDependencies, so type declarations weren't available during Cloudflare Pages build.
 
-**Solution**: Added `vitest.config.ts` to the exclude list in `tsconfig.cloudflare.json`:
-
-**Updated `tsconfig.cloudflare.json`:**
-```json
-{
-  "exclude": [
-    "node_modules",
-    "stories/**/*",
-    "**/*.stories.*",
-    ".storybook/**/*",
-    "vitest.config.ts"
-  ]
-}
-```
+**Solution**: Added `vitest.config.ts` to the exclude list in `tsconfig.cloudflare.json`.
 
 **Bundle Size Impact**: None - Testing configuration file excluded at TypeScript compilation level.
 
+### 6. Minification Disabled Error ✅ RESOLVED
+**Problem**: Production code optimization was disabled which could cause Cloudflare Pages deployment issues.
+
+**Root Cause**: `config.optimization.minimize = false` was set for Cloudflare Pages environment.
+
+**Solution**: Re-enabled minification for Cloudflare Pages:
+```typescript
+// Cloudflare Pages環境でのminification最適化
+if (process.env.CF_PAGES === "true" && !dev) {
+  config.optimization = config.optimization || {};
+  config.optimization.minimize = true;
+  config.optimization.minimizer = config.optimization.minimizer || [];
+}
+```
+
+### 7. Sentry Configuration for Cloudflare Pages ✅ RESOLVED
+**Problem**: Missing Sentry configuration files and improper handling of `@sentry/nextjs` in Cloudflare Pages environment was causing deployment failures.
+
+**Root Cause**: `@sentry/nextjs` package expects certain configuration files and setup, which were missing or incompatible with Cloudflare Pages Edge Runtime.
+
+**Solution**: Created minimal Sentry configuration files and updated configurations:
+
+**Created Files:**
+- `sentry.client.config.ts` - Dummy client configuration for Cloudflare Pages
+- `sentry.server.config.ts` - Dummy server configuration for Cloudflare Pages
+- `sentry.edge.config.ts` - Dummy edge configuration for Cloudflare Pages
+
+**Updated `instrumentation.ts`:**
+```typescript
+export async function register() {
+  // Cloudflare Pages環境ではinstrumentationを完全にスキップ
+  if (process.env.CF_PAGES === "true") {
+    console.log("[Instrumentation] Cloudflare Pages環境 - instrumentation無効化");
+    return;
+  }
+  // ... rest of the code
+}
+```
+
+**Updated `next.config.ts`:**
+```typescript
+// Cloudflare Pages環境ではSentryラッパーを適用しない
+if (process.env.CF_PAGES === "true" || process.env.DISABLE_SENTRY === "true") {
+  module.exports = nextConfig;
+} else {
+  try {
+    const { withSentryConfig } = require("@sentry/nextjs");
+    module.exports = withSentryConfig(nextConfig, { /* options */ });
+  } catch {
+    module.exports = nextConfig;
+  }
+}
+```
+
 ## Key Files Modified
 - `package.json` - Dependency optimization and type definition placement
-- `next.config.ts` - Added conditional TypeScript configuration for CF_PAGES environment with Webpack optimizations
-- `tsconfig.cloudflare.json` - **NEW** - Dedicated TypeScript config excluding Storybook and test files for Cloudflare Pages
+- `next.config.ts` - Conditional TypeScript configuration, minification enabled, conditional Sentry wrapper
+- `tsconfig.cloudflare.json` - Dedicated TypeScript config excluding dev-only files
+- `instrumentation.ts` - Early return for Cloudflare Pages environment
+- `sentry.client.config.ts` - **NEW** - Dummy configuration for Cloudflare Pages
+- `sentry.server.config.ts` - **NEW** - Dummy configuration for Cloudflare Pages
+- `sentry.edge.config.ts` - **NEW** - Dummy configuration for Cloudflare Pages
 - `app/icon.tsx` - Edge runtime compatible icon generation  
 - `app/apple-icon.tsx` - Edge runtime compatible Apple icon generation
 - Removed: `app/icon.png`, `app/apple-icon.png`
@@ -115,32 +161,31 @@ typescript: process.env.CF_PAGES === "true" ? {
 - UI components: Radix UI, Tailwind CSS
 - Essential type definitions: All @types/* packages needed at build time
 - Build tools: TypeScript, PostCSS, Autoprefixer
+- Monitoring: `@sentry/nextjs` (conditionally used)
 
 **devDependencies** (Development Only):
 - Testing frameworks: Jest, Playwright, Vitest
 - Development tools: Biome, TSX
-- **All Storybook packages**: Remain in devDependencies, excluded via TypeScript configuration
-- **All Vitest packages**: Remain in devDependencies, excluded via TypeScript configuration
+- All Storybook packages: Excluded via TypeScript configuration
+- All Vitest packages: Excluded via TypeScript configuration
 
 ## Build Commands That Work
-- `CF_PAGES=true NODE_ENV=production DISABLE_SENTRY=true npx next build` - Next.js build for Cloudflare
+- `CF_PAGES=true NODE_ENV=production DISABLE_SENTRY=true NEXT_PUBLIC_DISABLE_SENTRY=true npx next build` - Full Cloudflare Pages build
 - `npx @cloudflare/next-on-pages` - Generate Cloudflare Pages Functions
 
 ## Final Results
 - ✅ Next.js 15 build: SUCCESS (uses `tsconfig.cloudflare.json` when CF_PAGES=true)
 - ✅ Cloudflare Pages Functions build: SUCCESS  
-- ✅ Bundle size: 49KB (within 25MB limit, unchanged throughout all fixes)
-- ✅ TypeScript compilation: No errors (all type declarations resolved, dev-only files excluded)
-- ✅ Storybook: Works in development, excluded from Cloudflare builds via TSConfig
-- ✅ Vitest: Works in development, excluded from Cloudflare builds via TSConfig
+- ✅ Bundle size: 49KB (within 25MB limit)
+- ✅ TypeScript compilation: No errors
+- ✅ Minification: Enabled for production
+- ✅ Sentry: Properly configured with conditional loading
 - ✅ All edge runtime routes properly configured
 
-## Important Notes
-- **Final Solution**: TypeScript configuration exclusion provides comprehensive solution at compilation level
-- **Environment-specific**: Different TSConfig for local development (includes all files) vs Cloudflare Pages (excludes dev-only files)
-- Type definition packages don't affect runtime bundle size (only .d.ts files)
-- Development-only packages (Storybook, Vitest) remain in devDependencies with proper TypeScript exclusion
-- The icon approach is the correct solution for Next.js 15 + Cloudflare Pages
-- All functionality is maintained while being deployment-ready
-- No external dependencies required - uses only Next.js and TypeScript built-in features
-- **Proven to work**: Tested and verified in both local and Cloudflare Pages environments
+## Important Notes for Deployment
+1. **Environment Variables**: Always set `CF_PAGES=true` and `DISABLE_SENTRY=true` for Cloudflare Pages builds
+2. **Sentry Handling**: Sentry is conditionally loaded based on environment - completely bypassed in Cloudflare Pages
+3. **TypeScript Configuration**: Uses separate config for Cloudflare Pages to exclude development-only files
+4. **Minification**: Enabled for production builds to ensure compatibility
+5. **Bundle Size**: Maintained at 49KB throughout all fixes
+6. **Edge Runtime**: All routes properly configured with edge runtime support

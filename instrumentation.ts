@@ -5,42 +5,26 @@
  * @see https://nextjs.org/docs/app/building-your-application/optimizing/instrumentation
  */
 
-import { initSentryServer } from "./sentry.setup";
-
 export async function register() {
-  // 最初にPrisma関連の環境変数を設定（Cloudflare Pages環境のみ）
+  // Cloudflare Pages環境ではinstrumentationを完全にスキップ
   if (process.env.CF_PAGES === "true") {
-    // Prismaとopentelemetryを完全に無効化
-    process.env.PRISMA_DISABLE_INSTRUMENTATION = "true";
-    process.env.OPENTELEMETRY_INSTRUMENTATION_DISABLED = "true";
-    process.env.OTEL_SDK_DISABLED = "true";
-    process.env.PRISMA_HIDE_UPDATE_MESSAGE = "true";
-    process.env.PRISMA_CLIENT_ENGAGEMENT_TIMEOUT = "0";
-
-    // OpenTelemetryのinstrumentationモジュールを無効化
-    if (typeof globalThis !== "undefined") {
-      (globalThis as any).__DISABLE_INSTRUMENTATION__ = true;
-    }
+    console.log(
+      "[Instrumentation] Cloudflare Pages環境 - instrumentation無効化",
+    );
+    return;
   }
 
-  // Node.jsランタイムでのみ実行
+  // Node.jsランタイムでのみ実行（Cloudflare Pages以外）
   if (process.env.NEXT_RUNTIME === "nodejs") {
     console.log("[Instrumentation] Initializing server-side monitoring...");
 
-    // Cloudflare Pages環境でのログ
-    if (process.env.CF_PAGES === "true") {
-      console.log(
-        "[Instrumentation] Cloudflare Pages環境 - Prisma/OpenTelemetry instrumentationを無効化済み",
-      );
-    }
-
-    // Sentryの初期化（有効な場合のみ、かつCloudflare Pages以外）
+    // Sentryの初期化（有効な場合のみ）
     if (
       process.env.NEXT_PUBLIC_SENTRY_DSN &&
-      process.env.DISABLE_SENTRY !== "true" &&
-      process.env.CF_PAGES !== "true"
+      process.env.DISABLE_SENTRY !== "true"
     ) {
       try {
+        const { initSentryServer } = await import("./sentry.setup");
         await initSentryServer();
       } catch (error) {
         console.error("[Instrumentation] Sentry初期化エラー:", error);
@@ -68,20 +52,31 @@ export const onRequestError = async (
   request: Request,
   context: { renderSource: string },
 ) => {
-  // カスタムロガーでエラーを記録
-  const { logger } = await import("./lib/logger");
+  // Cloudflare Pages環境ではエラーハンドリングをスキップ
+  if (process.env.CF_PAGES === "true") {
+    console.error("[Request Error]", error);
+    return;
+  }
 
-  await logger.log(error, {
-    url: request.url,
-    method: request.method,
-    renderSource: context.renderSource,
-    type: "request-error",
-  });
+  // カスタムロガーでエラーを記録（Cloudflare Pages以外）
+  try {
+    const { logger } = await import("./lib/logger");
+    await logger.log(error, {
+      url: request.url,
+      method: request.method,
+      renderSource: context.renderSource,
+      type: "request-error",
+    });
+  } catch {
+    // ロガーが利用できない場合はコンソールログ
+    console.error("[Request Error]", error);
+  }
 
-  // Sentryが有効な場合は通知
+  // Sentryが有効な場合は通知（Cloudflare Pages以外）
   if (
     process.env.NEXT_RUNTIME === "nodejs" &&
-    process.env.NEXT_PUBLIC_SENTRY_DSN
+    process.env.NEXT_PUBLIC_SENTRY_DSN &&
+    process.env.DISABLE_SENTRY !== "true"
   ) {
     try {
       const Sentry = await import("@sentry/nextjs");

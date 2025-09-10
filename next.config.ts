@@ -86,10 +86,13 @@ const nextConfig: NextConfig = {
       };
     }
 
-    // Cloudflare Pages環境でminificationを無効化してエラーを回避
+    // Cloudflare Pages環境でのminification最適化
     if (process.env.CF_PAGES === "true" && !dev) {
       config.optimization = config.optimization || {};
-      config.optimization.minimize = false;
+      // minificationを有効化してCloudflare Pagesとの互換性を確保
+      config.optimization.minimize = true;
+      // SWCミニファイヤーを使用
+      config.optimization.minimizer = config.optimization.minimizer || [];
     }
 
     // Cloudflare Pages環境でのみ適用（プロダクションビルドは除外）
@@ -120,5 +123,34 @@ const nextConfig: NextConfig = {
   },
 };
 
-// Sentry設定を完全に削除してCloudflare Pages互換性を確保
+// Cloudflare Pages環境ではSentryラッパーを適用しない
+if (process.env.CF_PAGES === "true" || process.env.DISABLE_SENTRY === "true") {
+  // Cloudflare Pages環境では直接エクスポート
+  module.exports = nextConfig;
+} else {
+  // 通常環境ではSentryラッパーを適用（オプショナル）
+  try {
+    const { withSentryConfig } = require("@sentry/nextjs");
+    module.exports = withSentryConfig(
+      nextConfig,
+      {
+        // Sentryビルドオプション
+        silent: true,
+        org: process.env.SENTRY_ORG,
+        project: process.env.SENTRY_PROJECT,
+      },
+      {
+        // 追加オプション
+        widenClientFileUpload: true,
+        transpileClientSDK: false,
+        disableLogger: true,
+        automaticVercelMonitors: false,
+      },
+    );
+  } catch {
+    // Sentryが利用できない場合は通常のconfigを使用
+    module.exports = nextConfig;
+  }
+}
+
 export default nextConfig;
