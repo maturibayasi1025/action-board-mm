@@ -40,12 +40,12 @@
 
 **Bundle Size Impact**: None - Type definition packages contain only TypeScript .d.ts files and don't contribute to runtime bundle size.
 
-### 4. Storybook Type Declaration Errors (Final Solution) ✅ RESOLVED
+### 4. Storybook Type Declaration Errors ✅ RESOLVED
 **Problem**: Cloudflare Pages build failed with "Cannot find module '@storybook/react' or its corresponding type declarations" error from Storybook files in `stories/` directory. Initial Webpack solutions worked locally but failed in Cloudflare Pages environment.
 
 **Root Cause**: Cloudflare Pages environment runs TypeScript type checking independently from Webpack configuration, so Webpack IgnorePlugin and resolve.alias solutions didn't affect the type checking phase.
 
-**Final Solution**: Created dedicated TypeScript configuration for Cloudflare Pages environment:
+**Solution**: Created dedicated TypeScript configuration for Cloudflare Pages environment with Storybook file exclusion:
 
 **File: `tsconfig.cloudflare.json`**
 ```json
@@ -79,10 +79,32 @@ typescript: process.env.CF_PAGES === "true" ? {
 
 **Bundle Size Impact**: None - Storybook files are excluded at TypeScript compilation level without affecting bundle size.
 
+### 5. Vitest Config Type Declaration Error ✅ RESOLVED
+**Problem**: Cloudflare Pages build failed with "Cannot find module 'vitest/config' or its corresponding type declarations" error from `vitest.config.ts`. 
+
+**Root Cause**: `vitest.config.ts` contains Storybook testing configuration and imports from `vitest/config` and `@storybook/experimental-addon-test/vitest-plugin`. These packages are in devDependencies, so type declarations weren't available during Cloudflare Pages build.
+
+**Solution**: Added `vitest.config.ts` to the exclude list in `tsconfig.cloudflare.json`:
+
+**Updated `tsconfig.cloudflare.json`:**
+```json
+{
+  "exclude": [
+    "node_modules",
+    "stories/**/*",
+    "**/*.stories.*",
+    ".storybook/**/*",
+    "vitest.config.ts"
+  ]
+}
+```
+
+**Bundle Size Impact**: None - Testing configuration file excluded at TypeScript compilation level.
+
 ## Key Files Modified
 - `package.json` - Dependency optimization and type definition placement
 - `next.config.ts` - Added conditional TypeScript configuration for CF_PAGES environment with Webpack optimizations
-- `tsconfig.cloudflare.json` - **NEW** - Dedicated TypeScript config excluding Storybook files for Cloudflare Pages
+- `tsconfig.cloudflare.json` - **NEW** - Dedicated TypeScript config excluding Storybook and test files for Cloudflare Pages
 - `app/icon.tsx` - Edge runtime compatible icon generation  
 - `app/apple-icon.tsx` - Edge runtime compatible Apple icon generation
 - Removed: `app/icon.png`, `app/apple-icon.png`
@@ -98,6 +120,7 @@ typescript: process.env.CF_PAGES === "true" ? {
 - Testing frameworks: Jest, Playwright, Vitest
 - Development tools: Biome, TSX
 - **All Storybook packages**: Remain in devDependencies, excluded via TypeScript configuration
+- **All Vitest packages**: Remain in devDependencies, excluded via TypeScript configuration
 
 ## Build Commands That Work
 - `CF_PAGES=true NODE_ENV=production DISABLE_SENTRY=true npx next build` - Next.js build for Cloudflare
@@ -107,15 +130,16 @@ typescript: process.env.CF_PAGES === "true" ? {
 - ✅ Next.js 15 build: SUCCESS (uses `tsconfig.cloudflare.json` when CF_PAGES=true)
 - ✅ Cloudflare Pages Functions build: SUCCESS  
 - ✅ Bundle size: 49KB (within 25MB limit, unchanged throughout all fixes)
-- ✅ TypeScript compilation: No errors (all type declarations resolved, Storybook files excluded)
+- ✅ TypeScript compilation: No errors (all type declarations resolved, dev-only files excluded)
 - ✅ Storybook: Works in development, excluded from Cloudflare builds via TSConfig
+- ✅ Vitest: Works in development, excluded from Cloudflare builds via TSConfig
 - ✅ All edge runtime routes properly configured
 
 ## Important Notes
 - **Final Solution**: TypeScript configuration exclusion provides comprehensive solution at compilation level
-- **Environment-specific**: Different TSConfig for local development (includes Storybook) vs Cloudflare Pages (excludes Storybook)
+- **Environment-specific**: Different TSConfig for local development (includes all files) vs Cloudflare Pages (excludes dev-only files)
 - Type definition packages don't affect runtime bundle size (only .d.ts files)
-- Storybook packages remain in devDependencies with proper TypeScript exclusion
+- Development-only packages (Storybook, Vitest) remain in devDependencies with proper TypeScript exclusion
 - The icon approach is the correct solution for Next.js 15 + Cloudflare Pages
 - All functionality is maintained while being deployment-ready
 - No external dependencies required - uses only Next.js and TypeScript built-in features

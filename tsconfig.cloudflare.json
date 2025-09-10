@@ -29,6 +29,7 @@
     "node_modules",
     "stories/**/*",
     "**/*.stories.*",
-    ".storybook/**/*"
+    ".storybook/**/*",
+    "vitest.config.ts"
   ]
 }
