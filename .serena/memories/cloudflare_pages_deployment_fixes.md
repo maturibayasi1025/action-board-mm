@@ -199,8 +199,24 @@ export default async function Home({ searchParams }) {
 }
 ```
 
+### 9. Build Script and @cloudflare/next-on-pages Issue ✅ RESOLVED (2025-09-17)
+**Problem**: Cloudflare Pages deployment showing only static HTML content instead of the full application.
+
+**Root Cause**: 
+1. Missing `@cloudflare/next-on-pages` package in dependencies
+2. Incorrect build script in `package.json` - `build:cloudflare` didn't include `@cloudflare/next-on-pages`
+3. `wrangler.toml` referenced non-existent `build:cloudflare` script
+
+**Solution**: 
+1. **Installed @cloudflare/next-on-pages**: `npm install --save-dev @cloudflare/next-on-pages`
+2. **Updated build:cloudflare script**: 
+```json
+"build:cloudflare": "CF_PAGES=true NODE_ENV=production DISABLE_SENTRY=true NEXT_PUBLIC_DISABLE_SENTRY=true npx next build && npx @cloudflare/next-on-pages"
+```
+3. **Kept next.config.ts output setting**: Removed export output for CF_PAGES to support SSR
+
 ## Key Files Modified
-- `package.json` - Dependency optimization and type definition placement
+- `package.json` - Dependency optimization, type definition placement, and build script fixes
 - `next.config.ts` - Conditional TypeScript configuration, minification enabled, conditional Sentry wrapper
 - `tsconfig.cloudflare.json` - Dedicated TypeScript config excluding dev-only files
 - `instrumentation.ts` - Early return for Cloudflare Pages environment
@@ -233,6 +249,14 @@ export default async function Home({ searchParams }) {
 ## Build Commands That Work
 - `CF_PAGES=true NODE_ENV=production DISABLE_SENTRY=true NEXT_PUBLIC_DISABLE_SENTRY=true npx next build` - Full Cloudflare Pages build
 - `npx @cloudflare/next-on-pages` - Generate Cloudflare Pages Functions
+- `npm run build:cloudflare` - Complete build with @cloudflare/next-on-pages
+
+## Cloudflare Pages Dashboard Settings
+**Build Configuration:**
+- **Framework preset**: None (or custom)
+- **Build command**: `npm run build:cloudflare`
+- **Build output directory**: `.vercel/output/static`
+- **Root directory**: `/` (or your repo root)
 
 ## Final Results
 - ✅ Next.js 15 build: SUCCESS (uses `tsconfig.cloudflare.json` when CF_PAGES=true)
@@ -243,11 +267,12 @@ export default async function Home({ searchParams }) {
 - ✅ Sentry: Properly configured with conditional loading
 - ✅ Error Handling: Comprehensive fallbacks prevent blank pages
 - ✅ All edge runtime routes properly configured
+- ✅ @cloudflare/next-on-pages: Installed and configured
 
 ## Critical Deployment Notes
 
 ### For Cloudflare Pages Dashboard:
-1. **Build Command**: `CF_PAGES=true NODE_ENV=production DISABLE_SENTRY=true NEXT_PUBLIC_DISABLE_SENTRY=true npm run build && npx @cloudflare/next-on-pages`
+1. **Build Command**: `npm run build:cloudflare`
 2. **Output Directory**: `.vercel/output/static`
 3. **Environment Variables**: Must include all required variables listed above
 
@@ -256,9 +281,11 @@ export default async function Home({ searchParams }) {
 2. **Include both DISABLE_SENTRY flags** to prevent Sentry-related errors
 3. **Set Supabase environment variables** or application will show configuration error page
 4. **Use dedicated tsconfig.cloudflare.json** to exclude development files
+5. **Ensure @cloudflare/next-on-pages is installed** as a dev dependency
 
 ### Troubleshooting:
-- If only icon is displayed: Check that all environment variables are set correctly
+- If only HTML/icon is displayed: Check that build script includes @cloudflare/next-on-pages
 - If build fails: Ensure CF_PAGES=true is set during build
 - If runtime errors: Check browser console for specific error messages
 - If authentication issues: Verify Supabase environment variables are correct
+- If deployment shows static content: Verify `.vercel/output/static` is the output directory
