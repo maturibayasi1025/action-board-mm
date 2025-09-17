@@ -17,6 +17,13 @@ const nextConfig: NextConfig = {
   images: {
     unoptimized: true,
   },
+  // Cloudflare Pages環境でのみStorybookファイルを除外
+  typescript:
+    process.env.CF_PAGES === "true"
+      ? {
+          tsconfigPath: "./tsconfig.cloudflare.json",
+        }
+      : undefined,
 };
 
 // Sentry設定を完全に削除してCloudflare Pages互換性を確保
