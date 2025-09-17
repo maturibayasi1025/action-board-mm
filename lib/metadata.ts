@@ -18,11 +18,8 @@ export const config = {
     "これまでMAISON MARCのカルチャーをゲーム感覚で楽しめる、MAISON MARCのアクションボード。",
   defaultImage: "/img/ogp-default.png",
   icons: {
-    icon: [
-      { url: "/favicon.ico", sizes: "any" },
-      { url: "/icon.png", type: "image/png", sizes: "32x32" },
-    ],
-    apple: "/apple-icon.png",
+    icon: [{ url: "/favicon.ico", sizes: "any" }],
+    // apple-icon.tsx と icon.tsx で動的生成されるため、静的設定は削除
   },
 };
 
