@@ -21,6 +21,4 @@ NEXT_PUBLIC_SITE_URL = "https://mm-actionboard.jp"
 NEXT_PUBLIC_APP_ORIGIN = "https://mm-actionboard.jp"
 CF_PAGES = "true"
 
-# ビルド時の環境変数
-[build.environment]
-NODE_ENV = "production"
+# ビルド時の環境変数は[env.production]で設定済み
