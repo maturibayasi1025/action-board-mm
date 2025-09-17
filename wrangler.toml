@@ -5,7 +5,7 @@ compatibility_flags = ["nodejs_compat"]
 
 # 自動検出によるビルド設定
 [build]
-command = "npm run build:cloudflare"
+command = "npm run build"
 
 # Edge Runtime対応
 [env.production]
@@ -21,4 +21,6 @@ NEXT_PUBLIC_SITE_URL = "https://mm-actionboard.jp"
 NEXT_PUBLIC_APP_ORIGIN = "https://mm-actionboard.jp"
 CF_PAGES = "true"
 
-# ビルド時の環境変数は[env.production]で設定済み
+# ビルド時の環境変数
+[build.environment]
+NODE_ENV = "production"
