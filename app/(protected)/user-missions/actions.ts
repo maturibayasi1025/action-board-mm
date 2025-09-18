@@ -47,7 +47,7 @@ export async function createUserMissionAction(input: CreateUserMissionInput) {
         status: "approved", // 自動承認で即時表示
         approved_at: new Date().toISOString(),
         approved_by: user.id, // 自分自身を承認者として設定
-      })
+      } as any)
       .select()
       .single();
 
@@ -92,7 +92,7 @@ export async function createUserMissionAction(input: CreateUserMissionInput) {
     if (mvvItems.length > 0) {
       const { error: mvvError } = await supabase
         .from("user_mission_mvv_items")
-        .insert(mvvItems);
+        .insert(mvvItems as any);
 
       if (mvvError) {
         console.error("MVV項目挿入エラー:", mvvError);
@@ -111,7 +111,7 @@ export async function createUserMissionAction(input: CreateUserMissionInput) {
 
       const { error: praisedError } = await supabase
         .from("user_mission_praised_users")
-        .insert(praisedUsers);
+        .insert(praisedUsers as any);
 
       if (praisedError) {
         console.error("賞賛対象ユーザー挿入エラー:", praisedError);
@@ -288,7 +288,7 @@ export async function toggleLikeAction(missionId: string) {
     const { error } = await supabase.from("user_mission_likes").insert({
       user_mission_id: missionId,
       user_id: user.id,
-    });
+    } as any);
 
     if (error) {
       console.error("[いいね追加エラー]:", error);
@@ -365,7 +365,7 @@ async function awardLikeGiverXP(
       source_type: "USER_MISSION_LIKE_GIVEN",
       source_id: missionId,
       description: "ユーザーグッジョブにいいねしました",
-    });
+    } as any);
 
     console.log(`いいねユーザー ${userId} に1XPを付与しました`);
   } catch (error) {
@@ -388,7 +388,7 @@ async function removeLikeGiverXP(
       source_type: "USER_MISSION_LIKE_GIVEN",
       source_id: missionId,
       description: "ユーザーグッジョブのいいねを取り消しました",
-    });
+    } as any);
 
     console.log(`いいね取り消しユーザー ${userId} から1XPを減算しました`);
   } catch (error) {
@@ -419,7 +419,7 @@ async function checkAndAwardMilestoneXP(
     source_type: "USER_MISSION_LIKES",
     source_id: missionId,
     description: `ユーザーグッジョブ「${mission.title}」がいいねを獲得`,
-  });
+  } as any);
 }
 
 // グッジョブ作成時のポイント付与
@@ -437,7 +437,7 @@ async function awardPointsForMissionCreation(
       source_type: "USER_MISSION_CREATION",
       source_id: missionId,
       description: "ユーザーグッジョブを作成しました",
-    });
+    } as any);
 
     // 賞賛対象者に各々5ポイント
     for (const userId of praisedUserIds) {
@@ -449,7 +449,7 @@ async function awardPointsForMissionCreation(
         source_type: "USER_MISSION_PRAISED",
         source_id: missionId,
         description: "ユーザーグッジョブで賞賛されました",
-      });
+      } as any);
     }
   } catch (error) {
     console.error("ポイント付与エラー:", error);
