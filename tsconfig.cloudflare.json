@@ -24,6 +24,9 @@
     "stories/**/*",
     "**/*.stories.*",
     ".storybook/**/*",
-    "vitest.config.ts"
+    "vitest.config.ts",
+    "mission_data",
+    "poster_data",
+    "scripts"
   ]
 }
