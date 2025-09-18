@@ -1,10 +1,9 @@
-import type { Database } from "@/lib/types/supabase";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 export const AVATAR_MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
-export function getAvatarUrl(
-  client: SupabaseClient<Database>,
+export function getAvatarUrl<T = any>(
+  client: SupabaseClient<T>,
   avatarPath: string,
 ): string {
   if (!avatarPath) return "";
