@@ -37,11 +37,7 @@ async function getUserMissionById(id: string) {
     .eq("id", id)
     .single();
 
-  if (error) {
-    return null;
-  }
-
-  if (!data) {
+  if (error || !data) {
     return null;
   }
 
@@ -49,7 +45,7 @@ async function getUserMissionById(id: string) {
   const { data: userProfile } = await supabase
     .from("private_users")
     .select("name")
-    .eq("id", data.created_by)
+    .eq("id", (data as any).created_by)
     .single();
 
   const {
@@ -57,43 +53,43 @@ async function getUserMissionById(id: string) {
   } = await supabase.auth.getUser();
 
   return {
-    id: data.id,
-    createdBy: data.created_by,
+    id: (data as any).id,
+    createdBy: (data as any).created_by,
     createdByName: userProfile?.name || "不明なユーザー",
-    title: data.title,
-    content: data.content,
+    title: (data as any).title,
+    content: (data as any).content,
     praisedUsers:
-      data.user_mission_praised_users
-        ?.map((p) => (p as unknown as PraisedUser).private_users?.name)
+      (data as any).user_mission_praised_users
+        ?.map((p: any) => (p as unknown as PraisedUser).private_users?.name)
         .filter(Boolean) || [],
-    status: data.status,
-    rejectionReason: data.rejection_reason,
-    createdAt: data.created_at,
-    updatedAt: data.updated_at,
-    approvedAt: data.approved_at,
-    approvedBy: data.approved_by,
-    publicMissionId: data.public_mission_id,
-    likesCount: data.likes_count,
+    status: (data as any).status,
+    rejectionReason: (data as any).rejection_reason,
+    createdAt: (data as any).created_at,
+    updatedAt: (data as any).updated_at,
+    approvedAt: (data as any).approved_at,
+    approvedBy: (data as any).approved_by,
+    publicMissionId: (data as any).public_mission_id,
+    likesCount: (data as any).likes_count,
     mvvItems: {
       passionateExecution:
-        data.user_mission_mvv_items?.some(
-          (item) =>
+        (data as any).user_mission_mvv_items?.some(
+          (item: any) =>
             (item as unknown as MvvItem).mvv_type === "passionate_execution",
         ) || false,
       supremeRelationships:
-        data.user_mission_mvv_items?.some(
-          (item) =>
+        (data as any).user_mission_mvv_items?.some(
+          (item: any) =>
             (item as unknown as MvvItem).mvv_type === "supreme_relationships",
         ) || false,
       happinessCirculation:
-        data.user_mission_mvv_items?.some(
-          (item) =>
+        (data as any).user_mission_mvv_items?.some(
+          (item: any) =>
             (item as unknown as MvvItem).mvv_type === "happiness_circulation",
         ) || false,
     },
     isLikedByCurrentUser: user
-      ? data.user_mission_likes?.some(
-          (like) => (like as unknown as Like).user_id === user.id,
+      ? (data as any).user_mission_likes?.some(
+          (like: any) => (like as unknown as Like).user_id === user.id,
         ) || false
       : false,
   };
