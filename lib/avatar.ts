@@ -1,5 +1,5 @@
+import type { Database } from "@/lib/types/supabase";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database } from "./types/supabase";
 
 export const AVATAR_MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
