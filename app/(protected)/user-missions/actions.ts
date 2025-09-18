@@ -72,19 +72,19 @@ export async function createUserMissionAction(input: CreateUserMissionInput) {
     const mvvItems = [];
     if (input.mvvItems.passionateExecution) {
       mvvItems.push({
-        user_mission_id: mission.id,
+        user_mission_id: (mission as any).id,
         mvv_type: "passionate_execution",
       });
     }
     if (input.mvvItems.supremeRelationships) {
       mvvItems.push({
-        user_mission_id: mission.id,
+        user_mission_id: (mission as any).id,
         mvv_type: "supreme_relationships",
       });
     }
     if (input.mvvItems.happinessCirculation) {
       mvvItems.push({
-        user_mission_id: mission.id,
+        user_mission_id: (mission as any).id,
         mvv_type: "happiness_circulation",
       });
     }
@@ -97,7 +97,10 @@ export async function createUserMissionAction(input: CreateUserMissionInput) {
       if (mvvError) {
         console.error("MVV項目挿入エラー:", mvvError);
         // ロールバック
-        await supabase.from("user_missions").delete().eq("id", mission.id);
+        await supabase
+          .from("user_missions")
+          .delete()
+          .eq("id", (mission as any).id);
         throw new Error(`MVV項目の保存に失敗しました: ${mvvError.message}`);
       }
     }
@@ -105,7 +108,7 @@ export async function createUserMissionAction(input: CreateUserMissionInput) {
     // 賞賛対象ユーザーを挿入
     if (input.praisedUserIds.length > 0) {
       const praisedUsers = input.praisedUserIds.map((userId) => ({
-        user_mission_id: mission.id,
+        user_mission_id: (mission as any).id,
         praised_user_id: userId,
       }));
 
@@ -116,7 +119,10 @@ export async function createUserMissionAction(input: CreateUserMissionInput) {
       if (praisedError) {
         console.error("賞賛対象ユーザー挿入エラー:", praisedError);
         // ロールバック
-        await supabase.from("user_missions").delete().eq("id", mission.id);
+        await supabase
+          .from("user_missions")
+          .delete()
+          .eq("id", (mission as any).id);
         throw new Error(
           `賞賛対象ユーザーの保存に失敗しました: ${praisedError.message}`,
         );
@@ -125,7 +131,7 @@ export async function createUserMissionAction(input: CreateUserMissionInput) {
 
     // ポイント付与処理
     await awardPointsForMissionCreation(
-      mission.id,
+      (mission as any).id,
       user.id,
       input.praisedUserIds,
       supabase,
@@ -135,7 +141,7 @@ export async function createUserMissionAction(input: CreateUserMissionInput) {
     if (process.env.NODE_ENV !== "production" && !process.env.CF_PAGES) {
       try {
         await sendSlackNotificationForMissionCreation(
-          mission.id,
+          (mission as any).id,
           input.title,
           input.content,
           user.id,
@@ -160,7 +166,7 @@ export async function createUserMissionAction(input: CreateUserMissionInput) {
       }
     }
 
-    return { success: true, missionId: mission.id };
+    return { success: true, missionId: (mission as any).id };
   } catch (error) {
     console.error("createUserMissionAction総合エラー:", error);
     throw error;
@@ -233,7 +239,7 @@ export async function toggleLikeAction(missionId: string) {
     }
 
     // 自分のグッジョブにはいいねできない
-    if (mission.created_by === user.id) {
+    if ((mission as any).created_by === user.id) {
       throw new Error("自分のグッジョブにはいいねできません");
     }
 
@@ -414,11 +420,11 @@ async function checkAndAwardMilestoneXP(
 
   // いいねがつくたびに作成者に1ポイント付与
   await supabase.from("xp_transactions").insert({
-    user_id: mission.created_by,
+    user_id: (mission as any).created_by,
     xp_amount: 1,
     source_type: "USER_MISSION_LIKES",
     source_id: missionId,
-    description: `ユーザーグッジョブ「${mission.title}」がいいねを獲得`,
+    description: `ユーザーグッジョブ「${(mission as any).title}」がいいねを獲得`,
   } as any);
 }
 
@@ -525,11 +531,11 @@ async function sendSlackNotificationForLike(
       .single();
 
     // 作成者情報を取得
-    const { data: creator } = mission?.created_by
+    const { data: creator } = (mission as any)?.created_by
       ? await supabase
           .from("private_users")
           .select("name")
-          .eq("id", mission.created_by)
+          .eq("id", (mission as any).created_by)
           .single()
       : { data: null };
 
@@ -543,7 +549,7 @@ async function sendSlackNotificationForLike(
         type: "user_mission_liked",
         data: {
           missionId,
-          title: mission?.title || "",
+          title: (mission as any)?.title || "",
           likerName: liker?.name || "不明",
           creatorName: creator?.name || "不明",
         },
