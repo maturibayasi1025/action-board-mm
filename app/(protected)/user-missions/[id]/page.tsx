@@ -48,6 +48,9 @@ async function getUserMissionById(id: string) {
     .eq("id", (data as any).created_by)
     .single();
 
+  // 型を明示的に定義
+  const userProfileData = userProfile as { name: string } | null;
+
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -55,7 +58,7 @@ async function getUserMissionById(id: string) {
   return {
     id: (data as any).id,
     createdBy: (data as any).created_by,
-    createdByName: (userProfile as any)?.name || "不明なユーザー",
+    createdByName: userProfileData?.name || "不明なユーザー",
     title: (data as any).title,
     content: (data as any).content,
     praisedUsers:
