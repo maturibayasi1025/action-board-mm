@@ -4,7 +4,7 @@ import type { Database } from "./types/supabase";
 export const AVATAR_MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
 export function getAvatarUrl(
-  client: SupabaseClient,
+  client: SupabaseClient<Database>,
   avatarPath: string,
 ): string {
   if (!avatarPath) return "";
