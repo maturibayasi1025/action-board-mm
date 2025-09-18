@@ -94,21 +94,13 @@ export async function updateProfile(
   // バリデーション済みのデータを使用
   const validatedData = validatedFields.data;
 
-  // 先にユーザー情報を取得
-  const { data: authUser } = await supabaseClient.auth.getUser();
-  const { data: privateUser, error: privateUserError } = (await supabaseClient
-    .from("private_users")
-    .select("*")
-    .eq("id", user.id)
-    .single()) as {
-    data: Database["public"]["Tables"]["private_users"]["Row"] | null;
-    error: any;
-  };
-
-  if (!authUser) {
-    console.error("Public user not found");
-    return encodedRedirect("error", "/sign-in", "ユーザーが見つかりません");
-  }
+  // ユーザー情報を取得
+  const { data: privateUser, error: privateUserError } =
+    await supabaseServiceClient
+      .from("private_users")
+      .select("*")
+      .eq("id", user.id)
+      .single();
 
   if (privateUserError) {
     console.error("Private user fetch error:", privateUserError);
@@ -220,7 +212,7 @@ export async function updateProfile(
 
   // private_users テーブルを更新
   if (!privateUser) {
-    const { error: privateUserError } = await supabaseClient
+    const { error: privateUserError } = await supabaseServiceClient
       .from("private_users")
       .insert({
         id: user.id,
@@ -247,7 +239,7 @@ export async function updateProfile(
       console.error("案内メール送信失敗:", e);
     }
   } else {
-    const { error: privateUserError } = await supabaseClient
+    const { error: privateUserError } = await supabaseServiceClient
       .from("private_users")
       .update({
         name: validatedData.name,
@@ -293,7 +285,7 @@ export async function updateProfile(
 
     if (hubspotResult.success) {
       // HubSpot連携成功時、コンタクトIDをデータベースに保存
-      const { error: updateHubSpotIdError } = await supabaseClient
+      const { error: updateHubSpotIdError } = await supabaseServiceClient
         .from("private_users")
         .update({ hubspot_contact_id: hubspotResult.contactId })
         .eq("id", user.id);
@@ -321,7 +313,7 @@ export async function updateProfile(
   // ユーザー別紹介コードの登録処理（重複時は最大5回リトライ）
   const MAX_RETRY = 5;
 
-  const { data: existingReferral } = await supabaseClient
+  const { data: existingReferral } = await supabaseServiceClient
     .from("user_referral")
     .select("user_id")
     .eq("user_id", user.id)
@@ -334,7 +326,7 @@ export async function updateProfile(
     for (let attempt = 0; attempt < MAX_RETRY; attempt++) {
       const referralCode = nanoid(8); // 8桁ランダムコード
 
-      const { error: referralInsertError } = await supabaseClient
+      const { error: referralInsertError } = await supabaseServiceClient
         .from("user_referral")
         .insert({
           user_id: user.id,
