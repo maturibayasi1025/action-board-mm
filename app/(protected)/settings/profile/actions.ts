@@ -5,6 +5,7 @@ import { AVATAR_MAX_FILE_SIZE } from "@/lib/avatar";
 import { sendWelcomeMail } from "@/lib/mail";
 import { createOrUpdateHubSpotContact } from "@/lib/services/hubspot";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
+import type { Database } from "@/lib/types/supabase";
 import { encodedRedirect } from "@/lib/utils/utils";
 import { nanoid } from "nanoid";
 import { revalidatePath } from "next/cache";
@@ -95,15 +96,26 @@ export async function updateProfile(
 
   // 先にユーザー情報を取得
   const { data: authUser } = await supabaseClient.auth.getUser();
-  const { data: privateUser } = await supabaseClient
+  const { data: privateUser, error: privateUserError } = (await supabaseClient
     .from("private_users")
     .select("*")
     .eq("id", user.id)
-    .single();
+    .single()) as {
+    data: Database["public"]["Tables"]["private_users"]["Row"] | null;
+    error: any;
+  };
 
   if (!authUser) {
     console.error("Public user not found");
     return encodedRedirect("error", "/sign-in", "ユーザーが見つかりません");
+  }
+
+  if (privateUserError) {
+    console.error("Private user fetch error:", privateUserError);
+    return {
+      success: false,
+      error: "ユーザー情報の取得に失敗しました",
+    };
   }
 
   // フォームから送信されたavatar_url
