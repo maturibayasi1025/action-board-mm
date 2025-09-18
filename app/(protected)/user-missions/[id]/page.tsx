@@ -55,7 +55,7 @@ async function getUserMissionById(id: string) {
   return {
     id: (data as any).id,
     createdBy: (data as any).created_by,
-    createdByName: userProfile?.name || "不明なユーザー",
+    createdByName: (userProfile as any)?.name || "不明なユーザー",
     title: (data as any).title,
     content: (data as any).content,
     praisedUsers:
