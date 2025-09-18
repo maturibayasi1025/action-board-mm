@@ -37,7 +37,11 @@ async function getUserMissionById(id: string) {
     .eq("id", id)
     .single();
 
-  if (error || !data) {
+  if (error) {
+    return null;
+  }
+
+  if (!data) {
     return null;
   }
 
