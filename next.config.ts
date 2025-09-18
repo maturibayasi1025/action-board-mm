@@ -33,17 +33,6 @@ const nextConfig: NextConfig = {
       "@": path.resolve(__dirname),
     };
 
-    // 開発用スクリプトをビルドから除外
-    config.module.rules.push({
-      test: /\.(ts|tsx)$/,
-      include: [
-        path.resolve(__dirname, "mission_data"),
-        path.resolve(__dirname, "poster_data"),
-        path.resolve(__dirname, "scripts"),
-      ],
-      use: "ignore-loader",
-    });
-
     // Cloudflare Pages用の最適化
     if (process.env.CF_PAGES === "true") {
       // 不要なモジュールの除外

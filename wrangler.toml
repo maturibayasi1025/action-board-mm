@@ -5,7 +5,8 @@ compatibility_flags = ["nodejs_compat"]
 
 # 自動検出によるビルド設定
 [build]
-command = "npm run build:cloudflare && npm run pages:build"
+command = "npm install && npm run build:cloudflare && npm run pages:build"
+pages_build_output_dir = ".vercel/output/static"
 
 # Edge Runtime対応
 [env.production]
