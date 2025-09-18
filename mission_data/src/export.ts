@@ -3,6 +3,7 @@ import * as path from "node:path";
 import { createServiceClient } from "@/lib/supabase/server";
 import { Command } from "commander";
 import * as yaml from "js-yaml";
+import type { DumpOptions } from "js-yaml";
 
 const program = new Command();
 
@@ -35,7 +36,7 @@ async function exportCategories() {
     category_kbn: item.category_kbn,
   }));
 
-  const yamlContent = yaml.dump({ categories }, { lineWidth: -1 });
+  const yamlContent = yaml.dump({ categories }, { lineWidth: -1 } as DumpOptions);
   const filePath = path.join(__dirname, "..", "categories.yaml");
   fs.writeFileSync(filePath, yamlContent);
 
@@ -70,7 +71,7 @@ async function exportMissions() {
     event_date: item.event_date,
   }));
 
-  const yamlContent = yaml.dump({ missions }, { lineWidth: -1 });
+  const yamlContent = yaml.dump({ missions }, { lineWidth: -1 } as DumpOptions);
   const filePath = path.join(__dirname, "..", "missions.yaml");
   fs.writeFileSync(filePath, yamlContent);
 
@@ -122,7 +123,7 @@ async function exportCategoryLinks() {
 
   const yamlContent = yaml.dump(
     { category_links: categoryLinks },
-    { lineWidth: -1 },
+    { lineWidth: -1 } as DumpOptions,
   );
   const filePath = path.join(__dirname, "..", "category_links.yaml");
   fs.writeFileSync(filePath, yamlContent);
@@ -153,7 +154,7 @@ async function exportQuizCategories() {
 
   const yamlContent = yaml.dump(
     { quiz_categories: quizCategories },
-    { lineWidth: -1 },
+    { lineWidth: -1 } as DumpOptions,
   );
   const filePath = path.join(__dirname, "..", "quiz_categories.yaml");
   fs.writeFileSync(filePath, yamlContent);
@@ -195,7 +196,7 @@ async function exportQuizQuestions() {
 
   const yamlContent = yaml.dump(
     { quiz_questions: quizQuestions },
-    { lineWidth: -1 },
+    { lineWidth: -1 } as DumpOptions,
   );
   const filePath = path.join(__dirname, "..", "quiz_questions.yaml");
   fs.writeFileSync(filePath, yamlContent);
@@ -228,7 +229,7 @@ async function exportMissionQuizLinks() {
 
   const yamlContent = yaml.dump(
     { mission_quiz_links: missionQuizLinks },
-    { lineWidth: -1 },
+    { lineWidth: -1 } as DumpOptions,
   );
   const filePath = path.join(__dirname, "..", "mission_quiz_links.yaml");
   fs.writeFileSync(filePath, yamlContent);
@@ -260,7 +261,7 @@ async function exportMissionMainLinks() {
 
   const yamlContent = yaml.dump(
     { mission_main_links: missionMainLinks },
-    { lineWidth: -1 },
+    { lineWidth: -1 } as DumpOptions,
   );
   const filePath = path.join(__dirname, "..", "mission_main_links.yaml");
   fs.writeFileSync(filePath, yamlContent);
