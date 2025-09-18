@@ -1,4 +1,22 @@
 declare module "js-yaml" {
+  export interface Schema {
+    name: string;
+    explicit: unknown[];
+    implicit: unknown[];
+    fallback: unknown[];
+  }
+
+  export interface YAMLError extends Error {
+    reason: string;
+    mark?: {
+      name: string | null;
+      buffer: string;
+      position: number;
+      line: number;
+      column: number;
+    };
+  }
+
   export interface DumpOptions {
     indent?: number;
     lineWidth?: number;
@@ -7,36 +25,36 @@ declare module "js-yaml" {
     condenseFlow?: boolean;
     quotingType?: '"' | "'";
     forceQuotes?: boolean;
-    sortKeys?: boolean | ((a: any, b: any) => number);
-    replacer?: (key: string, value: any) => any;
+    sortKeys?: boolean | ((a: string, b: string) => number);
+    replacer?: (key: string, value: unknown) => unknown;
     skipInvalid?: boolean;
     flowLevel?: number;
-    styles?: { [key: string]: any };
-    schema?: any;
-    schemaOptions?: any;
+    styles?: { [key: string]: unknown };
+    schema?: Schema;
+    schemaOptions?: Record<string, unknown>;
   }
 
   export interface LoadOptions {
     filename?: string;
-    onWarning?: (warning: any) => void;
-    schema?: any;
+    onWarning?: (warning: YAMLError) => void;
+    schema?: Schema;
     json?: boolean;
     strict?: boolean;
     prettyErrors?: boolean;
   }
 
-  export function dump(obj: any, options?: DumpOptions): string;
-  export function load(str: string, options?: LoadOptions): any;
+  export function dump(obj: unknown, options?: DumpOptions): string;
+  export function load(str: string, options?: LoadOptions): unknown;
   export function loadAll(
     str: string,
-    iterator?: (doc: any) => void,
+    iterator?: (doc: unknown) => void,
     options?: LoadOptions,
-  ): any[];
-  export function safeDump(obj: any, options?: DumpOptions): string;
-  export function safeLoad(str: string, options?: LoadOptions): any;
+  ): unknown[];
+  export function safeDump(obj: unknown, options?: DumpOptions): string;
+  export function safeLoad(str: string, options?: LoadOptions): unknown;
   export function safeLoadAll(
     str: string,
-    iterator?: (doc: any) => void,
+    iterator?: (doc: unknown) => void,
     options?: LoadOptions,
-  ): any[];
+  ): unknown[];
 }
