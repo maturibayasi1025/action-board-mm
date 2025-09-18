@@ -23,7 +23,7 @@ export default function UserAvatar({
   const supabase = createClient();
   let avatarUrl = userProfile.avatar_url;
   if (avatarUrl) {
-    avatarUrl = getAvatarUrl(supabase, avatarUrl);
+    avatarUrl = getAvatarUrl(supabase as any, avatarUrl);
   }
   const sizeClass = {
     sm: "w-8 h-8",

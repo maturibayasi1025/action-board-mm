@@ -31,7 +31,7 @@ export default async function MyAvatar({ className }: MyAvatarProps) {
     .single();
 
   const avatarUrl = profile?.avatar_url
-    ? getAvatarUrl(supabase, profile.avatar_url)
+    ? getAvatarUrl(supabase as any, profile.avatar_url)
     : null;
 
   return (

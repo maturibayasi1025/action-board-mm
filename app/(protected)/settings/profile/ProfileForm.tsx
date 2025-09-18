@@ -73,7 +73,7 @@ export default function ProfileForm({
   // 画像プレビュー用のステート
   const [avatarPreview, setAvatarPreview] = useState<string | null>(
     initialProfile?.avatar_url
-      ? getAvatarUrl(supabase, initialProfile.avatar_url)
+      ? getAvatarUrl(supabase as any, initialProfile.avatar_url)
       : null,
   );
   const [selectedPrefecture, setSelectedPrefecture] = useState<string>(
