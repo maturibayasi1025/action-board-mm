@@ -55,7 +55,7 @@ export async function updateProfile(
   formData: FormData,
 ): Promise<UpdateProfileResult | null> {
   const supabaseServiceClient = await createServiceClient();
-  const supabaseClient = await createClient();
+  const supabaseClient = await createClient<Database>();
 
   const {
     data: { user },
