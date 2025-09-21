@@ -5,8 +5,6 @@ import { Noto_Sans_JP } from "next/font/google";
 import { ImageResponse } from "next/og";
 import type { NextRequest } from "next/server";
 
-export const runtime = "edge";
-
 // キャッシュ用Mapを定義（メモリキャッシュ）- completeタイプのみキャッシュ
 const MAX_CACHE_SIZE = 100;
 const cache = new Map<string, ArrayBuffer>();

@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/card";
 import { LikeButton } from "@/components/user-mission/like-button";
 import { createClient } from "@/lib/supabase/server";
+import type { Like, MvvItem, PraisedUser } from "@/lib/types/user-missions";
 import { ArrowRight, Plus, User } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
@@ -98,7 +99,7 @@ async function getUserMissionsServer() {
           content: mission.content,
           praisedUsers:
             praisedUsers
-              ?.map((p) => (p as any).private_users?.name)
+              ?.map((p: PraisedUser) => p.private_users?.name)
               .filter((name): name is string => Boolean(name)) || [],
           status: mission.status,
           rejectionReason: mission.rejection_reason,
@@ -111,19 +112,19 @@ async function getUserMissionsServer() {
           mvvItems: {
             passionateExecution:
               mvvItems?.some(
-                (item) => (item as any).mvv_type === "passionate_execution",
+                (item: MvvItem) => item.mvv_type === "passionate_execution",
               ) || false,
             supremeRelationships:
               mvvItems?.some(
-                (item) => (item as any).mvv_type === "supreme_relationships",
+                (item: MvvItem) => item.mvv_type === "supreme_relationships",
               ) || false,
             happinessCirculation:
               mvvItems?.some(
-                (item) => (item as any).mvv_type === "happiness_circulation",
+                (item: MvvItem) => item.mvv_type === "happiness_circulation",
               ) || false,
           },
           isLikedByCurrentUser: user
-            ? likes?.some((like) => (like as any).user_id === user.id) || false
+            ? likes?.some((like: Like) => like.user_id === user.id) || false
             : false,
         };
 

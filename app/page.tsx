@@ -1,5 +1,3 @@
-export const runtime = "edge";
-
 import Activities from "@/components/activities";
 import Hero from "@/components/hero";
 import dynamic from "next/dynamic";

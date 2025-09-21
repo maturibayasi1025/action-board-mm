@@ -1,3 +1,4 @@
+import path from "node:path";
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
@@ -20,6 +21,24 @@ const nextConfig: NextConfig = {
 
   // Cloudflare Pages環境でのPrisma instrumentation対策（シンプル版）
   webpack: (config, { isServer }) => {
+    // Cloudflare Pages環境でのエイリアス解決を強制
+    if (
+      process.env.CF_PAGES === "true" ||
+      process.env.NODE_ENV === "production"
+    ) {
+      console.log("[Webpack] Cloudflare Pages環境 - エイリアス解決設定を追加");
+
+      // resolve.aliasを設定
+      config.resolve = config.resolve || {};
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        "@": path.resolve(process.cwd()),
+        "@/components": path.resolve(process.cwd(), "components"),
+        "@/lib": path.resolve(process.cwd(), "lib"),
+        "@/app": path.resolve(process.cwd(), "app"),
+      };
+    }
+
     if (process.env.CF_PAGES === "true" && isServer) {
       console.log(
         "[Webpack] Cloudflare Pages環境 - Prisma instrumentation無効化",

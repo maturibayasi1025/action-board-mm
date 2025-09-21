@@ -7,8 +7,6 @@ import {
 import { RankingTabs } from "@/components/ranking/ranking-tabs";
 import { createClient } from "@/lib/supabase/server";
 
-export const runtime = "edge";
-
 interface PageProps {
   searchParams: Promise<{
     period?: RankingPeriod;
