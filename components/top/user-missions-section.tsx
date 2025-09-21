@@ -99,7 +99,7 @@ async function getUserMissionsServer() {
           content: mission.content,
           praisedUsers:
             praisedUsers
-              ?.map((p: PraisedUser) => p.private_users?.name)
+              ?.map((p) => (p as any)?.private_users?.name)
               .filter((name): name is string => Boolean(name)) || [],
           status: mission.status,
           rejectionReason: mission.rejection_reason,
