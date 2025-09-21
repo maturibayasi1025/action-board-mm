@@ -1,24 +1,24 @@
 "use client";
 
-import { FormMessage, type Message } from "@/components/form-message";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
-import { CollapsibleInfo } from "@/components/ui/collapsible-info";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
+import { FormMessage, type Message } from "../../../components/form-message";
+import { Button } from "../../../components/ui/button";
+import { Card, CardContent } from "../../../components/ui/card";
+import { Checkbox } from "../../../components/ui/checkbox";
+import { CollapsibleInfo } from "../../../components/ui/collapsible-info";
+import { Input } from "../../../components/ui/input";
+import { Label } from "../../../components/ui/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { signInWithLine } from "@/lib/auth/line-auth";
-import { calculateAge } from "@/lib/utils/utils";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+} from "../../../components/ui/select";
+import { signInWithLine } from "../../../lib/auth/line-auth";
+import { calculateAge } from "../../../lib/utils/utils";
 
 interface TwoStepSignUpFormProps {
   searchParams: Message;

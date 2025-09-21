@@ -1,9 +1,9 @@
-import { forgotPasswordAction } from "@/app/actions";
-import { FormMessage, type Message } from "@/components/form-message";
-import { SubmitButton } from "@/components/submit-button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import Image from "next/image";
+import { FormMessage, type Message } from "../../../components/form-message";
+import { SubmitButton } from "../../../components/submit-button";
+import { Input } from "../../../components/ui/input";
+import { Label } from "../../../components/ui/label";
+import { forgotPasswordAction } from "../../actions";
 
 export const runtime = "edge";
 

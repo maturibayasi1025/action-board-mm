@@ -1,15 +1,15 @@
 "use client";
 
-import { emailSignUpActionWithState } from "@/app/actions";
-import { FormMessage, type Message } from "@/components/form-message";
-import { SubmitButton } from "@/components/submit-button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { passwordAlertlessSchema } from "@/lib/validation/auth";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useActionState, useCallback, useEffect, useState } from "react";
 import { useFormStatus } from "react-dom";
+import { FormMessage, type Message } from "../../../components/form-message";
+import { SubmitButton } from "../../../components/submit-button";
+import { Input } from "../../../components/ui/input";
+import { Label } from "../../../components/ui/label";
+import { passwordAlertlessSchema } from "../../../lib/validation/auth";
+import { emailSignUpActionWithState } from "../../actions";
 
 interface EmailSignUpFormProps {
   searchParams: Message;

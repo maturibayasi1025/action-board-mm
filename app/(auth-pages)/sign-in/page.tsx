@@ -1,6 +1,6 @@
-import { FormMessage, type Message } from "@/components/form-message";
 import Image from "next/image";
 import Link from "next/link";
+import { FormMessage, type Message } from "../../../components/form-message";
 import SignInForm from "./SignInForm";
 
 export const runtime = "edge";

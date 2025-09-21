@@ -1,5 +1,5 @@
-import { FormMessage } from "@/components/form-message";
 import Image from "next/image";
+import { FormMessage } from "../../../components/form-message";
 
 export const runtime = "edge";
 

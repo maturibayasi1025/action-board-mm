@@ -1,5 +1,5 @@
-import type { Message } from "@/components/form-message";
 import Image from "next/image";
+import type { Message } from "../../../components/form-message";
 import EmailSignUpForm from "./EmailSignUpForm";
 
 export const runtime = "edge";
