@@ -1,12 +1,10 @@
 "use client";
 
-import { signInWithLine } from "@/lib/auth/line-auth";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect } from "react";
 import { FormMessage } from "../../../components/form-message";
 import { SubmitButton } from "../../../components/submit-button";
-import { Button } from "../../../components/ui/button";
 import { Input } from "../../../components/ui/input";
 import { Label } from "../../../components/ui/label";
 import { signInActionWithState } from "../../actions";
@@ -18,7 +16,6 @@ interface SignInFormProps {
 export default function SignInForm({ returnUrl }: SignInFormProps) {
   const router = useRouter();
   const [state, formAction] = useActionState(signInActionWithState, null);
-  const [isLineLoading, setIsLineLoading] = useState(false);
 
   // 成功時のリダイレクト処理
   useEffect(() => {
@@ -27,39 +24,8 @@ export default function SignInForm({ returnUrl }: SignInFormProps) {
     }
   }, [state, router]);
 
-  const handleLINELogin = async () => {
-    try {
-      setIsLineLoading(true);
-      await signInWithLine(returnUrl);
-    } catch (error) {
-      setIsLineLoading(false);
-    }
-  };
-
   return (
     <div className="flex flex-col gap-4 mt-8 min-w-72 max-w-72 mx-auto">
-      {/* LINEログインボタン */}
-      {/* <Button
-        type="button"
-        onClick={handleLINELogin}
-        disabled={isLineLoading}
-        className="w-full h-12 bg-[#00B900] hover:bg-[#00A000] text-white"
-      >
-        {isLineLoading ? "LINE連携中..." : "LINEでログイン"}
-      </Button> */}
-
-      {/* <div className="relative my-4">
-        <div className="absolute inset-0 flex items-center">
-          <span className="w-full border-t" />
-        </div>
-        <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-background px-2 text-muted-foreground">
-            または
-          </span>
-        </div>
-      </div> */}
-
-      {/* Email + Passwordログインフォーム */}
       <form action={formAction} className="flex flex-col gap-2 [&>input]:mb-3">
         {state?.error && (
           <FormMessage message={{ error: state.error }} className="mb-4" />

@@ -17,7 +17,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../../../components/ui/select";
-import { signInWithLine } from "../../../lib/auth/line-auth";
 import { calculateAge } from "../../../lib/utils/utils";
 
 interface TwoStepSignUpFormProps {
@@ -214,26 +213,6 @@ function LoginSelectionPhase({
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
-  const handleLINELogin = async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      // ローカルストレージにサインアップデータを保存（モバイル対応）
-      localStorage.setItem(
-        "lineLoginData",
-        JSON.stringify({
-          dateOfBirth: formattedDate,
-        }),
-      );
-
-      await signInWithLine();
-    } catch (error) {
-      setIsLoading(false);
-      setError("LINE連携に失敗しました。もう一度お試しください。");
-      console.error("LINE login error:", error);
-    }
-  };
-
   return (
     <div className="flex flex-col gap-4 mt-8">
       {/* エラーメッセージ表示 */}
@@ -242,16 +221,6 @@ function LoginSelectionPhase({
           <p className="text-red-700 text-sm">{error}</p>
         </div>
       )}
-
-      {/* LINEログインボタン */}
-      {/* <Button
-        type="button"
-        onClick={handleLINELogin}
-        disabled={isLoading}
-        className="w-full h-12 bg-[#00B900] hover:bg-[#00A000] text-white"
-      >
-        {isLoading ? "LINE連携中..." : "LINEでアカウント作成"}
-      </Button> */}
 
       {/* <div className="relative my-4">
         <div className="absolute inset-0 flex items-center">
