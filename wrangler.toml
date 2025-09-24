@@ -2,6 +2,7 @@
 name = "action-board-mm"
 compatibility_date = "2025-08-28"  
 compatibility_flags = ["nodejs_compat"]
+pages_build_output_dir = ".vercel/output/static"
 
 # 自動検出によるビルド設定
 [build]
