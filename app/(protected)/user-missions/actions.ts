@@ -1,5 +1,7 @@
 "use server";
 
+export const runtime = "edge";
+
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
