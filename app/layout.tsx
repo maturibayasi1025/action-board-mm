@@ -12,8 +12,6 @@ import { Suspense } from "react";
 
 const GA_ID = process.env.NEXT_PUBLIC_GA_ID;
 
-export const runtime = "edge";
-
 //metadata.tsxでmetadataを管理
 export const generateMetadata = generateRootMetadata;
 
