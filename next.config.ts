@@ -3,11 +3,19 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   /* config options here */
-  output: process.env.STANDALONE_BUILD ? "standalone" : undefined,
+  output:
+    process.env.CF_PAGES === "true"
+      ? "export"
+      : process.env.STANDALONE_BUILD
+        ? "standalone"
+        : undefined,
   experimental: {
     serverActions: {
       bodySizeLimit: "10mb",
     },
+    ...(process.env.CF_PAGES === "true" && {
+      runtime: "edge",
+    }),
     // instrumentation.tsは最新のNext.jsでは自動で有効化される
   },
   // Cloudflare Pages用のビルド最適化
@@ -18,7 +26,7 @@ const nextConfig: NextConfig = {
   images: {
     unoptimized: true,
   },
-
+  trailingSlash: process.env.CF_PAGES === "true" ? true : undefined,
   // Cloudflare Pages環境でのPrisma instrumentation対策（シンプル版）
   webpack: (config, { isServer }) => {
     // Cloudflare Pages環境でのエイリアス解決を強制
