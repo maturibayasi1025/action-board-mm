@@ -12,6 +12,8 @@ import type { Like, MvvItem, PraisedUser } from "@/lib/types/user-missions";
 import { Calendar, User } from "lucide-react";
 import { notFound } from "next/navigation";
 
+export const runtime = "edge";
+
 async function getUserMissionById(id: string) {
   const supabase = await createClient();
 

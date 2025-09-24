@@ -14,6 +14,8 @@ import { CheckCircle, Clock, Heart, Plus, User, XCircle } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
 
+export const runtime = "edge";
+
 async function getUserMissionsServer(userId: string) {
   const supabase = await createClient();
 
