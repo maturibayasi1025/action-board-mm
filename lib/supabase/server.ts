@@ -54,23 +54,55 @@ export const createClient = async () => {
     throw new Error(errorMessage);
   }
 
-  // Cloudflare Edge環境用の簡略化されたクライアント
+  // Cloudflare Pages環境でもセッション管理を試行
   if (process.env.CF_PAGES === "true") {
     console.log("[CF_PAGES] Edge環境用Supabaseクライアントを作成");
 
-    // Edge環境ではシンプルなクライアントを使用（cookies無し）
-    return createClientSupabase<Database>(supabaseUrl, supabaseAnonKey, {
-      auth: {
-        persistSession: false,
-        autoRefreshToken: false,
-        detectSessionInUrl: false,
-      },
-      global: {
-        headers: {
-          "X-Client-Info": "cloudflare-pages",
+    try {
+      // Edge Runtime環境では cookies を dynamic import
+      const { cookies } = await import("next/headers");
+      const cookieStore = await cookies();
+
+      console.log("[CF_PAGES] Cookiesを使用したクライアントを作成");
+      return createServerClient<Database>(supabaseUrl, supabaseAnonKey, {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll();
+          },
+          setAll(cookiesToSet) {
+            try {
+              for (const { name, value, options } of cookiesToSet) {
+                cookieStore.set(name, value, options);
+              }
+            } catch (error) {
+              console.warn("[CF_PAGES] Cookie設定をスキップ:", error);
+            }
+          },
         },
-      },
-    });
+        global: {
+          headers: {
+            "X-Client-Info": "cloudflare-pages",
+          },
+        },
+      });
+    } catch (error) {
+      console.warn(
+        "[CF_PAGES] Cookiesが利用できないため、シンプルクライアントを使用",
+      );
+      // フォールバック: シンプルクライアント（セッション管理無し）
+      return createClientSupabase<Database>(supabaseUrl, supabaseAnonKey, {
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false,
+          detectSessionInUrl: false,
+        },
+        global: {
+          headers: {
+            "X-Client-Info": "cloudflare-pages-fallback",
+          },
+        },
+      });
+    }
   }
 
   // 通常のNext.js環境（Vercelなど）
