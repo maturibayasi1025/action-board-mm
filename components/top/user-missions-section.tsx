@@ -99,7 +99,16 @@ async function getUserMissionsServer() {
           content: mission.content,
           praisedUsers:
             praisedUsers
-              ?.map((p: PraisedUser) => p.private_users?.name)
+              ?.map((p) => {
+                // 型安全にアクセス
+                if (p && typeof p === "object" && "private_users" in p) {
+                  const privateUsers = p.private_users as {
+                    name?: string;
+                  } | null;
+                  return privateUsers?.name;
+                }
+                return undefined;
+              })
               .filter((name): name is string => Boolean(name)) || [],
           status: mission.status,
           rejectionReason: mission.rejection_reason,
