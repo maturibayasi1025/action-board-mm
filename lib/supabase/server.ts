@@ -3,8 +3,6 @@
 import type { Database } from "@/lib/types/supabase";
 import { createServerClient } from "@supabase/ssr";
 import { createClient as createClientSupabase } from "@supabase/supabase-js";
-import { cookies } from "next/headers";
-import { checkSupabaseEnvVars } from "./check-env-vars";
 
 // サービスロールでの操作を行うクライアントです。
 // RLSが無効になりますのでご注意ください。
@@ -77,6 +75,8 @@ export const createClient = async () => {
 
   // 通常のNext.js環境（Vercelなど）
   try {
+    // Edge Runtime環境では cookies を dynamic import
+    const { cookies } = await import("next/headers");
     const cookieStore = await cookies();
 
     return createServerClient<Database>(supabaseUrl, supabaseAnonKey, {
@@ -97,7 +97,7 @@ export const createClient = async () => {
       },
     });
   } catch (error) {
-    // cookiesが使えない環境の場合
+    // Edge Runtime環境やcookiesが使えない環境の場合
     console.warn("Cookies not available, using simple client");
 
     return createClientSupabase<Database>(supabaseUrl, supabaseAnonKey, {
