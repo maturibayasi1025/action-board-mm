@@ -1,18 +1,28 @@
 "use client";
 
-import { toggleLikeAction } from "@/app/(protected)/user-missions/actions";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils/utils";
+import { createClient } from "@supabase/supabase-js";
 import { Heart } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
+// 型定義を追加
 interface LikeButtonProps {
   missionId: string;
   initialLiked: boolean;
   initialCount: number;
   onLikeChange?: (liked: boolean, count: number) => void;
 }
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error("Supabase environment variables are required");
+}
+
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export function LikeButton({
   missionId,
@@ -27,14 +37,35 @@ export function LikeButton({
   const handleClick = async () => {
     setIsLoading(true);
     try {
-      const result = await toggleLikeAction(missionId);
+      // 現在のセッションを取得
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session) {
+        toast.error("ログインが必要です");
+        return;
+      }
+
+      // APIルートを呼び出し
+      const response = await fetch("/api/user-missions/toggle-like", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ missionId }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "エラーが発生しました");
+      }
+
+      const result = await response.json();
       const newLiked = result.liked;
 
-      // 楽観的更新ではなく、サーバーの結果に基づいて状態を更新
       setIsLiked(newLiked);
-
-      // いいね数はサーバーの再検証により自動更新されるため、
-      // ここではローカル状態の計算ではなく、一時的に楽観的更新を行う
       const newCount = newLiked ? likesCount + 1 : likesCount - 1;
       setLikesCount(newCount);
 
@@ -42,44 +73,15 @@ export function LikeButton({
         onLikeChange(newLiked, newCount);
       }
 
-      if (newLiked) {
-        toast.success("いいね！しました", {
-          description: "+1XP獲得！",
-        });
-      } else {
-        toast.success("いいね！を取り消しました", {
-          description: "-1XP",
-        });
-      }
-
-      // ページ再読み込み後は、サーバーからの正確なデータが表示される
+      toast.success(
+        newLiked ? "いいね！しました" : "いいね！を取り消しました",
+        { description: newLiked ? "+1XP獲得！" : "-1XP" },
+      );
     } catch (error) {
       console.error("いいね処理エラー:", error);
-
-      // エラーの詳細をログ出力
-      if (error instanceof Error) {
-        console.error("エラー詳細:", {
-          message: error.message,
-          stack: error.stack,
-          name: error.name,
-        });
-      }
-
-      // ユーザーに表示するエラーメッセージを決定
-      let errorMessage = "いいねの処理に失敗しました";
-      if (error instanceof Error) {
-        if (error.message.includes("データベース接続")) {
-          errorMessage = "データベースに接続できませんでした";
-        } else if (error.message.includes("Cloudflare")) {
-          errorMessage = "サーバーでエラーが発生しました";
-        } else if (error.message.includes("認証")) {
-          errorMessage = "ログインし直してください";
-        } else if (error.message.includes("自分のグッジョブ")) {
-          errorMessage = "自分のグッジョブにはいいねできません";
-        }
-      }
-
-      toast.error(errorMessage);
+      const message =
+        error instanceof Error ? error.message : "いいねの処理に失敗しました";
+      toast.error(message);
     } finally {
       setIsLoading(false);
     }
