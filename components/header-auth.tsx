@@ -75,9 +75,9 @@ export default async function AuthButton() {
       <Button asChild size="sm" variant="outline">
         <Link href="/sign-in">ログイン</Link>
       </Button>
-      <Button asChild size="sm" variant="default">
+      {/* <Button asChild size="sm" variant="default">
         <Link href="/sign-up">新規登録</Link>
-      </Button>
+      </Button> */}
     </div>
   );
 }

@@ -43,10 +43,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "認証が必要です" }, { status: 401 });
     }
 
-    // グッジョブの作成者を確認
+    // グッジョブの作成者とタイトルを確認
     const { data: mission } = await supabase
       .from("user_missions")
-      .select("created_by")
+      .select("created_by, title")
       .eq("id", missionId)
       .single();
 
@@ -98,6 +98,36 @@ export async function POST(request: NextRequest) {
       source_id: missionId,
       description: "ユーザーグッジョブにいいねしました",
     });
+
+    // Slack通知を非同期で送信（Webhook URLが設定されている場合）
+    if (process.env.SLACK_WEBHOOK_URL && mission) {
+      // ユーザー情報を取得
+      const { data: likerData } = await supabase
+        .from("private_users")
+        .select("name")
+        .eq("id", user.id)
+        .single();
+
+      const { data: creatorData } = await supabase
+        .from("private_users")
+        .select("name")
+        .eq("id", mission.created_by)
+        .single();
+
+      // 非同期でSlack通知を送信（レスポンスを待たない）
+      fetch(new URL("/api/slack-notification", request.url).toString(), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "user_mission_liked",
+          data: {
+            title: mission.title,
+            likerName: likerData?.name || "不明なユーザー",
+            creatorName: creatorData?.name || "不明なユーザー",
+          },
+        }),
+      }).catch((error) => console.error("Slack通知エラー（非同期）:", error));
+    }
 
     return NextResponse.json({ liked: true });
   } catch (error) {

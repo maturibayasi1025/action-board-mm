@@ -131,8 +131,8 @@ export async function createUserMissionAction(input: CreateUserMissionInput) {
       supabase,
     );
 
-    // Slack通知を送信（Cloudflare環境では無効化）
-    if (process.env.NODE_ENV !== "production" && !process.env.CF_PAGES) {
+    // Slack通知を送信（Webhook URLが設定されている場合）
+    if (process.env.SLACK_WEBHOOK_URL) {
       try {
         await sendSlackNotificationForMissionCreation(
           mission.id,
@@ -301,8 +301,8 @@ export async function toggleLikeAction(missionId: string) {
     // グッジョブ作成者にマイルストーンXPを付与
     await checkAndAwardMilestoneXP(missionId, supabase);
 
-    // Slack通知を送信（Cloudflare環境では無効化）
-    if (process.env.NODE_ENV !== "production" && !process.env.CF_PAGES) {
+    // Slack通知を送信（Webhook URLが設定されている場合）
+    if (process.env.SLACK_WEBHOOK_URL) {
       try {
         await sendSlackNotificationForLike(missionId, user.id, supabase);
       } catch (slackError) {
