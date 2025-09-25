@@ -52,7 +52,7 @@ export default async function UserDetailPage({ params }: Props) {
     <div className="flex flex-col items-stretch w-full max-w-xl gap-4 py-8">
       <Levels userId={user.id} hideProgress />
       <div className="flex justify-center gap-2">
-        {user.x_username && (
+        {/* {user.x_username && (
           <SocialBadge
             username={user.x_username}
             platform="x"
@@ -62,8 +62,8 @@ export default async function UserDetailPage({ params }: Props) {
             logoSize={{ width: 16, height: 16 }}
             showAtSymbol={true}
           />
-        )}
-        {user.github_username && (
+        )} */}
+        {/* {user.github_username && (
           <SocialBadge
             username={user.github_username}
             platform="github"
@@ -72,7 +72,7 @@ export default async function UserDetailPage({ params }: Props) {
             logoAlt="GitHubのロゴ"
             logoSize={{ width: 20, height: 20 }}
           />
-        )}
+        )} */}
       </div>
 
       {/* バッジセクション */}

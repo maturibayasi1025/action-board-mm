@@ -72,6 +72,15 @@ export async function POST(request: NextRequest) {
         .delete()
         .eq("id", existingLike.id);
 
+      // いいね取り消し時のXP減算
+      await supabase.from("xp_transactions").insert({
+        user_id: user.id,
+        xp_amount: -1,
+        source_type: "USER_MISSION_LIKE_GIVEN",
+        source_id: missionId,
+        description: "ユーザーグッジョブのいいねを取り消しました",
+      });
+
       return NextResponse.json({ liked: false });
     }
 
@@ -79,6 +88,15 @@ export async function POST(request: NextRequest) {
     await supabase.from("user_mission_likes").insert({
       user_mission_id: missionId,
       user_id: user.id,
+    });
+
+    // いいね時のXP付与
+    await supabase.from("xp_transactions").insert({
+      user_id: user.id,
+      xp_amount: 1,
+      source_type: "USER_MISSION_LIKE_GIVEN",
+      source_id: missionId,
+      description: "ユーザーグッジョブにいいねしました",
     });
 
     return NextResponse.json({ liked: true });
