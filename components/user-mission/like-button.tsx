@@ -1,8 +1,9 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import type { Database } from "@/lib/types/supabase";
 import { cn } from "@/lib/utils/utils";
-import { createClient } from "@supabase/supabase-js";
+import { createBrowserClient } from "@supabase/ssr";
 import { Heart } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -22,7 +23,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error("Supabase environment variables are required");
 }
 
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+const supabase = createBrowserClient<Database>(supabaseUrl, supabaseAnonKey);
 
 export function LikeButton({
   missionId,
