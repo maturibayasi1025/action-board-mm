@@ -39,7 +39,7 @@ export function FeedbackSection() {
           ポスターマップへのご意見
         </Link> */}
         <Link
-          href={FOOTER_CONFIG.feedback.url}
+          href={"https://forms.gle/ZAxNVdssDpmjA1QPA"}
           target="_blank"
           rel="noopener noreferrer"
           aria-label="アクションボードへのご意見フォーム（新しいタブで開きます）"
