@@ -38,12 +38,16 @@ export default async function Navbar() {
             <div className="font-semibold hidden sm:flex">
               <Link href="/">ホーム</Link>
             </div>
+            <div className="font-semibold hidden sm:flex">
+              <Link href="/user-missions/new">グッジョブ作成</Link>
+            </div>
             <HeaderAuth />
           </div>
         ) : (
           <>
             <div className="gap-6 items-center font-semibold hidden sm:flex">
               <Link href="/">ホーム</Link>
+              <Link href="/user-missions/new">グッジョブ作成</Link>
               <HeaderAuth />
             </div>
             <div className="flex gap-6 items-center font-semibold sm:hidden">
@@ -63,6 +67,9 @@ export default async function Navbar() {
                   <DropdownMenuGroup>
                     <DropdownMenuItem asChild>
                       <Link href="/">ホーム</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/user-missions/new">グッジョブ作成</Link>
                     </DropdownMenuItem>
                     {/* <DropdownMenuItem asChild>
                       <Link href="/map/posting">機関誌配布マップ</Link>

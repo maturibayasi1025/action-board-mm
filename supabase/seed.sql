@@ -1,57 +1,109 @@
 -- auth.usersテーブルにユーザーを追加（外部キー制約のため）
 INSERT INTO auth.users (instance_id, id, aud, role, email, encrypted_password, email_confirmed_at, last_sign_in_at, raw_app_meta_data, raw_user_meta_data, email_change, email_change_token_new, recovery_token, confirmation_token, confirmation_sent_at, created_at, updated_at)
 VALUES
-  ('00000000-0000-0000-0000-000000000000', '622d6984-2f8a-41df-9ac3-cd4dcceb8d19', 'authenticated', 'authenticated', 'takahiroanno@example.com', crypt('password123', gen_salt('bf')), now(), now(), '{"provider": "email", "providers": ["email"]}', '{"email_verified": true}', '', '', '', '', now(), now(), now()),
-  ('00000000-0000-0000-0000-000000000000', '2c23c05b-8e25-4d0d-9e68-d3be74e4ae8f', 'authenticated', 'authenticated', 'tanaka.hanako@example.com', crypt('password123', gen_salt('bf')), now(), now(), '{"provider": "email", "providers": ["email"]}', '{"email_verified": true}', '', '', '', '', now(), now(), now()),
-  ('00000000-0000-0000-0000-000000000000', 'f47ac10b-58cc-4372-a567-0e02b2c3d479', 'authenticated', 'authenticated', 'sato.taro@example.com', crypt('password123', gen_salt('bf')), now(), now(), '{"provider": "email", "providers": ["email"]}', '{"email_verified": true}', '', '', '', '', now(), now(), now()),
-  -- 新規追加3名のユーザー
-  ('00000000-0000-0000-0000-000000000000', 'a1b2c3d4-e5f6-7890-abcd-ef1234567890', 'authenticated', 'authenticated', 'hakura@maisonmarc.com', crypt('password123', gen_salt('bf')), now(), now(), '{"provider": "email", "providers": ["email"]}', '{"email_verified": true}', '', '', '', '', now(), now(), now()),
-  ('00000000-0000-0000-0000-000000000000', 'b2c3d4e5-f6a7-8901-bcde-f23456789012', 'authenticated', 'authenticated', 's.igari@maisonmarc.com', crypt('password123', gen_salt('bf')), now(), now(), '{"provider": "email", "providers": ["email"]}', '{"email_verified": true}', '', '', '', '', now(), now(), now()),
-  ('00000000-0000-0000-0000-000000000000', 'c3d4e5f6-a7b8-9012-cdef-345678901234', 'authenticated', 'authenticated', 'y.yanase@maisonmarc.com', crypt('password123', gen_salt('bf')), now(), now(), '{"provider": "email", "providers": ["email"]}', '{"email_verified": true}', '', '', '', '', now(), now(), now()),
-  ('00000000-0000-0000-0000-000000000000', 'd4e5f6a7-b8c9-d0e1-f234-567890123456', 'authenticated', 'authenticated', 'f.furuno@maisonmarc.com', crypt('password123', gen_salt('bf')), now(), now(), '{"provider": "email", "providers": ["email"]}', '{"email_verified": true}', '', '', '', '', now(), now(), now()),
-  ('00000000-0000-0000-0000-000000000000', 'e5f6a7b8-c9d0-e1f2-3456-789012345678', 'authenticated', 'authenticated', 'i.itaka@maisonmarc.com', crypt('password123', gen_salt('bf')), now(), now(), '{"provider": "email", "providers": ["email"]}', '{"email_verified": true}', '', '', '', '', now(), now(), now()),
-  ('00000000-0000-0000-0000-000000000000', 'f6a7b8c9-d0e1-f234-5678-901234567890', 'authenticated', 'authenticated', 'y.yamada@maisonmarc.com', crypt('password123', gen_salt('bf')), now(), now(), '{"provider": "email", "providers": ["email"]}', '{"email_verified": true}', '', '', '', '', now(), now(), now()),
-  ('00000000-0000-0000-0000-000000000000', 'a1b2c3d4-e5f6-1234-5678-901234567890', 'authenticated', 'authenticated', 'y.yamaguchi@maisonmarc.com', crypt('password123', gen_salt('bf')), now(), now(), '{"provider": "email", "providers": ["email"]}', '{"email_verified": true}', '', '', '', '', now(), now(), now()),
-  ('00000000-0000-0000-0000-000000000000', 'b2c3d4e5-f6a7-2345-6789-012345678901', 'authenticated', 'authenticated', 's.kojima@maisonmarc.com', crypt('password123', gen_salt('bf')), now(), now(), '{"provider": "email", "providers": ["email"]}', '{"email_verified": true}', '', '', '', '', now(), now(), now()),
-  ('00000000-0000-0000-0000-000000000000', 'c3d4e5f6-a7b8-3456-789a-123456789012', 'authenticated', 'authenticated', 'y.baba@maisonmarc.com', crypt('password123', gen_salt('bf')), now(), now(), '{"provider": "email", "providers": ["email"]}', '{"email_verified": true}', '', '', '', '', now(), now(), now()),
-  ('00000000-0000-0000-0000-000000000000', 'd4e5f6a7-b8c9-4567-89ab-234567890123', 'authenticated', 'authenticated', 't.sekiguchi@maisonmarc.com', crypt('password123', gen_salt('bf')), now(), now(), '{"provider": "email", "providers": ["email"]}', '{"email_verified": true}', '', '', '', '', now(), now(), now());
+  -- 新規追加ユーザー
+  ('00000000-0000-0000-0000-000000000000', 'a1b2c3d4-e5f6-7890-abcd-ef1234567890', 'authenticated', 'authenticated', 'hakura@maisonmarc.com', crypt('Hakura$Secure2024', gen_salt('bf')), now(), now(), '{"provider": "email", "providers": ["email"]}', '{"email_verified": true}', '', '', '', '', now(), now(), now()),
+  ('00000000-0000-0000-0000-000000000000', 'b2c3d4e5-f6a7-8901-bcde-f23456789012', 'authenticated', 'authenticated', 's.igari@maisonmarc.com', crypt('IgariShun%Pass123', gen_salt('bf')), now(), now(), '{"provider": "email", "providers": ["email"]}', '{"email_verified": true}', '', '', '', '', now(), now(), now()),
+  ('00000000-0000-0000-0000-000000000000', 'c3d4e5f6-a7b8-9012-cdef-345678901234', 'authenticated', 'authenticated', 'y.yanase@maisonmarc.com', crypt('Yanase&Yuya2024', gen_salt('bf')), now(), now(), '{"provider": "email", "providers": ["email"]}', '{"email_verified": true}', '', '', '', '', now(), now(), now()),
+  ('00000000-0000-0000-0000-000000000000', 'd4e5f6a7-b8c9-d0e1-f234-567890123456', 'authenticated', 'authenticated', 'f.furuno@maisonmarc.com', crypt('FurunoRyota*456', gen_salt('bf')), now(), now(), '{"provider": "email", "providers": ["email"]}', '{"email_verified": true}', '', '', '', '', now(), now(), now()),
+  ('00000000-0000-0000-0000-000000000000', 'e5f6a7b8-c9d0-e1f2-3456-789012345678', 'authenticated', 'authenticated', 'k.itaka@maisonmarc.com', crypt('ItakaKouichi#789', gen_salt('bf')), now(), now(), '{"provider": "email", "providers": ["email"]}', '{"email_verified": true}', '', '', '', '', now(), now(), now()),
+  ('00000000-0000-0000-0000-000000000000', 'f6a7b8c9-d0e1-f234-5678-901234567890', 'authenticated', 'authenticated', 'y.yamada@maisonmarc.com', crypt('YamadaKazu@2024', gen_salt('bf')), now(), now(), '{"provider": "email", "providers": ["email"]}', '{"email_verified": true}', '', '', '', '', now(), now(), now()),
+  ('00000000-0000-0000-0000-000000000000', '11223344-5566-7788-99aa-bbccddeeff00', 'authenticated', 'authenticated', 'y.yamaguchi@maisonmarc.com', crypt('YamaguchiYuji!321', gen_salt('bf')), now(), now(), '{"provider": "email", "providers": ["email"]}', '{"email_verified": true}', '', '', '', '', now(), now(), now()),
+  ('00000000-0000-0000-0000-000000000000', 'b2c3d4e5-f6a7-2345-6789-012345678901', 'authenticated', 'authenticated', 's.kojima@maisonmarc.com', crypt('KojimaShota$567', gen_salt('bf')), now(), now(), '{"provider": "email", "providers": ["email"]}', '{"email_verified": true}', '', '', '', '', now(), now(), now()),
+  ('00000000-0000-0000-0000-000000000000', 'c3d4e5f6-a7b8-3456-789a-123456789012', 'authenticated', 'authenticated', 'y.baba@maisonmarc.com', crypt('BabaYuudai#890', gen_salt('bf')), now(), now(), '{"provider": "email", "providers": ["email"]}', '{"email_verified": true}', '', '', '', '', now(), now(), now()),
+  ('00000000-0000-0000-0000-000000000000', 'd4e5f6a7-b8c9-4567-89ab-234567890123', 'authenticated', 'authenticated', 't.sekiguchi@maisonmarc.com', crypt('SekiguchiTaka%2024', gen_salt('bf')), now(), now(), '{"provider": "email", "providers": ["email"]}', '{"email_verified": true}', '', '', '', '', now(), now(), now()),
+  
+  ('00000000-0000-0000-0000-000000000000', '12345678-9012-3456-7890-123456789012', 'authenticated', 'authenticated', 'y.yasui@maisonmarc.com', crypt('YasuiYuto%2024', gen_salt('bf')), now(), now(), '{"provider": "email", "providers": ["email"]}', '{"email_verified": true}', '', '', '', '', now(), now(), now()),
+  ('00000000-0000-0000-0000-000000000000', '23456789-0123-4567-8901-234567890123', 'authenticated', 'authenticated', 't.fujii@maisonmarc.com', crypt('FujiiTaiga%2024', gen_salt('bf')), now(), now(), '{"provider": "email", "providers": ["email"]}', '{"email_verified": true}', '', '', '', '', now(), now(), now()),
+  ('00000000-0000-0000-0000-000000000000', '34567890-1234-5678-9012-345678901234', 'authenticated', 'authenticated', 'takeshita@maisonmarc.com', crypt('TakeshitaToru%2024', gen_salt('bf')), now(), now(), '{"provider": "email", "providers": ["email"]}', '{"email_verified": true}', '', '', '', '', now(), now(), now()),
+  ('00000000-0000-0000-0000-000000000000', '45678901-2345-6789-0123-456789012345', 'authenticated', 'authenticated', 'shimada@maisonmarc.com', crypt('ShimadaHitomi%2024', gen_salt('bf')), now(), now(), '{"provider": "email", "providers": ["email"]}', '{"email_verified": true}', '', '', '', '', now(), now(), now()),
+  ('00000000-0000-0000-0000-000000000000', '56789012-3456-7890-1234-567890123456', 'authenticated', 'authenticated', 't.shimodaira@maisonmarc.com', crypt('ShimodairaTomoya%2024', gen_salt('bf')), now(), now(), '{"provider": "email", "providers": ["email"]}', '{"email_verified": true}', '', '', '', '', now(), now(), now()),
+  ('00000000-0000-0000-0000-000000000000', '67890123-4567-8901-2345-678901234567', 'authenticated', 'authenticated', 'a.takahashi@maisonmarc.com', crypt('TakahashiAkira%2024', gen_salt('bf')), now(), now(), '{"provider": "email", "providers": ["email"]}', '{"email_verified": true}', '', '', '', '', now(), now(), now()),
+  ('00000000-0000-0000-0000-000000000000', '78901234-5678-9012-3456-789012345678', 'authenticated', 'authenticated', 'kazuma.furui@maisonmarc.com', crypt('FuruiKazuma%2024', gen_salt('bf')), now(), now(), '{"provider": "email", "providers": ["email"]}', '{"email_verified": true}', '', '', '', '', now(), now(), now()),
+  ('00000000-0000-0000-0000-000000000000', '89012345-6789-0123-4567-890123456789', 'authenticated', 'authenticated', 'a.yorifuji@maisonmarc.com', crypt('YorifujiAoi%2024', gen_salt('bf')), now(), now(), '{"provider": "email", "providers": ["email"]}', '{"email_verified": true}', '', '', '', '', now(), now(), now()),
+  ('00000000-0000-0000-0000-000000000000', '90123456-7890-1234-5678-901234567890', 'authenticated', 'authenticated', 'kobari@maisonmarc.com', crypt('KobariEmi%2024', gen_salt('bf')), now(), now(), '{"provider": "email", "providers": ["email"]}', '{"email_verified": true}', '', '', '', '', now(), now(), now()),
+  ('00000000-0000-0000-0000-000000000000', '01234567-8901-2345-6789-012345678901', 'authenticated', 'authenticated', 'h.ito@maisonmarc.com', crypt('ItoHiroshi%2024', gen_salt('bf')), now(), now(), '{"provider": "email", "providers": ["email"]}', '{"email_verified": true}', '', '', '', '', now(), now(), now()),
+  ('00000000-0000-0000-0000-000000000000', '11223344-5566-7788-99aa-bbccddeeff00', 'authenticated', 'authenticated', 'm.kondo@maisonmarc.com', crypt('KondoMiki%2024', gen_salt('bf')), now(), now(), '{"provider": "email", "providers": ["email"]}', '{"email_verified": true}', '', '', '', '', now(),
+  ('00000000-0000-0000-0000-000000000000', '22334455-6677-8899-aa00-bb1122334455', 'authenticated', 'authenticated', 'a.araki@maisonmarc.com', crypt('ArakiSena%2024', gen_salt('bf')), now(), now(), '{"provider": "email", "providers": ["email"]}', '{"email_verified": true}', '', '', '', '', now(), now(), now()),
+  ('00000000-0000-0000-0000-000000000000', '33445566-7788-9900-aa11-bb2233445566', 'authenticated', 'authenticated', 'k.hidaka@maisonmarc.com', crypt('HidakaKira%2024', gen_salt('bf')), now(), now(), '{"provider": "email", "providers": ["email"]}', '{"email_verified": true}', '', '', '', '', now(), now(), now()),
+  ('00000000-0000-0000-0000-000000000000', '44556677-8899-0011-aa22-bb3344556677', 'authenticated', 'authenticated', 'maki.hayashi@maisonmarc.com', crypt('HayashiMaki%2024', gen_salt('bf')), now(), now(), '{"provider": "email", "providers": ["email"]}', '{"email_verified": true}', '', '', '', '', now(), now(), now()),
+  ('00000000-0000-0000-0000-000000000000', '55667788-9900-1122-aa33-bb4455667788', 'authenticated', 'authenticated', 'r.satou@maisonmarc.com', crypt('SatouRei%2024', gen_salt('bf')), now(), now(), '{"provider": "email", "providers": ["email"]}', '{"email_verified": true}', '', '', '', '', now(), now(), now()),
+  ('00000000-0000-0000-0000-000000000000', '66778899-0011-2233-aa44-bb5566778899', 'authenticated', 'authenticated', 't.takehara@maisonmarc.com', crypt('TakeharaTaichi%2024', gen_salt('bf')), now(), now(), '{"provider": "email", "providers": ["email"]}', '{"email_verified": true}', '', '', '', '', now(), now(), now()),
+  ('00000000-0000-0000-0000-000000000000', '77889900-1122-3344-aa55-bb6677889900', 'authenticated', 'authenticated', 't.yamanaka@maisonmarc.com', crypt('YamanakaTakao%2024', gen_salt('bf')), now(), now(), '{"provider": "email", "providers": ["email"]}', '{"email_verified": true}', '', '', '', '', now(), now(), now()),
+  ('00000000-0000-0000-0000-000000000000', '88990011-2233-4455-aa66-bb7788990011', 'authenticated', 'authenticated', 'y.morita@maisonmarc.com', crypt('MoritaYosuke%2024', gen_salt('bf')), now(), now(), '{"provider": "email", "providers": ["email"]}', '{"email_verified": true}', '', '', '', '', now(), now(), now()),
+  ('00000000-0000-0000-0000-000000000000', '99001122-3344-5566-aa77-bb8899001122', 'authenticated', 'authenticated', 'm.furuwatari@maisonmarc.com', crypt('FuruwatariMaki%2024', gen_salt('bf')), now(), now(), '{"provider": "email", "providers": ["email"]}', '{"email_verified": true}', '', '', '', '', now(), now(), now()),
+  ('00000000-0000-0000-0000-000000000000', '00112233-4455-6677-aa88-bb9900112233', 'authenticated', 'authenticated', 'h.sakurai@maisonmarc.com', crypt('SakuraiHiroki%2024', gen_salt('bf')), now(), now(), '{"provider": "email", "providers": ["email"]}', '{"email_verified": true}', '', '', '', '', now(), now(), now()),
+  ('00000000-0000-0000-0000-000000000000', '00112233-4455-6677-aa89-bb9900112233', 'authenticated', 'authenticated', 'm.ashikawa@maisonmarc.com', crypt('AshikawaManami%2024', gen_salt('bf')), now(), now(), '{"provider": "email", "providers": ["email"]}', '{"email_verified": true}', '', '', '', '', now(), now(), now());
 -- ユーザー
 INSERT INTO private_users (id, name, address_prefecture, date_of_birth, x_username)
 VALUES
-  ('622d6984-2f8a-41df-9ac3-cd4dcceb8d19', 'テストユーザー＿安野たかひろ', '東京都', '1990-12-01', 'takahiroanno'),
-  ('2c23c05b-8e25-4d0d-9e68-d3be74e4ae8f', 'テストユーザー＿田中花子', '大阪府', '1995-05-05', NULL),
-  ('f47ac10b-58cc-4372-a567-0e02b2c3d479', 'テストユーザー＿佐藤太郎', '東京都', '1988-03-15', 'sato_taro'),
-  -- 新規追加3名のユーザー
+  -- 新規追加ユーザー
   ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', '葉倉歩', '東京都', '1990-05-10', 'hakura_ayumu'),
   ('b2c3d4e5-f6a7-8901-bcde-f23456789012', '猪狩俊', '東京都', '1988-09-20', 'igari_shun'),
   ('c3d4e5f6-a7b8-9012-cdef-345678901234', '柳瀬裕也', '東京都', '1992-03-15', 'yanase_yuya'),
   ('d4e5f6a7-b8c9-d0e1-f234-567890123456', '古野良太', '東京都', '1990-05-10', 'furuno_ryota'),
   ('e5f6a7b8-c9d0-e1f2-3456-789012345678', '位高光一', '東京都', '1988-09-20', 'itaka_kouichi'),
-  ('f6a7b8c9-d0e1-f234-5678-901234567890', '山田貴一', '東京都', '1992-03-15', 'yamada_kazutaka'),
-  ('a1b2c3d4-e5f6-1234-5678-901234567890', '山口裕二', '東京都', '1992-03-15', 'yamaguchi_yuji'),
+  ('f6a7b8c9-d0e1-f234-5678-901234567890', '山田一貴', '東京都', '1992-03-15', 'yamada_kazutaka'),
+  ('11223344-5566-7788-99aa-bbccddeeff00', '山口裕二', '東京都', '1992-03-15', 'yamaguchi_yuji'),
   ('b2c3d4e5-f6a7-2345-6789-012345678901', '小嶋翔太', '東京都', '1992-03-15', 'kojima_shota'),
   ('c3d4e5f6-a7b8-3456-789a-123456789012', '馬場雄大', '東京都', '1992-03-15', 'baba_yuudai'),
-  ('d4e5f6a7-b8c9-4567-89ab-234567890123', '関口貴大', '東京都', '1992-03-15', 'sekiguchi_takahiro');
-
+  ('d4e5f6a7-b8c9-4567-89ab-234567890123', '関口貴大', '東京都', '1992-03-15', 'sekiguchi_takahiro'),
+  ('12345678-9012-3456-7890-123456789012', '酒井悠人', '東京都', '1992-03-15', 'sakai_yuto'),
+  ('23456789-0123-4567-8901-234567890123', '藤井大雅', '東京都', '1992-03-15', 'fujii_taiga'),
+  ('34567890-1234-5678-9012-345678901234', '竹下徹', '東京都', '1992-03-15', 'takeshita_toru'),
+  ('45678901-2345-6789-0123-456789012345', '島田瞳', '東京都', '1992-03-15', 'shimada_hitomi'),
+  ('56789012-3456-7890-1234-567890123456', '下平智也', '東京都', '1992-03-15', 'shimodaira_tomoya'),
+  ('67890123-4567-8901-2345-678901234567', '高橋聖', '東京都', '1992-03-15', 'takahashi_akira'),
+  ('78901234-5678-9012-3456-789012345678', '古井和真', '東京都', '1992-03-15', 'furui_kazuma'),
+  ('89012345-6789-0123-4567-890123456789', '依藤葵', '東京都', '1992-03-15', 'yorifuji_aoi'),
+  ('90123456-7890-1234-5678-901234567890', '小張恵未', '東京都', '1992-03-15', 'kobari_emi'),
+  ('01234567-8901-2345-6789-012345678901', '伊藤宏', '東京都', '1992-03-15', 'itou_hiroshi'),
+  ('11223344-5566-7788-99aa-bbccddeeff00', '近藤美葵', '東京都', '1992-03-15', 'kondo_miki'),
+  ('22334455-6677-8899-aa00-bb1122334455', '荒木星七', '東京都', '1992-03-15', 'araki_sena'),
+  ('33445566-7788-9900-aa11-bb2233445566', '日髙希星', '東京都', '1992-03-15', 'hidaka_kira'),
+  ('44556677-8899-0011-aa22-bb3344556677', '林真樹', '東京都', '1992-03-15', 'hayashi_maki'),
+  ('55667788-9900-1122-aa33-bb4455667788', '佐藤澪', '東京都', '1992-03-15', 'sato_rei'),
+  ('66778899-0011-2233-aa44-bb5566778899', '竹原大智', '東京都', '1992-03-15', 'takehara_taichi'),
+  ('77889900-1122-3344-aa55-bb6677889900', '山中崇生', '東京都', '1992-03-15', 'yamanaka_takao'),
+  ('88990011-2233-4455-aa66-bb7788990011', '森田陽介', '東京都', '1992-03-15', 'morita_yosuke'),
+  ('99001122-3344-5566-aa77-bb8899001122', '古渡真紀', '東京都', '1992-03-15', 'furuhashi_maki'),
+  ('00112233-4455-6677-aa88-bb9900112233', '櫻井大稀', '東京都', '1992-03-15', 'sakurai_hiroki'),
+  ('00112233-4455-6677-aa89-bb9900112233', '芦川茉奈美', '東京都', '1992-03-15', 'ashikawa_manami');
 -- ユーザーレベル情報（XPとレベル設定）
 INSERT INTO user_levels (user_id, xp, level, updated_at)
 VALUES
-  -- 1位: 安野たかひろ（レベル20）
-  ('622d6984-2f8a-41df-9ac3-cd4dcceb8d19', 3325, 20, '2025-06-04T10:00:00Z'),
-  -- 2位: 佐藤太郎（レベル10）
-  ('f47ac10b-58cc-4372-a567-0e02b2c3d479', 900, 10, '2025-06-04T09:30:00Z'),
-  ('2c23c05b-8e25-4d0d-9e68-d3be74e4ae8f', 0, 1, '2025-06-05T11:00:00Z'),
-  -- 新規3名の初期レベル設定
+  -- 初期レベル設定
   ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 0, 1, '2025-06-05T10:00:00Z'),
   ('b2c3d4e5-f6a7-8901-bcde-f23456789012', 0, 1, '2025-06-05T11:00:00Z'),
   ('c3d4e5f6-a7b8-9012-cdef-345678901234', 0, 1, '2025-06-05T12:00:00Z'),
   ('d4e5f6a7-b8c9-d0e1-f234-567890123456', 0, 1, '2025-06-05T12:00:00Z'),
   ('e5f6a7b8-c9d0-e1f2-3456-789012345678', 0, 1, '2025-06-05T12:00:00Z'),
   ('f6a7b8c9-d0e1-f234-5678-901234567890', 0, 1, '2025-06-05T12:00:00Z'),
-  ('a1b2c3d4-e5f6-1234-5678-901234567890', 0, 1, '2025-06-05T12:00:00Z'),
+  ('11223344-5566-7788-99aa-bbccddeeff00', 0, 1, '2025-06-05T12:00:00Z'),
   ('b2c3d4e5-f6a7-2345-6789-012345678901', 0, 1, '2025-06-05T12:00:00Z'),
   ('c3d4e5f6-a7b8-3456-789a-123456789012', 0, 1, '2025-06-05T12:00:00Z'),
-  ('d4e5f6a7-b8c9-4567-89ab-234567890123', 0, 1, '2025-06-05T12:00:00Z');
+  ('d4e5f6a7-b8c9-4567-89ab-234567890123', 0, 1, '2025-06-05T12:00:00Z'),
+  ('12345678-9012-3456-7890-123456789012', 0, 1, '2025-06-05T12:00:00Z'),
+  ('23456789-0123-4567-8901-234567890123', 0, 1, '2025-06-05T12:00:00Z'),
+  ('34567890-1234-5678-9012-345678901234', 0, 1, '2025-06-05T12:00:00Z'),
+  ('45678901-2345-6789-0123-456789012345', 0, 1, '2025-06-05T12:00:00Z'),
+  ('56789012-3456-7890-1234-567890123456', 0, 1, '2025-06-05T12:00:00Z'),
+  ('67890123-4567-8901-2345-678901234567', 0, 1, '2025-06-05T12:00:00Z'),
+  ('78901234-5678-9012-3456-789012345678', 0, 1, '2025-06-05T12:00:00Z'),
+  ('89012345-6789-0123-4567-890123456789', 0, 1, '2025-06-05T12:00:00Z'),
+  ('90123456-7890-1234-5678-901234567890', 0, 1, '2025-06-05T12:00:00Z'),
+  ('01234567-8901-2345-6789-012345678901', 0, 1, '2025-06-05T12:00:00Z'),
+  ('11223344-5566-7788-99aa-bbccddeeff00', 0, 1, '2025-06-05T12:00:00Z'),
+  ('22334455-6677-8899-aa00-bb1122334455', 0, 1, '2025-06-05T12:00:00Z'),
+  ('33445566-7788-9900-aa11-bb2233445566', 0, 1, '2025-06-05T12:00:00Z'),
+  ('44556677-8899-0011-aa22-bb3344556677', 0, 1, '2025-06-05T12:00:00Z'),
+  ('55667788-9900-1122-aa33-bb4455667788', 0, 1, '2025-06-05T12:00:00Z'),
+  ('66778899-0011-2233-aa44-bb5566778899', 0, 1, '2025-06-05T12:00:00Z'),
+  ('77889900-1122-3344-aa55-bb6677889900', 0, 1, '2025-06-05T12:00:00Z'),
+  ('88990011-2233-4455-aa66-bb7788990011', 0, 1, '2025-06-05T12:00:00Z'),
+  ('99001122-3344-5566-aa77-bb8899001122', 0, 1, '2025-06-05T12:00:00Z'),
+  ('00112233-4455-6677-aa88-bb9900112233', 0, 1, '2025-06-05T12:00:00Z'),
+  ('11223344-5566-7788-99aa-bbccddeeff00', 0, 1, '2025-06-05T12:00:00Z');
 
 -- グッジョブ
 INSERT INTO missions (id, title, icon_url, content, difficulty, event_date, required_artifact_type, max_achievement_count, slug)
@@ -99,22 +151,7 @@ VALUES
 --  ('a7ea2e6e-9ccf-4d2d-a3b4-f34d1a612448', 'e5348472-d054-4ef4-81af-772c6323b669', '6ba7b815-9dad-11d1-80b4-00c04fd430c8');
 
 -- XPトランザクション履歴（グッジョブ達成に対応）
-INSERT INTO xp_transactions (id, user_id, xp_amount, source_type, source_id, description, created_at)
-VALUES
-  -- 安野たかひろのXP履歴（合計3325 XP）
-  ('11ea2e6e-9ccf-4d2d-a3b4-f34d1a612439', '622d6984-2f8a-41df-9ac3-cd4dcceb8d19', 50, 'MISSION_COMPLETION', '17ea2e6e-9ccf-4d2d-a3b4-f34d1a612439', 'グッジョブ「ゴミ拾いをしよう」達成', '2025-06-01T10:00:00Z'),
-  ('22ea2e6e-9ccf-4d2d-a3b4-f34d1a612440', '622d6984-2f8a-41df-9ac3-cd4dcceb8d19', 100, 'MISSION_COMPLETION', '27ea2e6e-9ccf-4d2d-a3b4-f34d1a612440', 'グッジョブ「活動ブログを書こう」達成', '2025-06-02T14:30:00Z'),
-  ('33ea2e6e-9ccf-4d2d-a3b4-f34d1a612441', '622d6984-2f8a-41df-9ac3-cd4dcceb8d19', 200, 'MISSION_COMPLETION', '37ea2e6e-9ccf-4d2d-a3b4-f34d1a612441', 'グッジョブ「今日のベストショット」達成', '2025-06-03T16:45:00Z'),
-  ('44ea2e6e-9ccf-4d2d-a3b4-f34d1a612442', '622d6984-2f8a-41df-9ac3-cd4dcceb8d19', 2975, 'BONUS', NULL, '初期ボーナスXP', '2025-05-15T09:00:00Z'),
-  
-  -- 佐藤太郎のXP履歴（合計900 XP）
-  ('55ea2e6e-9ccf-4d2d-a3b4-f34d1a612443', 'f47ac10b-58cc-4372-a567-0e02b2c3d479', 50, 'MISSION_COMPLETION', '47ea2e6e-9ccf-4d2d-a3b4-f34d1a612442', 'グッジョブ「ゴミ拾いをしよう」達成', '2025-06-01T11:00:00Z'),
-  ('66ea2e6e-9ccf-4d2d-a3b4-f34d1a612444', 'f47ac10b-58cc-4372-a567-0e02b2c3d479', 50, 'MISSION_COMPLETION', '57ea2e6e-9ccf-4d2d-a3b4-f34d1a612443', 'グッジョブ「Xのニックネーム」達成', '2025-06-02T13:00:00Z'),
-  ('77ea2e6e-9ccf-4d2d-a3b4-f34d1a612445', 'f47ac10b-58cc-4372-a567-0e02b2c3d479', 800, 'BONUS', NULL, '初期ボーナスXP', '2025-05-16T10:00:00Z'),
-  
-  -- 田中花子のXP履歴（合計95 XP）
-  ('88ea2e6e-9ccf-4d2d-a3b4-f34d1a612446', '2c23c05b-8e25-4d0d-9e68-d3be74e4ae8f', 100, 'MISSION_COMPLETION', '953bcc49-56c4-4913-8ce4-f6d721e3c4ef', 'グッジョブ「活動ブログを書こう」達成', '2025-06-01T15:00:00Z'),
-  ('99ea2e6e-9ccf-4d2d-a3b4-f34d1a612447', '2c23c05b-8e25-4d0d-9e68-d3be74e4ae8f', 5, 'BONUS', NULL, '調整', '2025-05-20T12:00:00Z');
+-- 初期状態では空
   
 -- グッジョブ成果物のサンプルデータ
 --INSERT INTO mission_artifacts (achievement_id, user_id, artifact_type, link_url, description) 
