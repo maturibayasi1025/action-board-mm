@@ -228,25 +228,8 @@ export async function updateProfile(
       };
     }
 
-    // 新規ユーザー作成時にpublic_user_profilesにも挿入
-    const { error: publicUserError } = await supabaseServiceClient
-      .from("public_user_profiles")
-      .insert({
-        id: user.id,
-        name: validatedData.name,
-        address_prefecture: validatedData.address_prefecture,
-        x_username: validatedData.x_username || null,
-        avatar_url: avatar_path,
-        github_username: validatedData.github_username || null,
-        created_at: new Date().toISOString(),
-      });
-    if (publicUserError) {
-      console.error("Error inserting public_user_profiles:", publicUserError);
-      return {
-        success: false,
-        error: "ユーザー情報の登録に失敗しました",
-      };
-    }
+    // public_user_profilesへの挿入はトリガー関数(sync_public_user_profile)に任せる
+    // トリガーがprivate_usersのINSERT/UPDATEを検知して自動的にpublic_user_profilesを更新する
 
     try {
       if (user.email) {
@@ -275,18 +258,21 @@ export async function updateProfile(
       };
     }
 
-    const { error: publicUserError } = await supabaseServiceClient
-      .from("public_user_profiles")
-      .update({
-        github_username: validatedData.github_username || null,
-      })
-      .eq("id", user.id);
-    if (publicUserError) {
-      console.error("Error updating public_user_profiles:", publicUserError);
-      return {
-        success: false,
-        error: "ユーザー情報の更新に失敗しました",
-      };
+    // public_user_profilesの更新もトリガー関数に任せる
+    // private_usersの更新時にトリガーが自動的にpublic_user_profilesを同期する
+    // ただし、github_usernameはpublic_user_profilesにしか存在しないため、別途更新が必要
+    if (validatedData.github_username !== undefined) {
+      const { error: publicUserError } = await supabaseServiceClient
+        .from("public_user_profiles")
+        .update({
+          github_username: validatedData.github_username || null,
+        })
+        .eq("id", user.id);
+      if (publicUserError) {
+        console.error("Error updating public_user_profiles:", publicUserError);
+        // github_usernameの更新失敗はエラーとせず、ログのみ出力
+        // private_usersの更新は成功しているため
+      }
     }
   }
 
@@ -371,7 +357,9 @@ export async function updateProfile(
     }
   }
 
+  // キャッシュを無効化してページを再読み込み
   revalidatePath("/settings/profile");
+
   return {
     success: true,
   };

@@ -26,17 +26,25 @@ export default async function ProfileSettingsPage({
   }
 
   // ユーザー情報を取得
-  const { data: privateUser } = await supabase
+  const { data: privateUser, error: privateUserError } = await supabase
     .from("private_users")
     .select("*")
     .eq("id", user.id)
     .single();
 
-  const { data: publicUser } = await supabase
+  const { data: publicUser, error: publicUserError } = await supabase
     .from("public_user_profiles")
     .select("*")
     .eq("id", user.id)
     .single();
+
+  // エラーハンドリング
+  if (privateUserError && privateUserError.code !== "PGRST116") {
+    console.error("Error fetching private user:", privateUserError);
+  }
+  if (publicUserError && publicUserError.code !== "PGRST116") {
+    console.error("Error fetching public user:", publicUserError);
+  }
 
   // 新規ユーザーかどうか判定
   const isNew = Boolean(params?.new);
@@ -47,10 +55,10 @@ export default async function ProfileSettingsPage({
         message={params}
         isNew={isNew}
         initialProfile={{
-          name: privateUser?.name || user.user_metadata.name || "",
+          name: privateUser?.name || user.user_metadata?.name || "",
           address_prefecture: privateUser?.address_prefecture || "",
           date_of_birth:
-            privateUser?.date_of_birth ?? user.user_metadata.date_of_birth,
+            privateUser?.date_of_birth ?? user.user_metadata?.date_of_birth,
           x_username: privateUser?.x_username || null,
           github_username: publicUser?.github_username || null,
           avatar_url: privateUser?.avatar_url || null,
