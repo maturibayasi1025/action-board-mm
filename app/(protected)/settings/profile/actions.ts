@@ -227,6 +227,27 @@ export async function updateProfile(
         error: "ユーザー情報の登録に失敗しました",
       };
     }
+
+    // 新規ユーザー作成時にpublic_user_profilesにも挿入
+    const { error: publicUserError } = await supabaseServiceClient
+      .from("public_user_profiles")
+      .insert({
+        id: user.id,
+        name: validatedData.name,
+        address_prefecture: validatedData.address_prefecture,
+        x_username: validatedData.x_username || null,
+        avatar_url: avatar_path,
+        github_username: validatedData.github_username || null,
+        created_at: new Date().toISOString(),
+      });
+    if (publicUserError) {
+      console.error("Error inserting public_user_profiles:", publicUserError);
+      return {
+        success: false,
+        error: "ユーザー情報の登録に失敗しました",
+      };
+    }
+
     try {
       if (user.email) {
         await sendWelcomeMail(user.email);
