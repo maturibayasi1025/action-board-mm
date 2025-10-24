@@ -39,7 +39,9 @@ export function FeedbackSection() {
           ポスターマップへのご意見
         </Link> */}
         <Link
-          href={"https://forms.gle/ZAxNVdssDpmjA1QPA"}
+          href={
+            "https://docs.google.com/spreadsheets/d/17FPjP5pC1YhbwvfBH1X19bzfDPLhrwKqhC6ZZyzVC6g/edit?usp=sharing"
+          }
           target="_blank"
           rel="noopener noreferrer"
           aria-label="アクションボードへのご意見フォーム（新しいタブで開きます）"
