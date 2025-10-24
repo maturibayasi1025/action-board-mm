@@ -91,7 +91,8 @@ export async function getOrInitializeUserLevel(
 }
 
 /**
- * XPトランザクションの記録とユーザーレベルの更新を行う共通処理
+ * XPトランザクションの記録を行う共通処理
+ * ユーザーレベルの更新はデータベーストリガーに任せる
  */
 async function processXpTransaction(
   userId: string,
@@ -107,7 +108,7 @@ async function processXpTransaction(
   const supabase = await createServiceClient();
 
   try {
-    // XPトランザクションを記録
+    // XPトランザクションを記録（トリガーがuser_levelsを自動更新）
     const { error: transactionError } = await supabase
       .from("xp_transactions")
       .insert({
@@ -123,34 +124,19 @@ async function processXpTransaction(
       return { success: false, error: transactionError.message };
     }
 
-    // ユーザーレベル情報を取得・初期化
-    const currentLevel = await getOrInitializeUserLevel(userId);
-    if (!currentLevel) {
+    // トリガーによる更新後のユーザーレベル情報を取得
+    const { data: updatedLevel, error: fetchError } = await supabase
+      .from("user_levels")
+      .select("*")
+      .eq("user_id", userId)
+      .single();
+
+    if (fetchError) {
+      console.error("Failed to fetch updated user level:", fetchError);
       return {
         success: false,
         error: "ユーザーレベル情報の取得に失敗しました",
       };
-    }
-
-    // 新しいXPとレベルを計算
-    const newXp = currentLevel.xp + xpAmount;
-    const newLevel = calculateLevel(newXp);
-
-    // ユーザーレベルを更新
-    const { data: updatedLevel, error: updateError } = await supabase
-      .from("user_levels")
-      .update({
-        xp: newXp,
-        level: newLevel,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("user_id", userId)
-      .select()
-      .single();
-
-    if (updateError) {
-      console.error("Failed to update user level:", updateError);
-      return { success: false, error: "ユーザーレベルの更新に失敗しました" };
     }
 
     return { success: true, userLevel: updatedLevel };
