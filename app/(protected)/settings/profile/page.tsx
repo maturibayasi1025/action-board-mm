@@ -57,7 +57,7 @@ export default async function ProfileSettingsPage({
         "[Profile Page] Private user not found, treating as new user",
       );
     } else {
-      // それ以外のエラーは詳細をログに出力してエラーをthrow
+      // それ以外のエラーは詳細をログに出力
       console.error("[Profile Page] Error fetching private user:", {
         code: privateUserError.code,
         message: privateUserError.message,
@@ -65,9 +65,8 @@ export default async function ProfileSettingsPage({
         hint: privateUserError.hint,
         userId: user.id,
       });
-      throw new Error(
-        `Failed to fetch user profile: ${privateUserError.message}`,
-      );
+      // エラーがあっても処理を継続（新規ユーザーとして扱う）
+      console.log("[Profile Page] Continuing as new user despite error");
     }
   }
 
