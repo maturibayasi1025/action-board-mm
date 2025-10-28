@@ -3,7 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import ProfileForm from "./ProfileForm";
 
-export const runtime = "edge";
+// Edge Runtimeを削除: 通常のNode.js Runtimeを使用してセッション管理を正常に動作させる
+// export const runtime = "edge";
 
 type ProfileSettingsPageSearchParams = {
   new: string;
@@ -83,6 +84,42 @@ export default async function ProfileSettingsPage({
     });
   }
 
+  // エラーがある場合はエラーページを表示
+  if (errorMessage) {
+    return (
+      <div className="flex flex-col items-center justify-center py-8">
+        <div className="w-full max-w-md p-6 bg-red-50 border border-red-200 rounded-lg">
+          <h2 className="text-xl font-bold text-red-800 mb-4">
+            プロフィール情報の取得に失敗しました
+          </h2>
+          <p className="text-red-700 mb-4">{errorMessage}</p>
+          <div className="space-y-2 text-sm text-red-600">
+            <p>以下をお試しください：</p>
+            <ul className="list-disc list-inside space-y-1 ml-4">
+              <li>ページを再読み込みする</li>
+              <li>一度サインアウトしてから再度サインインする</li>
+              <li>問題が続く場合はサポートにお問い合わせください</li>
+            </ul>
+          </div>
+          <div className="mt-6 flex gap-4">
+            <a
+              href="/settings/profile"
+              className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 text-center"
+            >
+              ページを再読み込み
+            </a>
+            <a
+              href="/"
+              className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 text-center"
+            >
+              ホームに戻る
+            </a>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // 新規ユーザーかどうか判定（PGRST116の場合のみ新規とみなす）
   const isNew = Boolean(
     params?.new || (privateUserError?.code === "PGRST116" && !privateUser),
@@ -91,7 +128,7 @@ export default async function ProfileSettingsPage({
   return (
     <div className="flex flex-col items-center justify-center py-2">
       <ProfileForm
-        message={errorMessage ? { error: errorMessage, ...params } : params}
+        message={params}
         isNew={isNew}
         initialProfile={{
           name: privateUser?.name || user.user_metadata?.name || "",
