@@ -4,7 +4,7 @@ import { PREFECTURES } from "@/lib/address";
 import { AVATAR_MAX_FILE_SIZE } from "@/lib/avatar";
 import { sendWelcomeMail } from "@/lib/mail";
 import { createOrUpdateHubSpotContact } from "@/lib/services/hubspot";
-import { createClient, createServiceClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/supabase/server";
 import { encodedRedirect } from "@/lib/utils/utils";
 import { nanoid } from "nanoid";
 import { revalidatePath } from "next/cache";
