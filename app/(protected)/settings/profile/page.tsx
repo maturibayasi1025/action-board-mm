@@ -1,10 +1,9 @@
 import type { Message } from "@/components/form-message";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import ProfileForm from "./ProfileForm";
 
-// Edge Runtimeを削除: 通常のNode.js Runtimeを使用してセッション管理を正常に動作させる
-// export const runtime = "edge";
+export const runtime = "edge";
 
 type ProfileSettingsPageSearchParams = {
   new: string;
@@ -16,26 +15,33 @@ export default async function ProfileSettingsPage({
   searchParams: Promise<ProfileSettingsPageSearchParams | undefined>;
 }) {
   const params = await searchParams;
-  const supabase = await createClient();
+
+  // 認証確認用のクライアント
+  const supabaseAuth = await createClient();
+
+  // データ取得用のService Roleクライアント（RLSをバイパス）
+  const supabaseAdmin = await createServiceClient();
 
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await supabaseAuth.auth.getUser();
 
   if (!user) {
     return redirect("/sign-in");
   }
 
-  // ユーザー情報を取得
-  console.log("[Profile Page] Fetching user data:", { userId: user.id });
+  // Service Role Keyを使用してユーザー情報を取得（RLSバイパス）
+  console.log("[Profile Page] Fetching user data with service role:", {
+    userId: user.id,
+  });
 
-  const { data: privateUser, error: privateUserError } = await supabase
+  const { data: privateUser, error: privateUserError } = await supabaseAdmin
     .from("private_users")
     .select("*")
     .eq("id", user.id)
     .single();
 
-  const { data: publicUser, error: publicUserError } = await supabase
+  const { data: publicUser, error: publicUserError } = await supabaseAdmin
     .from("public_user_profiles")
     .select("*")
     .eq("id", user.id)
