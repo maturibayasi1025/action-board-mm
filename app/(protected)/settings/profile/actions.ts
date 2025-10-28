@@ -53,6 +53,7 @@ export async function updateProfile(
   previousState: UpdateProfileResult | null,
   formData: FormData,
 ): Promise<UpdateProfileResult | null> {
+  console.log("[Update Profile] Starting profile update");
   const supabaseServiceClient = await createServiceClient();
   const supabaseClient = await createClient();
 
@@ -61,9 +62,11 @@ export async function updateProfile(
   } = await supabaseClient.auth.getUser();
 
   if (!user) {
-    console.error("User not found");
+    console.error("[Update Profile] User not found");
     return redirect("/sign-in");
   }
+
+  console.log("[Update Profile] User authenticated:", { userId: user.id });
 
   // フォームデータの取得
   const name = formData.get("name")?.toString();
@@ -95,15 +98,27 @@ export async function updateProfile(
 
   // 先にユーザー情報を取得
   const { data: authUser } = await supabaseClient.auth.getUser();
-  const { data: privateUser } = await supabaseClient
-    .from("private_users")
-    .select("*")
-    .eq("id", user.id)
-    .single();
+  const { data: privateUser, error: privateUserFetchError } =
+    await supabaseClient
+      .from("private_users")
+      .select("*")
+      .eq("id", user.id)
+      .single();
 
   if (!authUser) {
-    console.error("Public user not found");
+    console.error("[Update Profile] Auth user not found");
     return encodedRedirect("error", "/sign-in", "ユーザーが見つかりません");
+  }
+
+  // privateUser取得時のエラーログ（PGRST116は新規ユーザーなので問題なし）
+  if (privateUserFetchError && privateUserFetchError.code !== "PGRST116") {
+    console.error("[Update Profile] Error fetching private user:", {
+      code: privateUserFetchError.code,
+      message: privateUserFetchError.message,
+      details: privateUserFetchError.details,
+      userId: user.id,
+    });
+    // エラーがあっても新規登録の可能性があるので処理継続
   }
 
   // フォームから送信されたavatar_url
@@ -208,6 +223,7 @@ export async function updateProfile(
 
   // private_users テーブルを更新
   if (!privateUser) {
+    console.log("[Update Profile] Inserting new private_user");
     const { error: privateUserError } = await supabaseClient
       .from("private_users")
       .insert({
@@ -221,12 +237,17 @@ export async function updateProfile(
         updated_at: new Date().toISOString(),
       });
     if (privateUserError) {
-      console.error("Error updating private_users:", privateUserError);
+      console.error("[Update Profile] Error inserting private_user:", {
+        code: privateUserError.code,
+        message: privateUserError.message,
+        details: privateUserError.details,
+      });
       return {
         success: false,
         error: "ユーザー情報の登録に失敗しました",
       };
     }
+    console.log("[Update Profile] Successfully inserted private_user");
 
     // public_user_profilesへの挿入はトリガー関数(sync_public_user_profile)に任せる
     // トリガーがprivate_usersのINSERT/UPDATEを検知して自動的にpublic_user_profilesを更新する
@@ -239,6 +260,7 @@ export async function updateProfile(
       console.error("案内メール送信失敗:", e);
     }
   } else {
+    console.log("[Update Profile] Updating existing private_user");
     const { error: privateUserError } = await supabaseClient
       .from("private_users")
       .update({
@@ -251,12 +273,17 @@ export async function updateProfile(
       })
       .eq("id", user.id);
     if (privateUserError) {
-      console.error("Error updating private_users:", privateUserError);
+      console.error("[Update Profile] Error updating private_user:", {
+        code: privateUserError.code,
+        message: privateUserError.message,
+        details: privateUserError.details,
+      });
       return {
         success: false,
         error: "ユーザー情報の更新に失敗しました",
       };
     }
+    console.log("[Update Profile] Successfully updated private_user");
 
     // public_user_profilesの更新もトリガー関数に任せる
     // private_usersの更新時にトリガーが自動的にpublic_user_profilesを同期する
@@ -357,8 +384,13 @@ export async function updateProfile(
     }
   }
 
+  console.log("[Update Profile] Profile update completed successfully");
+
   // キャッシュを無効化してページを再読み込み
+  console.log("[Update Profile] Revalidating path: /settings/profile");
   revalidatePath("/settings/profile");
+
+  console.log("[Update Profile] Returning success response");
 
   return {
     success: true,

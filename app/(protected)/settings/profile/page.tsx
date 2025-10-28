@@ -26,6 +26,8 @@ export default async function ProfileSettingsPage({
   }
 
   // ユーザー情報を取得
+  console.log("[Profile Page] Fetching user data:", { userId: user.id });
+
   const { data: privateUser, error: privateUserError } = await supabase
     .from("private_users")
     .select("*")
@@ -38,12 +40,54 @@ export default async function ProfileSettingsPage({
     .eq("id", user.id)
     .single();
 
+  console.log("[Profile Page] Fetch result:", {
+    hasPrivateUser: !!privateUser,
+    hasPrivateUserError: !!privateUserError,
+    privateUserErrorCode: privateUserError?.code,
+    hasPublicUser: !!publicUser,
+    hasPublicUserError: !!publicUserError,
+    publicUserErrorCode: publicUserError?.code,
+  });
+
   // エラーハンドリング
-  if (privateUserError && privateUserError.code !== "PGRST116") {
-    console.error("Error fetching private user:", privateUserError);
+  if (privateUserError) {
+    if (privateUserError.code === "PGRST116") {
+      // ユーザーが存在しない場合は新規登録として扱う
+      console.log(
+        "[Profile Page] Private user not found, treating as new user",
+      );
+    } else {
+      // それ以外のエラーは詳細をログに出力してエラーをthrow
+      console.error("[Profile Page] Error fetching private user:", {
+        code: privateUserError.code,
+        message: privateUserError.message,
+        details: privateUserError.details,
+        hint: privateUserError.hint,
+        userId: user.id,
+      });
+      throw new Error(
+        `Failed to fetch user profile: ${privateUserError.message}`,
+      );
+    }
   }
-  if (publicUserError && publicUserError.code !== "PGRST116") {
-    console.error("Error fetching public user:", publicUserError);
+
+  if (publicUserError) {
+    if (publicUserError.code === "PGRST116") {
+      // public_user_profilesが存在しない場合は問題なし（トリガーで作成される）
+      console.log(
+        "[Profile Page] Public user profile not found, will be created by trigger",
+      );
+    } else {
+      // それ以外のエラーは詳細をログに出力（ただしpublic_user_profilesのエラーは致命的ではない）
+      console.error("[Profile Page] Error fetching public user:", {
+        code: publicUserError.code,
+        message: publicUserError.message,
+        details: publicUserError.details,
+        hint: publicUserError.hint,
+        userId: user.id,
+      });
+      // public_user_profilesのエラーは致命的ではないので処理継続
+    }
   }
 
   // 新規ユーザーかどうか判定

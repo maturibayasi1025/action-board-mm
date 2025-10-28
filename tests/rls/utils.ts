@@ -64,7 +64,6 @@ export async function createTestUser(
       name: "テストユーザー",
       address_prefecture: "東京都",
       date_of_birth: "1990-12-01",
-      postcode: "1000001",
     });
 
   if (insertError) {
