@@ -101,11 +101,10 @@ export default async function ProfileSettingsPage({
         initialProfile={{
           name: privateUser?.name || user.user_metadata?.name || "",
           address_prefecture: privateUser?.address_prefecture || "",
-          date_of_birth:
-            privateUser?.date_of_birth ?? user.user_metadata?.date_of_birth,
-          x_username: privateUser?.x_username || null,
-          github_username: publicUser?.github_username || null,
-          avatar_url: privateUser?.avatar_url || null,
+          date_of_birth: privateUser?.date_of_birth || undefined,
+          x_username: privateUser?.x_username ?? null,
+          github_username: publicUser?.github_username ?? null,
+          avatar_url: privateUser?.avatar_url ?? null,
         }}
         initialPrivateUser={privateUser}
       />

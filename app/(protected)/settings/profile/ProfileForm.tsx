@@ -84,13 +84,22 @@ export default function ProfileForm({
   const initialDate = initialProfile?.date_of_birth
     ? new Date(initialProfile.date_of_birth)
     : null;
+
+  // 日付の妥当性をチェック（Invalid Dateの場合はnullとして扱う）
+  const validInitialDate =
+    initialDate && !Number.isNaN(initialDate.getTime()) ? initialDate : null;
+
+  // デフォルト値を安全に設定
+  const birthYearThreshold = new Date().getFullYear() - 18;
   const [selectedYear, setSelectedYear] = useState(
-    initialDate?.getFullYear() || 1990,
+    validInitialDate?.getFullYear() ?? birthYearThreshold,
   );
   const [selectedMonth, setSelectedMonth] = useState(
-    (initialDate?.getMonth() || 0) + 1,
+    validInitialDate ? validInitialDate.getMonth() + 1 : 1,
   );
-  const [selectedDay, setSelectedDay] = useState(initialDate?.getDate() || 1);
+  const [selectedDay, setSelectedDay] = useState(
+    validInitialDate?.getDate() ?? 1,
+  );
   const [ageError, setAgeError] = useState<string | null>(null);
   const [isAgeValid, setIsAgeValid] = useState(true);
 
@@ -98,7 +107,6 @@ export default function ProfileForm({
   const router = useRouter();
 
   // 年月日の選択肢を生成
-  const birthYearThreshold = new Date().getFullYear() - 18;
   const years = Array.from({ length: 100 }, (_, i) => birthYearThreshold - i);
   const months = Array.from({ length: 12 }, (_, i) => i + 1);
   const days = Array.from(
