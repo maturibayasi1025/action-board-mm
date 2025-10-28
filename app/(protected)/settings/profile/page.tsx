@@ -50,6 +50,8 @@ export default async function ProfileSettingsPage({
   });
 
   // エラーハンドリング
+  let errorMessage: string | undefined;
+
   if (privateUserError) {
     if (privateUserError.code === "PGRST116") {
       // ユーザーが存在しない場合は新規登録として扱う
@@ -65,37 +67,31 @@ export default async function ProfileSettingsPage({
         hint: privateUserError.hint,
         userId: user.id,
       });
-      // エラーがあっても処理を継続（新規ユーザーとして扱う）
-      console.log("[Profile Page] Continuing as new user despite error");
+      // エラーメッセージを設定
+      errorMessage = `プロフィール情報の取得に失敗しました。ページを再読み込みしてください。（エラーコード: ${privateUserError.code}）`;
     }
   }
 
-  if (publicUserError) {
-    if (publicUserError.code === "PGRST116") {
-      // public_user_profilesが存在しない場合は問題なし（トリガーで作成される）
-      console.log(
-        "[Profile Page] Public user profile not found, will be created by trigger",
-      );
-    } else {
-      // それ以外のエラーは詳細をログに出力（ただしpublic_user_profilesのエラーは致命的ではない）
-      console.error("[Profile Page] Error fetching public user:", {
-        code: publicUserError.code,
-        message: publicUserError.message,
-        details: publicUserError.details,
-        hint: publicUserError.hint,
-        userId: user.id,
-      });
-      // public_user_profilesのエラーは致命的ではないので処理継続
-    }
+  if (publicUserError && publicUserError.code !== "PGRST116") {
+    // public_user_profilesのエラーは詳細をログに出力（致命的ではない）
+    console.error("[Profile Page] Error fetching public user:", {
+      code: publicUserError.code,
+      message: publicUserError.message,
+      details: publicUserError.details,
+      hint: publicUserError.hint,
+      userId: user.id,
+    });
   }
 
-  // 新規ユーザーかどうか判定
-  const isNew = Boolean(params?.new);
+  // 新規ユーザーかどうか判定（PGRST116の場合のみ新規とみなす）
+  const isNew = Boolean(
+    params?.new || (privateUserError?.code === "PGRST116" && !privateUser),
+  );
 
   return (
     <div className="flex flex-col items-center justify-center py-2">
       <ProfileForm
-        message={params}
+        message={errorMessage ? { error: errorMessage, ...params } : params}
         isNew={isNew}
         initialProfile={{
           name: privateUser?.name || user.user_metadata?.name || "",
