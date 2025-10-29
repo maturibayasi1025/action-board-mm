@@ -323,14 +323,14 @@ export default function ProfileForm({
             <Label htmlFor="date_of_birth">生年月日</Label>
             <p className="text-sm text-gray-500">この項目は公開されません</p>
             {/* 生年月日が必要な理由の説明エリア（折りたたみ可能） */}
-            <CollapsibleInfo title="生年月日が必要な理由" variant="gray">
+            {/* <CollapsibleInfo title="生年月日が必要な理由" variant="gray">
               <p>
                 法律により、サポーター登録は満18歳以上の方に限定されているため、年齢確認が必要です。
               </p>
               <p>
                 プライバシーポリシーに従って厳重に管理され、他の目的には使用されません。
               </p>
-            </CollapsibleInfo>
+            </CollapsibleInfo> */}
             <fieldset
               className="grid grid-cols-3 gap-2"
               aria-labelledby="date_of_birth"
