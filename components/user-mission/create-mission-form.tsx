@@ -16,7 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { createClient } from "@/lib/supabase/client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { X } from "lucide-react";
+import { Search, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -62,6 +62,7 @@ export function CreateMissionForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [availableUsers, setAvailableUsers] = useState<User[]>([]);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
   const supabase = createClient();
 
   const form = useForm<FormData>({
@@ -92,6 +93,11 @@ export function CreateMissionForm() {
     }
     fetchUsers();
   }, [supabase]);
+
+  // 検索クエリに基づいてユーザーをフィルタリング
+  const filteredUsers = availableUsers.filter((user) =>
+    user.name.toLowerCase().includes(searchQuery.toLowerCase()),
+  );
 
   // ユーザーを選択/選択解除
   const toggleUser = (userId: string) => {
@@ -226,22 +232,55 @@ export function CreateMissionForm() {
                     })}
                   </div>
                 )}
+                {/* 検索フィールド */}
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    type="text"
+                    placeholder="メンバーを検索..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-9 pr-9"
+                  />
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setSearchQuery("")}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 hover:bg-muted rounded-full p-0.5"
+                    >
+                      <X className="h-4 w-4 text-muted-foreground" />
+                    </button>
+                  )}
+                </div>
+                {/* 件数表示 */}
+                {searchQuery && (
+                  <div className="text-sm text-muted-foreground px-1">
+                    {filteredUsers.length}件中{filteredUsers.length}件表示（全
+                    {availableUsers.length}件）
+                  </div>
+                )}
                 {/* 選択可能なメンバー */}
                 <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto border rounded-md p-3">
-                  {availableUsers.map((user) => (
-                    <label
-                      key={user.id}
-                      htmlFor={`user-checkbox-${user.id}`}
-                      className="flex items-center space-x-2 cursor-pointer hover:bg-muted/50 p-2 rounded"
-                    >
-                      <Checkbox
-                        id={`user-checkbox-${user.id}`}
-                        checked={selectedUsers.includes(user.id)}
-                        onCheckedChange={() => toggleUser(user.id)}
-                      />
-                      <span className="text-sm">{user.name}</span>
-                    </label>
-                  ))}
+                  {filteredUsers.length > 0 ? (
+                    filteredUsers.map((user) => (
+                      <label
+                        key={user.id}
+                        htmlFor={`user-checkbox-${user.id}`}
+                        className="flex items-center space-x-2 cursor-pointer hover:bg-muted/50 p-2 rounded"
+                      >
+                        <Checkbox
+                          id={`user-checkbox-${user.id}`}
+                          checked={selectedUsers.includes(user.id)}
+                          onCheckedChange={() => toggleUser(user.id)}
+                        />
+                        <span className="text-sm">{user.name}</span>
+                      </label>
+                    ))
+                  ) : (
+                    <div className="col-span-2 text-center py-4 text-muted-foreground text-sm">
+                      該当するメンバーが見つかりません
+                    </div>
+                  )}
                 </div>
               </div>
               <FormMessage />
