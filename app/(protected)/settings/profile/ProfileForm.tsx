@@ -298,7 +298,7 @@ export default function ProfileForm({
                 type="button"
                 variant="outline"
                 onClick={() => fileInputRef.current?.click()}
-                disabled={isPending}
+                disabled={isSubmitting}
               >
                 画像を変更する
               </Button>
@@ -315,7 +315,7 @@ export default function ProfileForm({
               placeholder="あなたのニックネーム"
               maxLength={100}
               required
-              disabled={isPending}
+              disabled={isSubmitting}
             />
           </div>
 
@@ -422,7 +422,7 @@ export default function ProfileForm({
               id="address_prefecture"
               defaultValue={initialProfile?.address_prefecture || ""}
               required
-              disabled={isPending}
+              disabled={isSubmitting}
               onValueChange={setSelectedPrefecture}
             />
           </div>
@@ -442,7 +442,7 @@ export default function ProfileForm({
               type="text"
               defaultValue={initialProfile?.x_username || ""}
               placeholder="@を除いたユーザー名"
-              disabled={isPending}
+              disabled={isSubmitting}
               maxLength={50}
             /> */}
           </div>
@@ -463,7 +463,7 @@ export default function ProfileForm({
                 type="text"
                 defaultValue={initialProfile?.github_username || ""}
                 placeholder="GitHubのユーザー名"
-                disabled={isPending}
+                disabled={isSubmitting}
                 maxLength={39}
               />
             </div>
