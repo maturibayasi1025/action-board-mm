@@ -119,10 +119,10 @@ export default function ProfileForm({
     try {
       const formData = new FormData(e.currentTarget);
 
-      // avatar_pathを追加
-      if (avatarPath) {
-        formData.set("avatar_path", avatarPath);
-      }
+      // avatar_pathを追加（nullの場合も送信してAPI側で適切に処理）
+      formData.set("avatar_path", avatarPath || "");
+
+      console.log("[ProfileForm] Sending avatar_path:", avatarPath);
 
       const response = await fetch("/api/profile", {
         method: "POST",
@@ -130,14 +130,22 @@ export default function ProfileForm({
       });
 
       const result = await response.json();
+      console.log("[ProfileForm] API response:", result);
 
       if (result.success) {
         setSubmitSuccess(true);
 
-        // 新しい画像パスがある場合はstateを更新
+        // レスポンスのavatar_pathでstateを更新（nullや空文字の場合も含む）
+        console.log("[ProfileForm] Updating avatar path:", result.avatar_path);
+        setAvatarPath(result.avatar_path || null);
+
         if (result.avatar_path) {
-          setAvatarPath(result.avatar_path);
-          setAvatarPreview(getAvatarUrl(supabase, result.avatar_path));
+          const newAvatarUrl = getAvatarUrl(supabase, result.avatar_path);
+          console.log("[ProfileForm] New avatar URL:", newAvatarUrl);
+          setAvatarPreview(newAvatarUrl);
+        } else {
+          console.log("[ProfileForm] No avatar_path, clearing preview");
+          setAvatarPreview(null);
         }
 
         // 成功時はページを再読み込み

@@ -106,8 +106,24 @@ export async function POST(request: NextRequest) {
     // フォームから送信されたavatar_url
     let avatar_path = formData.get("avatar_path") as string | null;
 
+    // 空文字をnullとして扱う
+    if (avatar_path === "") {
+      avatar_path = null;
+    }
+
     // 以前の画像URL
     const previousAvatarUrl = privateUser?.avatar_url || null;
+
+    // avatar_pathが未設定の場合、既存の画像パスを使用
+    if (!avatar_path) {
+      avatar_path = previousAvatarUrl;
+    }
+
+    console.log("[Update Profile API] Avatar paths:", {
+      fromForm: formData.get("avatar_path"),
+      previous: previousAvatarUrl,
+      current: avatar_path,
+    });
 
     // 画像ファイルが送信されているか確認
     const avatar_file = formData.get("avatar") as File | null;
@@ -181,6 +197,10 @@ export async function POST(request: NextRequest) {
           console.error("Upload error:", error);
         }
         avatar_path = fileName;
+        console.log("[Update Profile API] Avatar uploaded successfully:", {
+          fileName,
+          avatar_path,
+        });
       } catch (error) {
         console.error("Avatar upload error during profile update:", error);
       }
@@ -292,6 +312,7 @@ export async function POST(request: NextRequest) {
     }
 
     console.log("[Update Profile API] Profile update completed successfully");
+    console.log("[Update Profile API] Final avatar_path:", avatar_path);
 
     // キャッシュを無効化
     revalidatePath("/settings/profile");
