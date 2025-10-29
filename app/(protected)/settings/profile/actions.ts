@@ -64,7 +64,7 @@ export async function updateProfile(
 
     if (!user) {
       console.error("[Update Profile] User not found");
-      return redirect("/sign-in");
+      redirect("/sign-in");
     }
 
     console.log("[Update Profile] User authenticated:", { userId: user.id });
@@ -106,7 +106,7 @@ export async function updateProfile(
         .eq("id", user.id)
         .single();
 
-    if (!authUser) {
+    if (!authUser.user) {
       console.error("[Update Profile] Auth user not found");
       return encodedRedirect("error", "/sign-in", "ユーザーが見つかりません");
     }
@@ -192,7 +192,7 @@ export async function updateProfile(
     if (avatar_file && avatar_file.size > 0) {
       try {
         // ユーザーIDを取得
-        const userId = privateUser?.id || crypto.randomUUID();
+        const userId = user.id; // 必ずユーザーIDが存在するはず
 
         // ファイル名の生成
         const fileExt = avatar_file.name.split(".").pop();
@@ -213,10 +213,10 @@ export async function updateProfile(
           console.error("Upload error:", error);
           // アップロードに失敗しても、他のプロフィール情報は更新を続ける
         } else {
-          // 公開URLを取得して保存用に設定
-          const { data } = supabaseClient.storage
-            .from("avatars")
-            .getPublicUrl(fileName);
+          // 公開URLを取得して保存用に設定（dataは現在未使用だが、将来的に使用する可能性があるためコメントアウト）
+          // const { data } = supabaseClient.storage
+          //   .from("avatars")
+          //   .getPublicUrl(fileName);
         }
         avatar_path = fileName;
       } catch (error) {
