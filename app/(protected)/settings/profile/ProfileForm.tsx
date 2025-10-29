@@ -1,7 +1,7 @@
 "use client";
 
 import { FormMessage, type Message } from "@/components/form-message";
-import { SubmitButton } from "@/components/submit-button";
+// import { SubmitButton } from "@/components/submit-button"; // API Route用に普通のButtonを使用
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -29,14 +29,14 @@ import { calculateAge } from "@/lib/utils/utils";
 import { X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import {
-  useActionState,
+  // useActionState, // API Routeを使用するためコメントアウト
   useCallback,
   useEffect,
   useRef,
   useState,
 } from "react";
 import { PrefectureSelect } from "./PrefectureSelect";
-import { updateProfile } from "./actions";
+// import { updateProfile } from "./actions"; // API Routeを使用するためコメントアウト
 
 // AvatarUploadコンポーネントを削除し、メインのフォームに統合
 
@@ -66,7 +66,10 @@ export default function ProfileForm({
   const [queryMessage, setQueryMessage] = useState<Message | undefined>(
     message,
   );
-  const [state, formAction, isPending] = useActionState(updateProfile, null);
+  // API Route用の状態管理
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
   const [avatarPath, setAvatarPath] = useState<string | null>(
     initialProfile?.avatar_url || null,
   );
@@ -105,6 +108,43 @@ export default function ProfileForm({
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
+
+  // API Route呼び出し用のハンドラー
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setSubmitError(null);
+    setSubmitSuccess(false);
+
+    try {
+      const formData = new FormData(e.currentTarget);
+
+      // avatar_pathを追加
+      if (avatarPath) {
+        formData.set("avatar_path", avatarPath);
+      }
+
+      const response = await fetch("/api/profile", {
+        method: "POST",
+        body: formData,
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        setSubmitSuccess(true);
+        // 成功時はページを再読み込み
+        router.refresh();
+      } else {
+        setSubmitError(result.error || "更新に失敗しました");
+      }
+    } catch (error) {
+      console.error("Profile update error:", error);
+      setSubmitError("ネットワークエラーが発生しました");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   // 年月日の選択肢を生成
   const years = Array.from({ length: 100 }, (_, i) => birthYearThreshold - i);
@@ -148,13 +188,13 @@ export default function ProfileForm({
 
   useEffect(() => {
     // フォーム送信成功時の処理
-    if (state?.success && isNew) {
+    if (submitSuccess && isNew) {
       router.push("/");
     }
-    if (state?.success) {
+    if (submitSuccess) {
       setQueryMessage(undefined);
     }
-  }, [state?.success, isNew, router]);
+  }, [submitSuccess, isNew, router]);
 
   // 生年月日が変更された際に年齢チェックを実行
   useEffect(() => {
@@ -204,7 +244,7 @@ export default function ProfileForm({
           <FormMessage message={queryMessage} />
         </div>
       )}
-      <form action={formAction}>
+      <form onSubmit={handleSubmit}>
         <CardContent className="space-y-4">
           {/* アバターアップロード - ニックネームの上に配置 */}
           <div className="flex flex-col items-center space-y-4 mb-4">
@@ -233,7 +273,7 @@ export default function ProfileForm({
                     setAvatarPath(null);
                     setAvatarPreview(null);
                   }}
-                  disabled={isPending}
+                  disabled={isSubmitting}
                   aria-label="画像を削除"
                 >
                   <X size={16} />
@@ -305,7 +345,7 @@ export default function ProfileForm({
                   value={selectedYear.toString()}
                   onValueChange={(value) => setSelectedYear(Number(value))}
                   required
-                  disabled={isPending}
+                  disabled={isSubmitting}
                 >
                   <SelectTrigger data-testid="year_select">
                     <SelectValue placeholder="年" />
@@ -328,7 +368,7 @@ export default function ProfileForm({
                   value={selectedMonth.toString()}
                   onValueChange={(value) => setSelectedMonth(Number(value))}
                   required
-                  disabled={isPending}
+                  disabled={isSubmitting}
                 >
                   <SelectTrigger data-testid="month_select">
                     <SelectValue placeholder="月" />
@@ -351,7 +391,7 @@ export default function ProfileForm({
                   value={selectedDay.toString()}
                   onValueChange={(value) => setSelectedDay(Number(value))}
                   required
-                  disabled={isPending}
+                  disabled={isSubmitting}
                 >
                   <SelectTrigger data-testid="day_select">
                     <SelectValue placeholder="日" />
@@ -428,21 +468,25 @@ export default function ProfileForm({
               />
             </div>
           )} */}
-          {state?.success && (
+          {submitSuccess && (
             <p className="text-center text-sm text-green-600">
               {isNew
                 ? "プロフィールを新規登録しました。"
                 : "プロフィールを更新しました。"}
             </p>
           )}
-          {state?.error && (
-            <p className="text-center text-sm text-red-600">{state.error}</p>
+          {submitError && (
+            <p className="text-center text-sm text-red-600">{submitError}</p>
           )}
         </CardContent>
         <CardFooter>
-          <SubmitButton className="w-full" disabled={isPending || !isAgeValid}>
-            {isNew ? "登録する" : "更新する"}
-          </SubmitButton>
+          <Button
+            type="submit"
+            className="w-full"
+            disabled={isSubmitting || !isAgeValid}
+          >
+            {isSubmitting ? "更新中..." : isNew ? "登録する" : "更新する"}
+          </Button>
         </CardFooter>
       </form>
     </Card>

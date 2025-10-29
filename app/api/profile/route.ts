@@ -1,27 +1,11 @@
-"use server";
-
 import { PREFECTURES } from "@/lib/address";
 import { AVATAR_MAX_FILE_SIZE } from "@/lib/avatar";
-// Edge Runtimeでは使用できないためコメントアウト
-// import { sendWelcomeMail } from "@/lib/mail";
-// import { createOrUpdateHubSpotContact } from "@/lib/services/hubspot";
 import { createClient } from "@/lib/supabase/server";
-import { encodedRedirect } from "@/lib/utils/utils";
-// import { nanoid } from "nanoid"; // Edge Runtime非対応のため、Web Crypto APIを使用
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
+import { type NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
-export type UpdateProfileResult = {
-  success: boolean;
-  error?: string;
-};
-
-export type UploadAvatarResult = {
-  success: boolean;
-  avatarPath?: string;
-  error?: string;
-};
+export const runtime = "edge";
 
 const updateProfileFormSchema = z.object({
   name: z
@@ -50,25 +34,28 @@ const updateProfileFormSchema = z.object({
     .optional(),
 });
 
-export async function updateProfile(
-  previousState: UpdateProfileResult | null,
-  formData: FormData,
-): Promise<UpdateProfileResult | null> {
+export async function POST(request: NextRequest) {
   try {
-    console.log("[Update Profile] Starting profile update");
-    const supabaseClient = await createClient();
-    console.log("[Update Profile] Supabase client created");
+    console.log("[Update Profile API] Starting profile update");
 
+    const supabaseClient = await createClient();
     const {
       data: { user },
     } = await supabaseClient.auth.getUser();
 
     if (!user) {
-      console.error("[Update Profile] User not found");
-      redirect("/sign-in");
+      console.error("[Update Profile API] User not found");
+      return NextResponse.json(
+        { success: false, error: "認証が必要です" },
+        { status: 401 },
+      );
     }
 
-    console.log("[Update Profile] User authenticated:", { userId: user.id });
+    console.log("[Update Profile API] User authenticated:", {
+      userId: user.id,
+    });
+
+    const formData = await request.formData();
 
     // フォームデータの取得
     const name = formData.get("name")?.toString();
@@ -87,19 +74,18 @@ export async function updateProfile(
     });
 
     if (!validatedFields.success) {
-      return {
+      return NextResponse.json({
         success: false,
         error: validatedFields.error.errors
           .map((error) => error.message)
           .join("\n"),
-      };
+      });
     }
 
     // バリデーション済みのデータを使用
     const validatedData = validatedFields.data;
 
     // 先にユーザー情報を取得
-    const { data: authUser } = await supabaseClient.auth.getUser();
     const { data: privateUser, error: privateUserFetchError } =
       await supabaseClient
         .from("private_users")
@@ -107,20 +93,14 @@ export async function updateProfile(
         .eq("id", user.id)
         .single();
 
-    if (!authUser.user) {
-      console.error("[Update Profile] Auth user not found");
-      return encodedRedirect("error", "/sign-in", "ユーザーが見つかりません");
-    }
-
     // privateUser取得時のエラーログ（PGRST116は新規ユーザーなので問題なし）
     if (privateUserFetchError && privateUserFetchError.code !== "PGRST116") {
-      console.error("[Update Profile] Error fetching private user:", {
+      console.error("[Update Profile API] Error fetching private user:", {
         code: privateUserFetchError.code,
         message: privateUserFetchError.message,
         details: privateUserFetchError.details,
         userId: user.id,
       });
-      // エラーがあっても新規登録の可能性があるので処理継続
     }
 
     // フォームから送信されたavatar_url
@@ -136,10 +116,10 @@ export async function updateProfile(
     if (avatar_file && avatar_file.size > 0) {
       // ファイルサイズのチェック
       if (avatar_file.size > AVATAR_MAX_FILE_SIZE) {
-        return {
+        return NextResponse.json({
           success: false,
           error: "画像ファイルのサイズは5MB以下にしてください",
-        };
+        });
       }
 
       // ファイルタイプのチェック
@@ -150,29 +130,23 @@ export async function updateProfile(
         "image/webp",
       ];
       if (!allowedTypes.includes(avatar_file.type)) {
-        return {
+        return NextResponse.json({
           success: false,
           error: "対応している画像形式はJPEG、PNG、WebPです",
-        };
+        });
       }
     }
 
-    // 古い画像を削除するかチェック:
-    // 1. 画像が削除された場合（avatar_urlがnullになった）
-    // 2. 新しい画像がアップロードされる場合
+    // 古い画像を削除するかチェック
     const shouldDeleteOldAvatar =
       previousAvatarUrl &&
       (avatar_path === null || (avatar_file && avatar_file.size > 0));
 
     if (shouldDeleteOldAvatar) {
       try {
-        // URLからファイルパスを抽出
-        // 例: https://xxxx.supabase.co/storage/v1/object/public/avatars/userid/12345.jpg
         const pathMatch = previousAvatarUrl.match(/\/avatars\/(.+)$/);
-
         if (pathMatch?.[1]) {
           const filePath = pathMatch[1];
-          // 古い画像をストレージから削除
           const { error: deleteError } = await supabaseClient.storage
             .from("avatars")
             .remove([filePath]);
@@ -185,24 +159,17 @@ export async function updateProfile(
         }
       } catch (error) {
         console.error("Error deleting old avatar:", error);
-        // 画像削除に失敗しても、更新処理は継続する
       }
     }
 
     // 新しい画像をアップロード
     if (avatar_file && avatar_file.size > 0) {
       try {
-        // ユーザーIDを取得
-        const userId = user.id; // 必ずユーザーIDが存在するはず
-
-        // ファイル名の生成
+        const userId = user.id;
         const fileExt = avatar_file.name.split(".").pop();
         const fileName = `${userId}/${Date.now()}.${fileExt}`;
-
-        // ファイルのバイナリデータを取得
         const fileBuffer = await avatar_file.arrayBuffer();
 
-        // Supabase Storageにアップロード
         const { error } = await supabaseClient.storage
           .from("avatars")
           .upload(fileName, fileBuffer, {
@@ -212,25 +179,16 @@ export async function updateProfile(
 
         if (error) {
           console.error("Upload error:", error);
-          // アップロードに失敗しても、他のプロフィール情報は更新を続ける
-        } else {
-          // 公開URLを取得して保存用に設定（dataは現在未使用だが、将来的に使用する可能性があるためコメントアウト）
-          // const { data } = supabaseClient.storage
-          //   .from("avatars")
-          //   .getPublicUrl(fileName);
         }
         avatar_path = fileName;
       } catch (error) {
         console.error("Avatar upload error during profile update:", error);
-        // エラーがあっても他のプロフィール情報の更新は続ける
       }
     }
 
-    // const hubspot_contact_id = privateUser?.hubspot_contact_id || null; // HubSpot連携をスキップするためコメントアウト
-
     // private_users テーブルを更新
     if (!privateUser) {
-      console.log("[Update Profile] Inserting new private_user");
+      console.log("[Update Profile API] Inserting new private_user");
       const { error: privateUserError } = await supabaseClient
         .from("private_users")
         .insert({
@@ -240,36 +198,23 @@ export async function updateProfile(
           date_of_birth: validatedData.date_of_birth,
           x_username: validatedData.x_username || null,
           avatar_url: avatar_path,
-          hubspot_contact_id: null, // 初期値はnull、HubSpot連携後に更新
+          hubspot_contact_id: null,
           updated_at: new Date().toISOString(),
         });
       if (privateUserError) {
-        console.error("[Update Profile] Error inserting private_user:", {
+        console.error("[Update Profile API] Error inserting private_user:", {
           code: privateUserError.code,
           message: privateUserError.message,
           details: privateUserError.details,
         });
-        return {
+        return NextResponse.json({
           success: false,
           error: "ユーザー情報の登録に失敗しました",
-        };
+        });
       }
-      console.log("[Update Profile] Successfully inserted private_user");
-
-      // public_user_profilesへの挿入はトリガー関数(sync_public_user_profile)に任せる
-      // トリガーがprivate_usersのINSERT/UPDATEを検知して自動的にpublic_user_profilesを更新する
-
-      // Edge Runtimeではメール送信をスキップ
-      // TODO: 別途APIルートでメール送信を実装
-      // try {
-      //   if (user.email) {
-      //     await sendWelcomeMail(user.email);
-      //   }
-      // } catch (e) {
-      //   console.error("案内メール送信失敗:", e);
-      // }
+      console.log("[Update Profile API] Successfully inserted private_user");
     } else {
-      console.log("[Update Profile] Updating existing private_user");
+      console.log("[Update Profile API] Updating existing private_user");
       const { error: privateUserError } = await supabaseClient
         .from("private_users")
         .update({
@@ -282,60 +227,18 @@ export async function updateProfile(
         })
         .eq("id", user.id);
       if (privateUserError) {
-        console.error("[Update Profile] Error updating private_user:", {
+        console.error("[Update Profile API] Error updating private_user:", {
           code: privateUserError.code,
           message: privateUserError.message,
           details: privateUserError.details,
         });
-        return {
+        return NextResponse.json({
           success: false,
           error: "ユーザー情報の更新に失敗しました",
-        };
+        });
       }
-      console.log("[Update Profile] Successfully updated private_user");
-
-      // public_user_profilesの更新はトリガー関数に任せる
-      // private_usersの更新時にトリガーが自動的にpublic_user_profilesを同期する
-      console.log("[Update Profile] Trigger will sync public_user_profiles");
+      console.log("[Update Profile API] Successfully updated private_user");
     }
-
-    // Edge RuntimeではHubSpot連携をスキップ
-    // TODO: 別途APIルートでHubSpot連携を実装
-    // try {
-    //   const hubspotResult = await createOrUpdateHubSpotContact(
-    //     {
-    //       email: user.email || "",
-    //       firstname: user.email || "", // firstnameにもemailを設定
-    //     },
-    //     hubspot_contact_id,
-    //   );
-    //
-    //   if (hubspotResult.success) {
-    //     // HubSpot連携成功時、コンタクトIDをデータベースに保存
-    //     const { error: updateHubSpotIdError } = await supabaseClient
-    //       .from("private_users")
-    //       .update({ hubspot_contact_id: hubspotResult.contactId })
-    //       .eq("id", user.id);
-    //
-    //     if (updateHubSpotIdError) {
-    //       console.error(
-    //         "Error updating hubspot_contact_id:",
-    //         updateHubSpotIdError,
-    //       );
-    //     } else {
-    //       console.log(
-    //         "HubSpot contact ID updated successfully:",
-    //         hubspotResult.contactId,
-    //       );
-    //     }
-    //   } else {
-    //     console.error("HubSpot integration failed:", hubspotResult.error);
-    //     // HubSpot連携に失敗してもプロフィール更新は成功として扱う
-    //   }
-    // } catch (error) {
-    //   console.error("HubSpot integration error:", error);
-    //   // HubSpot連携エラーでもプロフィール更新は成功として我う
-    // }
 
     // ユーザー別紹介コードの登録処理（重複時は最大5回リトライ）
     const MAX_RETRY = 5;
@@ -381,34 +284,33 @@ export async function updateProfile(
 
       if (!success) {
         console.error("紹介コード登録に失敗:", lastError);
-        return {
+        return NextResponse.json({
           success: false,
           error: "紹介コードの登録に失敗しました。（重複によるリトライ上限）",
-        };
+        });
       }
     }
 
-    console.log("[Update Profile] Profile update completed successfully");
+    console.log("[Update Profile API] Profile update completed successfully");
 
-    // キャッシュを無効化してページを再読み込み
-    console.log("[Update Profile] Revalidating path: /settings/profile");
+    // キャッシュを無効化
     revalidatePath("/settings/profile");
 
-    console.log("[Update Profile] Returning success response");
+    console.log("[Update Profile API] Returning success response");
 
-    return {
+    return NextResponse.json({
       success: true,
-    };
+    });
   } catch (error) {
-    console.error("[Update Profile] Caught exception:", {
+    console.error("[Update Profile API] Caught exception:", {
       error,
       message: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined,
     });
 
-    return {
+    return NextResponse.json({
       success: false,
       error: `プロフィール更新中にエラーが発生しました: ${error instanceof Error ? error.message : String(error)}`,
-    };
+    });
   }
 }
