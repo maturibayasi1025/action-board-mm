@@ -133,6 +133,13 @@ export default function ProfileForm({
 
       if (result.success) {
         setSubmitSuccess(true);
+
+        // 新しい画像パスがある場合はstateを更新
+        if (result.avatar_path) {
+          setAvatarPath(result.avatar_path);
+          setAvatarPreview(getAvatarUrl(supabase, result.avatar_path));
+        }
+
         // 成功時はページを再読み込み
         router.refresh();
       } else {
@@ -221,9 +228,8 @@ export default function ProfileForm({
       return;
     }
 
-    // 新しいファイルが選択されたので、avatar_pathをクリア
-    // （新しいファイルがアップロードされることを示すため）
-    setAvatarPath(null);
+    // 新しいファイルが選択されたことをマーク（後でAPIから新しいパスを取得）
+    // setAvatarPath(null); // これをコメントアウトし、既存のパスを保持
 
     // 画像プレビュー生成
     const reader = new FileReader();

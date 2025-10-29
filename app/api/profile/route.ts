@@ -300,6 +300,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
+      avatar_path: avatar_path, // 新しい画像パスを返す
     });
   } catch (error) {
     console.error("[Update Profile API] Caught exception:", {
