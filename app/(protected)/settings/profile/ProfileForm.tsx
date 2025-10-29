@@ -221,6 +221,10 @@ export default function ProfileForm({
       return;
     }
 
+    // 新しいファイルが選択されたので、avatar_pathをクリア
+    // （新しいファイルがアップロードされることを示すため）
+    setAvatarPath(null);
+
     // 画像プレビュー生成
     const reader = new FileReader();
     reader.onload = (event) => {
