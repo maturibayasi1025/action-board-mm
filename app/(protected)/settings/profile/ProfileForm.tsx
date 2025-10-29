@@ -143,6 +143,19 @@ export default function ProfileForm({
           const newAvatarUrl = getAvatarUrl(supabase, result.avatar_path);
           console.log("[ProfileForm] New avatar URL:", newAvatarUrl);
           setAvatarPreview(newAvatarUrl);
+
+          // DOMに実際に反映されているかをチェック
+          setTimeout(() => {
+            const imgElement = document.querySelector('img[alt="アバター"]');
+            console.log(
+              "[ProfileForm] Image element src:",
+              imgElement?.getAttribute("src"),
+            );
+            console.log(
+              "[ProfileForm] Current avatarPreview state:",
+              avatarPreview,
+            );
+          }, 100);
         } else {
           console.log("[ProfileForm] No avatar_path, clearing preview");
           setAvatarPreview(null);
