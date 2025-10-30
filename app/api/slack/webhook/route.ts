@@ -16,49 +16,62 @@ async function verifySlackSignature(
   signature: string,
   timestamp: string,
 ): Promise<boolean> {
-  const signingSecret = process.env.SLACK_SIGNING_SECRET;
-  if (!signingSecret) {
-    console.error("SLACK_SIGNING_SECRETが設定されていません");
+  try {
+    const signingSecret = process.env.SLACK_SIGNING_SECRET;
+    if (!signingSecret) {
+      console.error("SLACK_SIGNING_SECRETが設定されていません");
+      return false;
+    }
+
+    // リプレイ攻撃防止: 5分以上のタイムスタンプは拒否
+    const currentTimestamp = Math.floor(Date.now() / 1000);
+    const timestampNum = Number.parseInt(timestamp, 10);
+    if (Number.isNaN(timestampNum)) {
+      console.error("無効なタイムスタンプ形式:", timestamp);
+      return false;
+    }
+
+    if (Math.abs(currentTimestamp - timestampNum) > 300) {
+      console.error("タイムスタンプのずれが大きすぎます");
+      return false;
+    }
+
+    // Web Crypto APIを使用して署名を計算
+    const sigBaseString = `v0:${timestamp}:${body}`;
+    const encoder = new TextEncoder();
+    const keyData = encoder.encode(signingSecret);
+    const messageData = encoder.encode(sigBaseString);
+
+    const key = await crypto.subtle.importKey(
+      "raw",
+      keyData,
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["sign"],
+    );
+
+    const signatureBuffer = await crypto.subtle.sign("HMAC", key, messageData);
+    const signatureArray = Array.from(new Uint8Array(signatureBuffer));
+    const mySignature = `v0=${signatureArray
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("")}`;
+
+    // タイミング攻撃対策のため、文字列比較を使用（Edge RuntimeではBufferが使えない）
+    // 固定長なので、タイミング攻撃のリスクは低い
+    if (mySignature.length !== signature.length) {
+      return false;
+    }
+
+    let result = 0;
+    for (let i = 0; i < mySignature.length; i++) {
+      result |= mySignature.charCodeAt(i) ^ signature.charCodeAt(i);
+    }
+
+    return result === 0;
+  } catch (error) {
+    console.error("署名検証処理中にエラーが発生しました:", error);
     return false;
   }
-
-  // リプレイ攻撃防止: 5分以上のタイムスタンプは拒否
-  const currentTimestamp = Math.floor(Date.now() / 1000);
-  if (Math.abs(currentTimestamp - Number.parseInt(timestamp)) > 300) {
-    console.error("タイムスタンプのずれが大きすぎます");
-    return false;
-  }
-
-  // Web Crypto APIを使用して署名を計算
-  const sigBaseString = `v0:${timestamp}:${body}`;
-  const encoder = new TextEncoder();
-  const keyData = encoder.encode(signingSecret);
-  const messageData = encoder.encode(sigBaseString);
-
-  const key = await crypto.subtle.importKey(
-    "raw",
-    keyData,
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"],
-  );
-
-  const signatureBuffer = await crypto.subtle.sign("HMAC", key, messageData);
-  const signatureArray = Array.from(new Uint8Array(signatureBuffer));
-  const mySignature = `v0=${signatureArray.map((b) => b.toString(16).padStart(2, "0")).join("")}`;
-
-  // タイミング攻撃対策のため、文字列比較を使用（Edge RuntimeではBufferが使えない）
-  // 固定長なので、タイミング攻撃のリスクは低い
-  if (mySignature.length !== signature.length) {
-    return false;
-  }
-
-  let result = 0;
-  for (let i = 0; i < mySignature.length; i++) {
-    result |= mySignature.charCodeAt(i) ^ signature.charCodeAt(i);
-  }
-
-  return result === 0;
 }
 
 /**
@@ -335,22 +348,57 @@ export async function POST(request: NextRequest) {
     const timestamp = request.headers.get("x-slack-request-timestamp");
 
     if (!signature || !timestamp) {
+      console.error("署名ヘッダーが不足しています");
       return NextResponse.json(
         { error: "Missing required headers" },
         { status: 401 },
       );
     }
 
+    // bodyを取得（署名検証のために必要）
     const body = await request.text();
 
-    if (!(await verifySlackSignature(body, signature, timestamp))) {
+    // 署名検証
+    const isValidSignature = await verifySlackSignature(
+      body,
+      signature,
+      timestamp,
+    );
+    if (!isValidSignature) {
+      console.error("署名検証に失敗しました");
       return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
     }
 
-    const payload = JSON.parse(body);
+    // JSONパース
+    let payload: {
+      type?: string;
+      challenge?: string;
+      event?: {
+        type?: string;
+        subtype?: string;
+        channel?: string;
+        text?: string;
+        user?: string;
+        user_name?: string;
+        ts?: string;
+      };
+    };
+    try {
+      payload = JSON.parse(body);
+    } catch (parseError) {
+      console.error("JSON解析エラー:", parseError);
+      return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    }
 
     // URL Verification（初回設定時に必要）
     if (payload.type === "url_verification") {
+      if (!payload.challenge) {
+        console.error("challengeが含まれていません");
+        return NextResponse.json(
+          { error: "Missing challenge" },
+          { status: 400 },
+        );
+      }
       return NextResponse.json({ challenge: payload.challenge });
     }
 
@@ -385,6 +433,12 @@ export async function POST(request: NextRequest) {
         // 処理済みとして記録
         processedMessages.add(messageKey);
 
+        // 投稿者が存在しない場合はスキップ
+        if (!event.user) {
+          console.warn("メッセージにユーザー情報が含まれていません");
+          return NextResponse.json({ ok: true });
+        }
+
         // 非同期でグッジョブ作成処理（レスポンスを即座に返す）
         const supabase = await createServiceClient();
         const mentionedUserIds = extractMentions(messageText);
@@ -418,6 +472,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true });
   } catch (error) {
     console.error("Slack webhookエラー:", error);
+    // エラーの詳細をログに出力（本番環境でのデバッグ用）
+    if (error instanceof Error) {
+      console.error("エラーメッセージ:", error.message);
+      console.error("エラースタック:", error.stack);
+    }
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 },
