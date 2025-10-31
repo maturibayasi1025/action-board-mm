@@ -50,6 +50,9 @@ export default async function AuthButton() {
             <DropdownMenuItem asChild>
               <Link href="/user-missions/new">グッジョブ作成</Link>
             </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/user-missions/my">マイグッジョブ</Link>
+            </DropdownMenuItem>
           </DropdownMenuGroup>
           <DropdownMenuSeparator />
           <DropdownMenuGroup>

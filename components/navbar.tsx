@@ -71,6 +71,9 @@ export default async function Navbar() {
                     <DropdownMenuItem asChild>
                       <Link href="/user-missions/new">グッジョブ作成</Link>
                     </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/user-missions/my">マイグッジョブ</Link>
+                    </DropdownMenuItem>
                     {/* <DropdownMenuItem asChild>
                       <Link href="/map/posting">機関誌配布マップ</Link>
                     </DropdownMenuItem>
