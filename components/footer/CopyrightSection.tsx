@@ -31,7 +31,7 @@ export function CopyrightSection() {
             </Link>
             <span>|</span>
             <Link
-              href={FOOTER_CONFIG.feedback.url}
+              href="https://docs.google.com/spreadsheets/d/17FPjP5pC1YhbwvfBH1X19bzfDPLhrwKqhC6ZZyzVC6g/edit?usp=sharing"
               className="hover:text-teal-700 transition-colors duration-200 text-teal-600"
               target="_blank"
               rel="noopener noreferrer"
