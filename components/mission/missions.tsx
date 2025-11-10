@@ -6,6 +6,7 @@ export type MissionsProps = {
   maxSize?: number;
   showAchievedMissions: boolean;
   filterFeatured?: boolean;
+  filterImportant?: boolean;
   title?: string;
   id?: string;
 };
@@ -15,6 +16,7 @@ export default async function Missions({
   maxSize,
   showAchievedMissions,
   filterFeatured,
+  filterImportant,
   title = "📈 グッジョブ",
   id,
 }: MissionsProps) {
@@ -67,14 +69,43 @@ export default async function Missions({
     .eq("is_hidden", false) // 非表示のグッジョブを除外
     .order("difficulty", { ascending: true })
     .order("created_at", { ascending: false });
-  if (filterFeatured) {
+
+  if (filterImportant) {
+    // 重要グッジョブをフィルタリング
+    query = query.eq("is_important", true);
+  } else if (filterFeatured) {
     query = query.eq("is_featured", true);
   }
 
   if (!showAchievedMissions) {
     query = query.not("id", "in", `("${achievedMissionIds.join('","')}")`);
   }
-  const { data: missions } = maxSize ? await query.limit(maxSize) : await query;
+  let { data: missions } = maxSize ? await query.limit(maxSize) : await query;
+
+  // 重要グッジョブの場合、期間チェックをクライアント側で行う
+  if (filterImportant && missions) {
+    const now = new Date();
+    missions = missions.filter((mission) => {
+      const startDate = mission.important_display_start_date
+        ? new Date(mission.important_display_start_date)
+        : null;
+      const endDate = mission.important_display_end_date
+        ? new Date(mission.important_display_end_date)
+        : null;
+
+      // 開始日が設定されている場合、現在日時が開始日以降である必要がある
+      if (startDate && now < startDate) {
+        return false;
+      }
+
+      // 終了日が設定されている場合、現在日時が終了日以前である必要がある
+      if (endDate && now > endDate) {
+        return false;
+      }
+
+      return true;
+    });
+  }
 
   return (
     <div className="max-w-6xl mx-auto px-4">

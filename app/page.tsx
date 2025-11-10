@@ -18,6 +18,7 @@ const LevelUpCheck = dynamic(() =>
 );
 import MetricsWithSuspense from "@/components/metrics/MetricsWithSuspense";
 import FeaturedMissions from "@/components/mission/FeaturedMissions";
+import ImportantMissions from "@/components/mission/ImportantMissions";
 import MissionsByCategory from "@/components/mission/MissionsByCategory";
 import Missions from "@/components/mission/missions";
 import RankingTop from "@/components/ranking/ranking-top";
@@ -28,7 +29,10 @@ import { Card } from "@/components/ui/card";
 import { generateRootMetadata } from "@/lib/metadata";
 import { checkBadgeNotifications } from "@/lib/services/badgeNotification";
 import { checkLevelUpNotification } from "@/lib/services/levelUpNotification";
-import { hasFeaturedMissions } from "@/lib/services/missions";
+import {
+  hasFeaturedMissions,
+  hasImportantMissions,
+} from "@/lib/services/missions";
 import { createClient } from "@/lib/supabase/server";
 import { Edit3, MessageCircle } from "lucide-react";
 import Link from "next/link";
@@ -80,6 +84,8 @@ export default async function Home({
 
   //フューチャードグッジョブの存在確認
   const showFeatured = await hasFeaturedMissions();
+  //重要グッジョブの存在確認
+  const showImportant = await hasImportantMissions();
 
   return (
     <div className="flex flex-col min-h-screen py-4">
@@ -110,6 +116,13 @@ export default async function Home({
       {showFeatured && (
         <section className="py-12 md:py-16 bg-white">
           <FeaturedMissions userId={user?.id} showAchievedMissions={true} />
+        </section>
+      )}
+
+      {/* 重要グッジョブセクション */}
+      {showImportant && (
+        <section className="py-12 md:py-16 bg-white">
+          <ImportantMissions userId={user?.id} showAchievedMissions={true} />
         </section>
       )}
 

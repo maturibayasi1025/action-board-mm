@@ -2,6 +2,10 @@ import { type NextRequest, NextResponse } from "next/server";
 
 export const runtime = "edge";
 
+type SlackPayload =
+  | { type: "url_verification"; challenge: string }
+  | { type: string; [key: string]: unknown };
+
 /**
  * Slack Event Subscriptions テスト用エンドポイント
  * 署名検証をスキップして、チャレンジレスポンスのテストを行う
@@ -11,9 +15,9 @@ export async function POST(request: NextRequest) {
     const body = await request.text();
     console.log("[Test Webhook] リクエスト受信:", body);
 
-    let payload: any;
+    let payload: SlackPayload;
     try {
-      payload = JSON.parse(body);
+      payload = JSON.parse(body) as SlackPayload;
     } catch (parseError) {
       console.error("JSON解析エラー:", parseError);
       return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
