@@ -64,40 +64,34 @@ export type Database = {
       };
       poster_board_totals: {
         Row: {
-          id?: string;
-          prefecture?: string;
-          total?: number;
-          not_yet?: number;
-          reserved?: number;
-          done?: number;
-          error_wrong_place?: number;
-          error_damaged?: number;
-          error_wrong_poster?: number;
-          other?: number;
+          id: string;
+          prefecture: string;
+          city: string | null;
+          total_count: number;
+          source: string | null;
+          note: string | null;
+          updated_at: string;
+          created_at: string;
         };
         Insert: {
           id?: string;
-          prefecture?: string;
-          total?: number;
-          not_yet?: number;
-          reserved?: number;
-          done?: number;
-          error_wrong_place?: number;
-          error_damaged?: number;
-          error_wrong_poster?: number;
-          other?: number;
+          prefecture: string;
+          city?: string | null;
+          total_count: number;
+          source?: string | null;
+          note?: string | null;
+          updated_at?: string;
+          created_at?: string;
         };
         Update: {
           id?: string;
           prefecture?: string;
-          total?: number;
-          not_yet?: number;
-          reserved?: number;
-          done?: number;
-          error_wrong_place?: number;
-          error_damaged?: number;
-          error_wrong_poster?: number;
-          other?: number;
+          city?: string | null;
+          total_count?: number;
+          source?: string | null;
+          note?: string | null;
+          updated_at?: string;
+          created_at?: string;
         };
       };
       poster_board_status_history: {
@@ -187,30 +181,39 @@ export type Database = {
       mission_artifacts: {
         Row: {
           id: string;
-          user_mission_id: string;
+          achievement_id: string;
+          user_id: string;
           artifact_type: string;
-          artifact_url: string | null;
+          link_url: string | null;
+          image_storage_path: string | null;
+          text_content: string | null;
+          description: string | null;
           created_at: string;
           updated_at: string;
-          [key: string]: unknown;
         };
         Insert: {
           id?: string;
-          user_mission_id: string;
+          achievement_id: string;
+          user_id: string;
           artifact_type: string;
-          artifact_url?: string | null;
+          link_url?: string | null;
+          image_storage_path?: string | null;
+          text_content?: string | null;
+          description?: string | null;
           created_at?: string;
           updated_at?: string;
-          [key: string]: unknown;
         };
         Update: {
           id?: string;
-          user_mission_id?: string;
+          achievement_id?: string;
+          user_id?: string;
           artifact_type?: string;
-          artifact_url?: string | null;
+          link_url?: string | null;
+          image_storage_path?: string | null;
+          text_content?: string | null;
+          description?: string | null;
           created_at?: string;
           updated_at?: string;
-          [key: string]: unknown;
         };
       };
       missions: {
