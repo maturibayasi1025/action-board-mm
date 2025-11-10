@@ -213,6 +213,94 @@ export type Database = {
           [key: string]: unknown;
         };
       };
+      missions: {
+        Row: {
+          id: string;
+          title: string;
+          icon_url: string | null;
+          content: string | null;
+          difficulty: number;
+          event_date: string | null;
+          required_artifact_type: string;
+          max_achievement_count: number | null;
+          created_at: string;
+          updated_at: string;
+          slug: string;
+          ogp_image_url: string | null;
+          is_featured: boolean;
+          is_hidden: boolean;
+          artifact_label: string | null;
+          is_important: boolean;
+          important_display_start_date: string | null;
+          important_display_end_date: string | null;
+        };
+        Insert: {
+          id: string;
+          title: string;
+          icon_url?: string | null;
+          content?: string | null;
+          difficulty: number;
+          event_date?: string | null;
+          required_artifact_type?: string;
+          max_achievement_count?: number | null;
+          created_at?: string;
+          updated_at?: string;
+          slug: string;
+          ogp_image_url?: string | null;
+          is_featured?: boolean;
+          is_hidden?: boolean;
+          artifact_label?: string | null;
+          is_important?: boolean;
+          important_display_start_date?: string | null;
+          important_display_end_date?: string | null;
+        };
+        Update: {
+          id?: string;
+          title?: string;
+          icon_url?: string | null;
+          content?: string | null;
+          difficulty?: number;
+          event_date?: string | null;
+          required_artifact_type?: string;
+          max_achievement_count?: number | null;
+          created_at?: string;
+          updated_at?: string;
+          slug?: string;
+          ogp_image_url?: string | null;
+          is_featured?: boolean;
+          is_hidden?: boolean;
+          artifact_label?: string | null;
+          is_important?: boolean;
+          important_display_start_date?: string | null;
+          important_display_end_date?: string | null;
+        };
+      };
+      mission_main_links: {
+        Row: {
+          id: string;
+          mission_id: string;
+          label: string;
+          link: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          mission_id: string;
+          label: string;
+          link: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          mission_id?: string;
+          label?: string;
+          link?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
       [key: string]: {
         Row: Record<string, unknown>;
         Insert: Record<string, unknown>;

@@ -59,7 +59,7 @@ export async function GET(
   const type = searchParams.get("type");
 
   if (type === "complete") {
-    const key = [id, pageData?.mission.slug ?? ""].join("|");
+    const key = [id, pageData.mission.slug ?? ""].join("|");
 
     if (cache.has(key)) {
       const buf = cache.get(key);
@@ -78,12 +78,12 @@ export async function GET(
   const backgroundColor = type === "complete" ? "#10b981" : "#3b82f6";
 
   // titleに()や（）が含まれる場合は(や（の手前で改行する
-  const title = pageData?.mission.title ?? "グッジョブが見つかりません";
+  const title = pageData.mission.title;
   const titleWithLineBreak = title.replace(/（/g, "\n（").replace(/\(/g, "\n(");
 
   const fontData = await loadGoogleFont(
     "Noto+Sans+JP",
-    `${pageData?.mission.title ?? ""} #テクノロジーで誰も取り残さない日本へ ${pageData?.totalAchievementCount ?? 0}件のアクションが達成されました！`,
+    `${pageData.mission.title} #テクノロジーで誰も取り残さない日本へ ${pageData.totalAchievementCount}件のアクションが達成されました！`,
   );
 
   let imageResponse: ImageResponse;
@@ -122,7 +122,7 @@ export async function GET(
               textAlign: "center",
             }}
           >
-            {`「${title}」\nを達成しました！`}
+            {`「${pageData.mission.title}」\nを達成しました！`}
           </div>
         </div>
       </div>,
@@ -202,7 +202,7 @@ export async function GET(
                 lineHeight: "1",
               }}
             >
-              {(pageData?.totalAchievementCount ?? 0).toLocaleString()}
+              {pageData.totalAchievementCount.toLocaleString()}
             </div>
             <div
               style={{
@@ -238,7 +238,7 @@ export async function GET(
   const buf = await imageResponse.arrayBuffer();
 
   if (type === "complete") {
-    const key = [id, pageData?.mission.slug ?? ""].join("|");
+    const key = [id, pageData.mission.slug ?? ""].join("|");
 
     // キャッシュサイズ制限（FIFO方式）
     if (cache.size >= MAX_CACHE_SIZE) {
