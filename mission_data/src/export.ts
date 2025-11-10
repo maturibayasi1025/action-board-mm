@@ -100,12 +100,17 @@ async function exportCategoryLinks() {
   // Group by category
   const linksByCategory = data.reduce(
     (acc, item) => {
-      const categorySlug = item.mission_category.slug;
+      const category = Array.isArray(item.mission_category)
+        ? item.mission_category[0]
+        : item.mission_category;
+      const mission = Array.isArray(item.missions) ? item.missions[0] : item.missions;
+      const categorySlug = category?.slug;
+      if (!categorySlug) return acc;
       if (!acc[categorySlug]) {
         acc[categorySlug] = [];
       }
       acc[categorySlug].push({
-        mission_slug: item.missions.slug,
+        mission_slug: mission?.slug || "",
         sort_no: item.sort_no,
       });
       return acc;

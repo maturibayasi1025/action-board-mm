@@ -7,7 +7,6 @@
 -- INSERTポリシー: service_roleのみ許可（経営者はアプリケーション層でチェック）
 CREATE POLICY "service_role_can_insert_missions"
   ON public.missions FOR INSERT
-  USING (auth.role() = 'service_role')
   WITH CHECK (auth.role() = 'service_role');
 
 -- UPDATEポリシー: service_roleのみ許可（経営者はアプリケーション層でチェック）

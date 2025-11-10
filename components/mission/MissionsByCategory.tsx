@@ -179,6 +179,9 @@ export default async function MissionsByCategory({
                         is_hidden: m.is_hidden || false,
                         ogp_image_url: m.ogp_image_url,
                         required_artifact_type: m.required_artifact_type || "",
+                        is_important: false,
+                        important_display_start_date: null,
+                        important_display_end_date: null,
                       };
 
                       return (

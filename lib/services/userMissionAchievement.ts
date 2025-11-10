@@ -39,9 +39,12 @@ export async function getUserRepeatableMissionAchievements(
       if (!missionId || !achievement.missions) return acc;
 
       if (!acc[missionId]) {
+        const mission = Array.isArray(achievement.missions)
+          ? achievement.missions[0]
+          : achievement.missions;
         acc[missionId] = {
           mission_id: missionId,
-          mission_title: achievement.missions.title,
+          mission_title: mission?.title || "",
           achievement_count: 0,
         };
       }

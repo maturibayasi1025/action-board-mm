@@ -304,7 +304,7 @@ export async function getPosterBoardSummaryByPrefecture(): Promise<
           },
         };
       }
-      summary[prefecture].statuses[row.status] = row.count;
+      summary[prefecture].statuses[row.status as BoardStatus] = row.count;
       summary[prefecture].total += row.count;
     }
 
