@@ -73,23 +73,20 @@ async function getUserMissionById(id: string) {
     mvvItems: {
       passionateExecution:
         data.user_mission_mvv_items?.some(
-          (item) =>
-            (item as unknown as MvvItem).mvv_type === "passionate_execution",
+          (item: MvvItem) => item.mvv_type === "passionate_execution",
         ) || false,
       supremeRelationships:
         data.user_mission_mvv_items?.some(
-          (item) =>
-            (item as unknown as MvvItem).mvv_type === "supreme_relationships",
+          (item: MvvItem) => item.mvv_type === "supreme_relationships",
         ) || false,
       happinessCirculation:
         data.user_mission_mvv_items?.some(
-          (item) =>
-            (item as unknown as MvvItem).mvv_type === "happiness_circulation",
+          (item: MvvItem) => item.mvv_type === "happiness_circulation",
         ) || false,
     },
     isLikedByCurrentUser: user
       ? data.user_mission_likes?.some(
-          (like) => (like as unknown as Like).user_id === user.id,
+          (like: Like) => like.user_id === user.id,
         ) || false
       : false,
   };
