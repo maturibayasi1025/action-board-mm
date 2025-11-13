@@ -10,6 +10,8 @@ import { isOwner } from "@/lib/utils/isOwner";
 import { redirect } from "next/navigation";
 import { getImportantMissions } from "./actions";
 
+export const runtime = "edge";
+
 export default async function ImportantMissionsAdminPage() {
   // 経営者権限チェック
   const owner = await isOwner();
