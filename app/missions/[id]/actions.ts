@@ -347,45 +347,44 @@ export const achieveMissionAction = async (formData: FormData) => {
   }
 
   // 重要グッジョブの1日1回制限チェック（JSTで判定）
+  console.log(
+    `[重要グッジョブ制限チェック] is_important: ${missionData?.is_important}, グッジョブID: ${validatedMissionId}`,
+  );
   if (missionData?.is_important === true) {
     // JST（UTC+9）で今日の開始時刻と終了時刻を計算
+    // JSTの00:00はUTCの15:00（前日）なので、UTC 15:00を基準に計算
     const now = new Date();
-    const jstOffsetMs = 9 * 60 * 60 * 1000; // JSTはUTC+9時間（ミリ秒）
 
-    // 現在時刻をJSTに変換
-    const jstNow = new Date(now.getTime() + jstOffsetMs);
+    // JSTの今日の開始時刻（00:00:00）をUTCに変換
+    // UTC 15:00（前日）= JST 00:00（当日）
+    const jstTodayStartUTC = new Date(now);
+    jstTodayStartUTC.setUTCHours(15, 0, 0, 0);
+    if (jstTodayStartUTC > now) {
+      // まだ日本時間の0時になっていない場合は前日にする
+      jstTodayStartUTC.setUTCDate(jstTodayStartUTC.getUTCDate() - 1);
+    }
 
-    // JSTで今日の開始時刻（00:00:00）をUTCに変換
-    const jstTodayStartUTC = new Date(
-      Date.UTC(
-        jstNow.getUTCFullYear(),
-        jstNow.getUTCMonth(),
-        jstNow.getUTCDate(),
-        0,
-        0,
-        0,
-        0,
-      ) - jstOffsetMs,
+    // JSTの今日の終了時刻（23:59:59.999）をUTCに変換
+    // JSTの今日の終了 = UTC 14:59:59.999（開始時刻の次の日）
+    const jstTodayEndUTC = new Date(jstTodayStartUTC);
+    jstTodayEndUTC.setUTCDate(jstTodayEndUTC.getUTCDate() + 1);
+    jstTodayEndUTC.setUTCHours(14, 59, 59, 999);
+
+    console.log(
+      `[重要グッジョブ制限チェック] ユーザー: ${authUser.id}, グッジョブ: ${validatedMissionId}`,
     );
-
-    // JSTで今日の終了時刻（23:59:59.999）をUTCに変換
-    const jstTodayEndUTC = new Date(
-      Date.UTC(
-        jstNow.getUTCFullYear(),
-        jstNow.getUTCMonth(),
-        jstNow.getUTCDate(),
-        23,
-        59,
-        59,
-        999,
-      ) - jstOffsetMs,
+    console.log(
+      `[重要グッジョブ制限チェック] JST今日の開始(UTC): ${jstTodayStartUTC.toISOString()}`,
+    );
+    console.log(
+      `[重要グッジョブ制限チェック] JST今日の終了(UTC): ${jstTodayEndUTC.toISOString()}`,
     );
 
     // 今日（JST）の達成記録を検索
     const { data: todayAchievements, error: todayAchievementError } =
       await supabase
         .from("achievements")
-        .select("id")
+        .select("id, created_at")
         .eq("user_id", authUser.id)
         .eq("mission_id", validatedMissionId)
         .gte("created_at", jstTodayStartUTC.toISOString())
@@ -399,6 +398,19 @@ export const achieveMissionAction = async (formData: FormData) => {
         success: false,
         error: "今日の達成記録の確認に失敗しました。",
       };
+    }
+
+    console.log(
+      `[重要グッジョブ制限チェック] 今日の達成記録数: ${todayAchievements?.length || 0}`,
+    );
+    if (todayAchievements && todayAchievements.length > 0) {
+      console.log(
+        "[重要グッジョブ制限チェック] 達成記録:",
+        todayAchievements.map((a) => ({
+          id: a.id,
+          created_at: a.created_at,
+        })),
+      );
     }
 
     // 今日既に達成している場合はエラーを返す
