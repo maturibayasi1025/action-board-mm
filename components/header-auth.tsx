@@ -41,12 +41,6 @@ export default async function AuthButton() {
             <DropdownMenuItem asChild>
               <Link href="/">ホーム</Link>
             </DropdownMenuItem>
-            {/* <DropdownMenuItem asChild>
-              <Link href="/map/posting">機関誌配布マップ</Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <Link href="/map/poster">ポスター掲示板マップ</Link>
-            </DropdownMenuItem> */}
             <DropdownMenuItem asChild>
               <Link href="/user-missions">ユーザーグッジョブ</Link>
             </DropdownMenuItem>
