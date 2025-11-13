@@ -69,7 +69,7 @@ async function getUserMissionsServer() {
     praisedUsers:
       mission.user_mission_praised_users
         ?.map((p: PraisedUser) => p.private_users?.name)
-        .filter(Boolean) || [],
+        .filter((name): name is string => Boolean(name)) || [],
     status: mission.status,
     rejectionReason: mission.rejection_reason,
     createdAt: mission.created_at,
