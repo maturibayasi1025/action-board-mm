@@ -53,7 +53,6 @@ export default async function Navbar() {
           <>
             <div className="gap-6 items-center font-semibold hidden sm:flex">
               <Link href="/">ホーム</Link>
-              <Link href="/user-missions/new">グッジョブ作成</Link>
               <HeaderAuth />
             </div>
             <div className="flex gap-6 items-center font-semibold sm:hidden">
