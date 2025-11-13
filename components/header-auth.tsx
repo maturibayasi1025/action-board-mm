@@ -1,6 +1,7 @@
 import { signOutAction } from "@/app/actions";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/server";
+import { isOwner } from "@/lib/utils/isOwner";
 import Link from "next/link";
 import MyAvatar from "./my-avatar";
 import {
@@ -18,6 +19,8 @@ export default async function AuthButton() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  const owner = user ? await isOwner() : false;
 
   return user /* && profile */ ? (
     <>
@@ -53,6 +56,13 @@ export default async function AuthButton() {
             <DropdownMenuItem asChild>
               <Link href="/user-missions/my">マイグッジョブ</Link>
             </DropdownMenuItem>
+            {owner && (
+              <DropdownMenuItem asChild>
+                <Link href="/admin/important-missions">
+                  重要グッジョブを登録する
+                </Link>
+              </DropdownMenuItem>
+            )}
           </DropdownMenuGroup>
           <DropdownMenuSeparator />
           <DropdownMenuGroup>
