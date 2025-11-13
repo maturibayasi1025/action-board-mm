@@ -42,12 +42,12 @@ export default async function Hero() {
             </span>
           </h1>
           <p className="text-lg md:text-xl text-gray-700 mb-8 font-medium">
-            テクノロジーで経済圏をかえる。共存共栄・相互扶助をもっと身近に。
+            テクノロジーで経済圏を繋ぐ。共存共栄・相互扶助をもっと身近に。
           </p>
 
           {!user && (
             <div className="flex flex-col items-center gap-4">
-              <Link href="/">
+              <Link href="/sign-in">
                 <Button
                   size="lg"
                   className="min-w-72 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-700 hover:via-teal-700 hover:to-emerald-800 text-white font-bold py-6 px-8 rounded-full shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300"
