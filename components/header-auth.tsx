@@ -41,15 +41,6 @@ export default async function AuthButton() {
             <DropdownMenuItem asChild>
               <Link href="/">ホーム</Link>
             </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <Link href="/user-missions">ユーザーグッジョブ</Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <Link href="/user-missions/new">グッジョブ作成</Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <Link href="/user-missions/my">マイグッジョブ</Link>
-            </DropdownMenuItem>
             {owner && (
               <DropdownMenuItem asChild>
                 <Link href="/admin/important-missions">
