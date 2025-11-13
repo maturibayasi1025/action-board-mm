@@ -1,21 +1,18 @@
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { LikeButton } from "@/components/user-mission/like-button";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { UserMissionsList } from "@/components/user-mission/user-missions-list";
 import { createClient } from "@/lib/supabase/server";
 import type { Like, MvvItem, PraisedUser } from "@/lib/types/user-missions";
-import { Heart, Plus, User } from "lucide-react";
+import { Plus } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
 
 export const runtime = "edge";
+
+async function UserMissionsListWrapper() {
+  const missions = await getUserMissionsServer();
+  return <UserMissionsList missions={missions} />;
+}
 
 async function getUserMissionsServer() {
   const supabase = await createClient();
@@ -103,74 +100,6 @@ async function getUserMissionsServer() {
   }));
 }
 
-async function UserMissionsList() {
-  const missions = await getUserMissionsServer();
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (missions.length === 0) {
-    return (
-      <div className="text-center py-12">
-        <p className="text-muted-foreground mb-4">
-          まだユーザーグッジョブがありません
-        </p>
-        <Link href="/user-missions/new">
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            最初のグッジョブを作成
-          </Button>
-        </Link>
-      </div>
-    );
-  }
-
-  return (
-    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-      {missions.map((mission) => (
-        <Card key={mission.id} className="flex flex-col">
-          <CardHeader>
-            <CardTitle className="line-clamp-2">{mission.title}</CardTitle>
-            <CardDescription className="flex items-center gap-2">
-              <User className="h-4 w-4" />
-              {mission.praisedUsers.join(", ")}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex-1">
-            <p className="text-sm text-muted-foreground line-clamp-3">
-              {mission.content}
-            </p>
-            <div className="mt-4 flex flex-wrap gap-2">
-              {mission.mvvItems.passionateExecution && (
-                <Badge variant="secondary">夢中になってやりきる</Badge>
-              )}
-              {mission.mvvItems.supremeRelationships && (
-                <Badge variant="secondary">至高な人間関係</Badge>
-              )}
-              {mission.mvvItems.happinessCirculation && (
-                <Badge variant="secondary">幸せの循環</Badge>
-              )}
-            </div>
-          </CardContent>
-          <CardFooter className="flex justify-between items-center">
-            <LikeButton
-              missionId={mission.id}
-              initialLiked={mission.isLikedByCurrentUser || false}
-              initialCount={mission.likesCount}
-            />
-            <Link href={`/user-missions/${mission.id}`}>
-              <Button variant="ghost" size="sm">
-                詳細を見る
-              </Button>
-            </Link>
-          </CardFooter>
-        </Card>
-      ))}
-    </div>
-  );
-}
-
 export default function UserMissionsPage() {
   return (
     <div className="container mx-auto py-8">
@@ -209,7 +138,7 @@ export default function UserMissionsPage() {
           </div>
         }
       >
-        <UserMissionsList />
+        <UserMissionsListWrapper />
       </Suspense>
     </div>
   );
