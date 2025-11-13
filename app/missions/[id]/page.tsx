@@ -186,12 +186,12 @@ export default async function MissionPage({ params }: Props) {
                   ログインする
                 </Button>
               </Link>
-              <p className="mt-4 text-sm text-muted-foreground">
+              {/* <p className="mt-4 text-sm text-muted-foreground">
                 アカウントをお持ちでない方は{" "}
                 <Link href="/sign-up" className="text-primary hover:underline">
                   こちらから登録
                 </Link>
-              </p>
+              </p> */}
             </CardContent>
           </Card>
         )}

@@ -8,7 +8,7 @@ export default function ImportantMissions(
     <Missions
       {...props}
       filterImportant={true}
-      title="⭐ 重要グッジョブ"
+      title="⭐ コアグッジョブ"
       id="important-missions"
     />
   );
