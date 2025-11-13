@@ -38,7 +38,7 @@ export default async function ImportantMissionsAdminPage() {
           <CardHeader>
             <CardTitle>重要グッジョブを設定</CardTitle>
             <CardDescription>
-              既存のグッジョブを重要グッジョブとして設定します
+              既存のグッジョブを重要グッジョブとして設定するか、新規グッジョブを作成して重要グッジョブとして設定できます
             </CardDescription>
           </CardHeader>
           <CardContent>
