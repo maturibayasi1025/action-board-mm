@@ -40,7 +40,7 @@ const selectMissionFormSchema = z
   })
   .refine(
     (data) => {
-      // 重要グッジョブとして設定する場合のみ日時のバリデーション
+      // 共有グッジョブとして設定する場合のみ日時のバリデーション
       if (!data.isImportant) {
         return true;
       }
@@ -83,7 +83,7 @@ const createMissionFormSchema = z
   })
   .refine(
     (data) => {
-      // 重要グッジョブとして設定する場合のみ日時のバリデーション
+      // 共有グッジョブとして設定する場合のみ日時のバリデーション
       if (!data.is_important) {
         return true;
       }
@@ -208,8 +208,8 @@ export function ImportantMissionForm() {
       if (result.success) {
         toast.success(
           values.isImportant
-            ? "重要グッジョブを設定しました"
-            : "重要グッジョブを解除しました",
+            ? "共有グッジョブを設定しました"
+            : "共有グッジョブを解除しました",
         );
         selectForm.reset();
         // ミッション一覧を再取得
@@ -223,7 +223,7 @@ export function ImportantMissionForm() {
         });
       }
     } catch (error) {
-      console.error("重要グッジョブ設定エラー:", error);
+      console.error("共有グッジョブ設定エラー:", error);
       toast.error("予期しないエラーが発生しました");
     } finally {
       setIsSubmitting(false);
@@ -314,7 +314,7 @@ export function ImportantMissionForm() {
                     </SelectContent>
                   </Select>
                   <FormDescription>
-                    重要グッジョブとして設定するグッジョブを選択してください
+                    共有グッジョブとして設定するグッジョブを選択してください
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -335,9 +335,9 @@ export function ImportantMissionForm() {
                     />
                   </FormControl>
                   <div className="space-y-1 leading-none">
-                    <FormLabel>重要グッジョブとして設定</FormLabel>
+                    <FormLabel>共有グッジョブとして設定</FormLabel>
                     <FormDescription>
-                      チェックを外すと重要グッジョブを解除します
+                      チェックを外すと共有グッジョブを解除します
                     </FormDescription>
                   </div>
                 </FormItem>
@@ -722,9 +722,9 @@ export function ImportantMissionForm() {
                       />
                     </FormControl>
                     <div className="space-y-1 leading-none">
-                      <FormLabel>重要グッジョブとして設定</FormLabel>
+                      <FormLabel>共有グッジョブとして設定</FormLabel>
                       <FormDescription>
-                        チェックすると重要グッジョブとして設定されます
+                        チェックすると共有グッジョブとして設定されます
                       </FormDescription>
                     </div>
                   </FormItem>

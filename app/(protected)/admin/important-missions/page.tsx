@@ -19,7 +19,7 @@ export default async function ImportantMissionsAdminPage() {
     redirect("/");
   }
 
-  // 重要グッジョブ一覧を取得
+  // 共有グッジョブ一覧を取得
   const missionsResult = await getImportantMissions();
   const importantMissions =
     missionsResult.success && missionsResult.data ? missionsResult.data : [];
@@ -28,17 +28,17 @@ export default async function ImportantMissionsAdminPage() {
     <div className="container mx-auto py-8 px-4">
       <div className="max-w-4xl mx-auto space-y-8">
         <div>
-          <h1 className="text-3xl font-bold mb-2">重要グッジョブ管理</h1>
+          <h1 className="text-3xl font-bold mb-2">共有グッジョブ管理</h1>
           <p className="text-muted-foreground">
-            重要グッジョブを設定・管理します。期間設定により、特定の期間のみ表示することもできます。
+            共有グッジョブを設定・管理します。期間設定により、特定の期間のみ表示することもできます。
           </p>
         </div>
 
         <Card>
           <CardHeader>
-            <CardTitle>重要グッジョブを設定</CardTitle>
+            <CardTitle>共有グッジョブを設定</CardTitle>
             <CardDescription>
-              既存のグッジョブを重要グッジョブとして設定するか、新規グッジョブを作成して重要グッジョブとして設定できます
+              既存のグッジョブを共有グッジョブとして設定するか、新規グッジョブを作成して共有グッジョブとして設定できます
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -49,9 +49,9 @@ export default async function ImportantMissionsAdminPage() {
         {importantMissions.length > 0 && (
           <Card>
             <CardHeader>
-              <CardTitle>現在の重要グッジョブ一覧</CardTitle>
+              <CardTitle>現在の共有グッジョブ一覧</CardTitle>
               <CardDescription>
-                現在設定されている重要グッジョブの一覧です
+                現在設定されている共有グッジョブの一覧です
               </CardDescription>
             </CardHeader>
             <CardContent>

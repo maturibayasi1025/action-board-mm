@@ -346,9 +346,9 @@ export const achieveMissionAction = async (formData: FormData) => {
     }
   }
 
-  // 重要グッジョブの1日1回制限チェック（JSTで判定）
+  // 共有グッジョブの1日1回制限チェック（JSTで判定）
   console.log(
-    `[重要グッジョブ制限チェック] is_important: ${missionData?.is_important}, グッジョブID: ${validatedMissionId}`,
+    `[共有グッジョブ制限チェック] is_important: ${missionData?.is_important}, グッジョブID: ${validatedMissionId}`,
   );
   if (missionData?.is_important === true) {
     // JST（UTC+9）で今日の開始時刻と終了時刻を計算
@@ -371,13 +371,13 @@ export const achieveMissionAction = async (formData: FormData) => {
     jstTodayEndUTC.setUTCHours(14, 59, 59, 999);
 
     console.log(
-      `[重要グッジョブ制限チェック] ユーザー: ${authUser.id}, グッジョブ: ${validatedMissionId}`,
+      `[共有グッジョブ制限チェック] ユーザー: ${authUser.id}, グッジョブ: ${validatedMissionId}`,
     );
     console.log(
-      `[重要グッジョブ制限チェック] JST今日の開始(UTC): ${jstTodayStartUTC.toISOString()}`,
+      `[共有グッジョブ制限チェック] JST今日の開始(UTC): ${jstTodayStartUTC.toISOString()}`,
     );
     console.log(
-      `[重要グッジョブ制限チェック] JST今日の終了(UTC): ${jstTodayEndUTC.toISOString()}`,
+      `[共有グッジョブ制限チェック] JST今日の終了(UTC): ${jstTodayEndUTC.toISOString()}`,
     );
 
     // 今日（JST）の達成記録を検索
@@ -401,11 +401,11 @@ export const achieveMissionAction = async (formData: FormData) => {
     }
 
     console.log(
-      `[重要グッジョブ制限チェック] 今日の達成記録数: ${todayAchievements?.length || 0}`,
+      `[共有グッジョブ制限チェック] 今日の達成記録数: ${todayAchievements?.length || 0}`,
     );
     if (todayAchievements && todayAchievements.length > 0) {
       console.log(
-        "[重要グッジョブ制限チェック] 達成記録:",
+        "[共有グッジョブ制限チェック] 達成記録:",
         todayAchievements.map((a) => ({
           id: a.id,
           created_at: a.created_at,
@@ -417,7 +417,7 @@ export const achieveMissionAction = async (formData: FormData) => {
     if (todayAchievements && todayAchievements.length > 0) {
       return {
         success: false,
-        error: "重要グッジョブは1日1回までしか達成できません。",
+        error: "共有グッジョブは1日1回までしか達成できません。",
       };
     }
   }

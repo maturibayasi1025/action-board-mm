@@ -44,7 +44,7 @@ export default async function AuthButton() {
             {owner && (
               <DropdownMenuItem asChild>
                 <Link href="/admin/important-missions">
-                  重要グッジョブを登録する
+                  共有グッジョブを登録する
                 </Link>
               </DropdownMenuItem>
             )}
