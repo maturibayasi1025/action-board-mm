@@ -113,11 +113,11 @@ export default async function Home({
       </section> */}
 
       {/* フューチャードグッジョブセクション */}
-      {showFeatured && (
+      {/* {showFeatured && (
         <section className="py-12 md:py-16 bg-white">
           <FeaturedMissions userId={user?.id} showAchievedMissions={true} />
         </section>
-      )}
+      )} */}
 
       {/* 重要グッジョブセクション */}
       {showImportant && (
