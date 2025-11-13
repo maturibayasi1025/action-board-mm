@@ -299,10 +299,10 @@ export const achieveMissionAction = async (formData: FormData) => {
     };
   }
 
-  // グッジョブ情報を取得して、max_achievement_count を確認
+  // グッジョブ情報を取得して、max_achievement_count と is_important を確認
   const { data: missionData, error: missionFetchError } = await supabase
     .from("missions")
-    .select("max_achievement_count")
+    .select("max_achievement_count, is_important")
     .eq("id", validatedMissionId)
     .single();
 
@@ -342,6 +342,70 @@ export const achieveMissionAction = async (formData: FormData) => {
       return {
         success: false,
         error: "あなたはこのグッジョブの達成回数の上限に達しています。",
+      };
+    }
+  }
+
+  // 重要グッジョブの1日1回制限チェック（JSTで判定）
+  if (missionData?.is_important === true) {
+    // JST（UTC+9）で今日の開始時刻と終了時刻を計算
+    const now = new Date();
+    const jstOffsetMs = 9 * 60 * 60 * 1000; // JSTはUTC+9時間（ミリ秒）
+
+    // 現在時刻をJSTに変換
+    const jstNow = new Date(now.getTime() + jstOffsetMs);
+
+    // JSTで今日の開始時刻（00:00:00）をUTCに変換
+    const jstTodayStartUTC = new Date(
+      Date.UTC(
+        jstNow.getUTCFullYear(),
+        jstNow.getUTCMonth(),
+        jstNow.getUTCDate(),
+        0,
+        0,
+        0,
+        0,
+      ) - jstOffsetMs,
+    );
+
+    // JSTで今日の終了時刻（23:59:59.999）をUTCに変換
+    const jstTodayEndUTC = new Date(
+      Date.UTC(
+        jstNow.getUTCFullYear(),
+        jstNow.getUTCMonth(),
+        jstNow.getUTCDate(),
+        23,
+        59,
+        59,
+        999,
+      ) - jstOffsetMs,
+    );
+
+    // 今日（JST）の達成記録を検索
+    const { data: todayAchievements, error: todayAchievementError } =
+      await supabase
+        .from("achievements")
+        .select("id")
+        .eq("user_id", authUser.id)
+        .eq("mission_id", validatedMissionId)
+        .gte("created_at", jstTodayStartUTC.toISOString())
+        .lte("created_at", jstTodayEndUTC.toISOString());
+
+    if (todayAchievementError) {
+      console.error(
+        `Today's achievement check error: ${todayAchievementError.message}`,
+      );
+      return {
+        success: false,
+        error: "今日の達成記録の確認に失敗しました。",
+      };
+    }
+
+    // 今日既に達成している場合はエラーを返す
+    if (todayAchievements && todayAchievements.length > 0) {
+      return {
+        success: false,
+        error: "重要グッジョブは1日1回までしか達成できません。",
       };
     }
   }
