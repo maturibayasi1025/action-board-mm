@@ -26,6 +26,10 @@ export interface SaveDraftUserMissionInput {
   };
 }
 
+export type SaveDraftUserMissionResult =
+  | { success: true; missionId: string }
+  | { success: false; error: string };
+
 export async function createUserMissionAction(input: CreateUserMissionInput) {
   const supabase = await createClient();
 
@@ -697,7 +701,7 @@ async function sendSlackNotificationForLike(
 // 下書き保存（自動保存用）
 export async function saveDraftUserMissionAction(
   input: SaveDraftUserMissionInput,
-) {
+): Promise<SaveDraftUserMissionResult> {
   const supabase = await createClient();
 
   try {
@@ -817,7 +821,7 @@ async function createNewDraft(
   input: SaveDraftUserMissionInput,
   userId: string,
   supabase: Awaited<ReturnType<typeof createClient>>,
-) {
+): Promise<SaveDraftUserMissionResult> {
   const { data: mission, error: missionError } = await supabase
     .from("user_missions")
     .insert({

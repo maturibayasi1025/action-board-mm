@@ -173,7 +173,7 @@ export function CreateMissionForm(
 
       const result = await saveDraftUserMissionAction(draftInput);
 
-      if (result.success && result.missionId) {
+      if (result.success) {
         setDraftIdState(result.missionId);
         setSaveStatus("saved");
         // 3秒後にidleに戻す
