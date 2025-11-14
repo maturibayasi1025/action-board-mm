@@ -95,11 +95,11 @@
   }
 
   .bg-gradient-hero {
-    background: linear-gradient(90deg, #91e3cd, #b2ead2);
+    background: linear-gradient(90deg, #f0dc00, #ffe800);
   }
 
   .bg-gradient-level {
-    background: linear-gradient(90deg, #F0DC00, #FFE800);
+    background: linear-gradient(90deg, #f0dc00, #ffe800);
   }
 
   /* 放射状グラデーション */

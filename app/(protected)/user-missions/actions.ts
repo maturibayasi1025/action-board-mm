@@ -492,7 +492,10 @@ async function sendSlackNotificationForMissionCreation(
       return;
     }
 
-    const response = await fetch(`${apiUrl}/api/slack-notification`, {
+    const notificationUrl = `${apiUrl}/api/slack-notification`;
+    console.log("[Slack通知] 通知APIを呼び出します:", notificationUrl);
+
+    const response = await fetch(notificationUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -507,27 +510,80 @@ async function sendSlackNotificationForMissionCreation(
       }),
     });
 
+    const responseText = await response
+      .text()
+      .catch(() => "レスポンスの取得に失敗");
+
     if (!response.ok) {
-      const errorText = await response
-        .text()
-        .catch(() => "エラーレスポンスの取得に失敗");
-      console.error(
-        `[Slack通知] API呼び出し失敗: status=${response.status}, statusText=${response.statusText}, error=${errorText}`,
-      );
+      let errorDetails:
+        | { raw?: string; error?: string }
+        | Record<string, unknown>;
+      try {
+        errorDetails = JSON.parse(responseText) as Record<string, unknown>;
+      } catch {
+        errorDetails = { raw: responseText };
+      }
+
+      const errorMessage =
+        (typeof errorDetails === "object" &&
+          errorDetails !== null &&
+          ("error" in errorDetails
+            ? String(errorDetails.error)
+            : "raw" in errorDetails
+              ? String(errorDetails.raw)
+              : "不明なエラー")) ||
+        "不明なエラー";
+
+      console.error("[Slack通知] API呼び出し失敗:", {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorDetails,
+        url: notificationUrl,
+        missionId,
+      });
       throw new Error(
-        `Slack通知API呼び出し失敗: ${response.status} ${response.statusText}`,
+        `Slack通知API呼び出し失敗: ${response.status} ${response.statusText}. ${errorMessage}`,
       );
     }
 
-    const result = await response.json().catch(() => null);
-    if (result && !result.success) {
-      console.error("[Slack通知] API呼び出し失敗:", result);
-      throw new Error(
-        `Slack通知API呼び出し失敗: ${result.error || "不明なエラー"}`,
-      );
+    type SlackNotificationResponse =
+      | { success: true }
+      | { success: false; error?: string; details?: string };
+
+    let result: SlackNotificationResponse | Record<string, unknown>;
+    try {
+      result = JSON.parse(responseText) as SlackNotificationResponse;
+    } catch {
+      console.warn("[Slack通知] レスポンスのJSON解析に失敗:", responseText);
+      result = { success: false, error: "レスポンスの解析に失敗" };
     }
 
-    console.log("[Slack通知] グッジョブ作成通知を送信しました:", missionId);
+    if (
+      typeof result === "object" &&
+      result !== null &&
+      "success" in result &&
+      !result.success
+    ) {
+      const errorMessage =
+        ("error" in result && typeof result.error === "string"
+          ? result.error
+          : "details" in result && typeof result.details === "string"
+            ? result.details
+            : "不明なエラー") || "不明なエラー";
+
+      console.error("[Slack通知] API呼び出し失敗:", {
+        result,
+        missionId,
+        url: notificationUrl,
+      });
+      throw new Error(`Slack通知API呼び出し失敗: ${errorMessage}`);
+    }
+
+    console.log("[Slack通知] グッジョブ作成通知を送信しました:", {
+      missionId,
+      title,
+      creatorName: creator?.name || "不明",
+    });
   } catch (error) {
     console.error("[Slack通知] エラー詳細:", {
       error: error instanceof Error ? error.message : String(error),
