@@ -14,6 +14,18 @@ export interface CreateUserMissionInput {
   };
 }
 
+export interface SaveDraftUserMissionInput {
+  draftId?: string; // 既存の下書きID（更新時）
+  title: string;
+  content: string;
+  praisedUserIds: string[];
+  mvvItems: {
+    passionateExecution: boolean;
+    supremeRelationships: boolean;
+    happinessCirculation: boolean;
+  };
+}
+
 export async function createUserMissionAction(input: CreateUserMissionInput) {
   const supabase = await createClient();
 
@@ -679,5 +691,318 @@ async function sendSlackNotificationForLike(
       userId,
     });
     // エラーを再スローしない（いいね処理は継続）
+  }
+}
+
+// 下書き保存（自動保存用）
+export async function saveDraftUserMissionAction(
+  input: SaveDraftUserMissionInput,
+) {
+  const supabase = await createClient();
+
+  try {
+    // 認証チェック
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      // 認証エラーは静かに失敗（自動保存なので）
+      return { success: false, error: "認証が必要です" };
+    }
+
+    // 既存の下書きがある場合は更新、ない場合は新規作成
+    if (input.draftId) {
+      // 既存の下書きを更新
+      const { data: existingMission, error: fetchError } = await supabase
+        .from("user_missions")
+        .select("id, created_by, status")
+        .eq("id", input.draftId)
+        .single();
+
+      if (fetchError || !existingMission) {
+        // 下書きが見つからない場合は新規作成
+        return await createNewDraft(input, user.id, supabase);
+      }
+
+      // 作成者チェック
+      if (existingMission.created_by !== user.id) {
+        return { success: false, error: "権限がありません" };
+      }
+
+      // 下書き（pending）のみ更新可能
+      if (existingMission.status !== "pending") {
+        return { success: false, error: "下書きのみ更新可能です" };
+      }
+
+      // 下書きを更新
+      const { data: mission, error: updateError } = await supabase
+        .from("user_missions")
+        .update({
+          title: input.title || "（タイトル未入力）",
+          content: input.content || "",
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", input.draftId)
+        .select()
+        .single();
+
+      if (updateError) {
+        console.error("下書き更新エラー:", updateError);
+        return { success: false, error: updateError.message };
+      }
+
+      // MVV項目を更新（既存を削除して再挿入）
+      await supabase
+        .from("user_mission_mvv_items")
+        .delete()
+        .eq("user_mission_id", mission.id);
+
+      const mvvItems = [];
+      if (input.mvvItems.passionateExecution) {
+        mvvItems.push({
+          user_mission_id: mission.id,
+          mvv_type: "passionate_execution",
+        });
+      }
+      if (input.mvvItems.supremeRelationships) {
+        mvvItems.push({
+          user_mission_id: mission.id,
+          mvv_type: "supreme_relationships",
+        });
+      }
+      if (input.mvvItems.happinessCirculation) {
+        mvvItems.push({
+          user_mission_id: mission.id,
+          mvv_type: "happiness_circulation",
+        });
+      }
+
+      if (mvvItems.length > 0) {
+        await supabase.from("user_mission_mvv_items").insert(mvvItems);
+      }
+
+      // 賞賛対象ユーザーを更新（既存を削除して再挿入）
+      await supabase
+        .from("user_mission_praised_users")
+        .delete()
+        .eq("user_mission_id", mission.id);
+
+      if (input.praisedUserIds.length > 0) {
+        const praisedUsers = input.praisedUserIds.map((userId) => ({
+          user_mission_id: mission.id,
+          praised_user_id: userId,
+        }));
+
+        await supabase.from("user_mission_praised_users").insert(praisedUsers);
+      }
+
+      return { success: true, missionId: mission.id };
+    }
+    // 新規下書きを作成
+    return await createNewDraft(input, user.id, supabase);
+  } catch (error) {
+    console.error("saveDraftUserMissionActionエラー:", error);
+    return {
+      success: false,
+      error:
+        error instanceof Error ? error.message : "下書き保存に失敗しました",
+    };
+  }
+}
+
+// 新規下書き作成のヘルパー関数
+async function createNewDraft(
+  input: SaveDraftUserMissionInput,
+  userId: string,
+  supabase: Awaited<ReturnType<typeof createClient>>,
+) {
+  const { data: mission, error: missionError } = await supabase
+    .from("user_missions")
+    .insert({
+      created_by: userId,
+      title: input.title || "（タイトル未入力）",
+      content: input.content || "",
+      status: "pending", // 下書きとして保存
+    })
+    .select()
+    .single();
+
+  if (missionError) {
+    console.error("下書き作成エラー:", missionError);
+    return { success: false, error: missionError.message };
+  }
+
+  // MVV項目を挿入
+  const mvvItems = [];
+  if (input.mvvItems.passionateExecution) {
+    mvvItems.push({
+      user_mission_id: mission.id,
+      mvv_type: "passionate_execution",
+    });
+  }
+  if (input.mvvItems.supremeRelationships) {
+    mvvItems.push({
+      user_mission_id: mission.id,
+      mvv_type: "supreme_relationships",
+    });
+  }
+  if (input.mvvItems.happinessCirculation) {
+    mvvItems.push({
+      user_mission_id: mission.id,
+      mvv_type: "happiness_circulation",
+    });
+  }
+
+  if (mvvItems.length > 0) {
+    await supabase.from("user_mission_mvv_items").insert(mvvItems);
+  }
+
+  // 賞賛対象ユーザーを挿入
+  if (input.praisedUserIds.length > 0) {
+    const praisedUsers = input.praisedUserIds.map((userId) => ({
+      user_mission_id: mission.id,
+      praised_user_id: userId,
+    }));
+
+    await supabase.from("user_mission_praised_users").insert(praisedUsers);
+  }
+
+  return { success: true, missionId: mission.id };
+}
+
+// 下書きから公開
+export async function publishDraftUserMissionAction(draftId: string) {
+  const supabase = await createClient();
+
+  try {
+    // 認証チェック
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError) {
+      console.error("認証エラー:", authError);
+      throw new Error("認証に失敗しました。再ログインしてください。");
+    }
+
+    if (!user) {
+      throw new Error(
+        "ログインが必要です。ログインしてから再度お試しください。",
+      );
+    }
+
+    // 下書きを取得
+    const { data: draft, error: fetchError } = await supabase
+      .from("user_missions")
+      .select(`
+        *,
+        user_mission_mvv_items (
+          mvv_type
+        ),
+        user_mission_praised_users (
+          praised_user_id
+        )
+      `)
+      .eq("id", draftId)
+      .single();
+
+    if (fetchError || !draft) {
+      throw new Error("下書きが見つかりません");
+    }
+
+    // 作成者チェック
+    if (draft.created_by !== user.id) {
+      throw new Error("権限がありません");
+    }
+
+    // 下書き（pending）のみ公開可能
+    if (draft.status !== "pending") {
+      throw new Error("下書きのみ公開可能です");
+    }
+
+    // バリデーション
+    if (!draft.title || draft.title.trim().length === 0) {
+      throw new Error("タイトルを入力してください");
+    }
+    if (!draft.content || draft.content.trim().length === 0) {
+      throw new Error("内容を入力してください");
+    }
+
+    const praisedUserIds =
+      draft.user_mission_praised_users?.map(
+        (p: { praised_user_id: string }) => p.praised_user_id,
+      ) || [];
+
+    if (praisedUserIds.length === 0) {
+      throw new Error("賞賛に値するメンバーを少なくとも1人選択してください");
+    }
+
+    const mvvItems = draft.user_mission_mvv_items || [];
+    if (mvvItems.length === 0) {
+      throw new Error("MVV項目を少なくとも1つ選択してください");
+    }
+
+    // 下書きを公開（statusをapprovedに更新）
+    const { data: mission, error: updateError } = await supabase
+      .from("user_missions")
+      .update({
+        status: "approved",
+        approved_at: new Date().toISOString(),
+        approved_by: user.id,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", draftId)
+      .select()
+      .single();
+
+    if (updateError) {
+      console.error("下書き公開エラー:", updateError);
+      throw new Error(`下書きの公開に失敗しました: ${updateError.message}`);
+    }
+
+    // ポイント付与処理
+    await awardPointsForMissionCreation(
+      mission.id,
+      user.id,
+      praisedUserIds,
+      supabase,
+    );
+
+    // Slack通知を送信（Webhook URLが設定されている場合）
+    if (process.env.SLACK_WEBHOOK_URL) {
+      try {
+        await sendSlackNotificationForMissionCreation(
+          mission.id,
+          mission.title,
+          mission.content,
+          user.id,
+          praisedUserIds,
+          supabase,
+        );
+      } catch (slackError) {
+        console.error("Slack通知エラー（継続）:", slackError);
+        // Slack通知失敗しても公開処理は継続
+      }
+    }
+
+    // ページを再検証（Cloudflare Pages環境では無効化）
+    if (!process.env.CF_PAGES) {
+      try {
+        revalidatePath("/user-missions");
+        revalidatePath("/user-missions/my");
+        revalidatePath("/");
+      } catch (revalidateError) {
+        console.error("Revalidate エラー（継続）:", revalidateError);
+        // 再検証失敗しても公開処理は継続
+      }
+    }
+
+    return { success: true, missionId: mission.id };
+  } catch (error) {
+    console.error("publishDraftUserMissionAction総合エラー:", error);
+    throw error;
   }
 }

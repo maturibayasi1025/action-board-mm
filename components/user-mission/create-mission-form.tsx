@@ -1,6 +1,10 @@
 "use client";
 
-import { createUserMissionAction } from "@/app/(protected)/user-missions/actions";
+import {
+  type SaveDraftUserMissionInput,
+  createUserMissionAction,
+  saveDraftUserMissionAction,
+} from "@/app/(protected)/user-missions/actions";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -16,9 +20,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { createClient } from "@/lib/supabase/client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Search, X } from "lucide-react";
+import { Save, Search, X } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import * as z from "zod";
@@ -58,27 +62,58 @@ interface User {
   x_username: string | null;
 }
 
-export function CreateMissionForm() {
+interface CreateMissionFormProps {
+  draftId?: string;
+  initialData?: {
+    title: string;
+    content: string;
+    praisedUserIds: string[];
+    mvvItems: {
+      passionateExecution: boolean;
+      supremeRelationships: boolean;
+      happinessCirculation: boolean;
+    };
+  };
+}
+
+export function CreateMissionForm(
+  {
+    draftId,
+    initialData,
+  }: CreateMissionFormProps = {} as CreateMissionFormProps,
+) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [availableUsers, setAvailableUsers] = useState<User[]>([]);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [draftIdState, setDraftIdState] = useState<string | undefined>(draftId);
+  const [saveStatus, setSaveStatus] = useState<
+    "idle" | "saving" | "saved" | "error"
+  >("idle");
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const supabase = createClient();
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      title: "",
-      content: "",
-      praisedUserIds: [],
-      mvvItems: {
+      title: initialData?.title || "",
+      content: initialData?.content || "",
+      praisedUserIds: initialData?.praisedUserIds || [],
+      mvvItems: initialData?.mvvItems || {
         passionateExecution: false,
         supremeRelationships: false,
         happinessCirculation: false,
       },
     },
   });
+
+  // 初期データがある場合はselectedUsersも設定
+  useEffect(() => {
+    if (initialData?.praisedUserIds) {
+      setSelectedUsers(initialData.praisedUserIds);
+    }
+  }, [initialData]);
 
   // 利用可能なユーザーを取得
   useEffect(() => {
@@ -116,21 +151,98 @@ export function CreateMissionForm() {
     });
   };
 
-  async function onSubmit(values: FormData) {
-    setIsSubmitting(true);
+  // 自動保存関数
+  const autoSave = useCallback(async () => {
+    const values = form.getValues();
+
+    // タイトルと内容が両方空の場合は保存しない
+    if (!values.title.trim() && !values.content.trim()) {
+      return;
+    }
+
+    setSaveStatus("saving");
+
     try {
-      const result = await createUserMissionAction({
+      const draftInput: SaveDraftUserMissionInput = {
+        draftId: draftIdState,
         title: values.title,
         content: values.content,
         praisedUserIds: values.praisedUserIds,
         mvvItems: values.mvvItems,
-      });
+      };
 
-      toast.success("グッジョブを作成しました", {
-        description: "すぐにユーザーグッジョブ一覧に表示されます。",
-      });
+      const result = await saveDraftUserMissionAction(draftInput);
 
-      router.push("/user-missions/my");
+      if (result.success && result.missionId) {
+        setDraftIdState(result.missionId);
+        setSaveStatus("saved");
+        // 3秒後にidleに戻す
+        setTimeout(() => {
+          setSaveStatus("idle");
+        }, 3000);
+      } else {
+        setSaveStatus("error");
+      }
+    } catch (error) {
+      console.error("自動保存エラー:", error);
+      setSaveStatus("error");
+    }
+  }, [form, draftIdState]);
+
+  // フォームの値を監視して自動保存（debounce）
+  useEffect(() => {
+    const subscription = form.watch(() => {
+      // 既存のタイマーをクリア
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+
+      // 1.5秒後に自動保存
+      saveTimeoutRef.current = setTimeout(() => {
+        autoSave();
+      }, 1500);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, [form, autoSave]);
+
+  async function onSubmit(values: FormData) {
+    setIsSubmitting(true);
+    try {
+      // 下書きがある場合は公開、ない場合は新規作成
+      if (draftIdState) {
+        const { publishDraftUserMissionAction } = await import(
+          "@/app/(protected)/user-missions/actions"
+        );
+        const result = await publishDraftUserMissionAction(draftIdState);
+
+        if (result.success) {
+          toast.success("グッジョブを公開しました", {
+            description: "すぐにユーザーグッジョブ一覧に表示されます。",
+          });
+          router.push("/user-missions/my");
+        } else {
+          throw new Error("公開に失敗しました");
+        }
+      } else {
+        const result = await createUserMissionAction({
+          title: values.title,
+          content: values.content,
+          praisedUserIds: values.praisedUserIds,
+          mvvItems: values.mvvItems,
+        });
+
+        toast.success("グッジョブを作成しました", {
+          description: "すぐにユーザーグッジョブ一覧に表示されます。",
+        });
+
+        router.push("/user-missions/my");
+      }
     } catch (error: unknown) {
       console.error("グッジョブ作成エラー詳細:", {
         error: error,
@@ -161,9 +273,29 @@ export function CreateMissionForm() {
     }
   }
 
+  const getSaveStatusText = () => {
+    switch (saveStatus) {
+      case "saving":
+        return "下書き保存中...";
+      case "saved":
+        return "下書き保存済み";
+      case "error":
+        return "保存エラー";
+      default:
+        return "";
+    }
+  };
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        {/* 自動保存ステータス表示 */}
+        {saveStatus !== "idle" && (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Save className="h-4 w-4" />
+            <span>{getSaveStatusText()}</span>
+          </div>
+        )}
         <FormField
           control={form.control}
           name="title"
@@ -367,9 +499,15 @@ export function CreateMissionForm() {
           )}
         </div>
 
-        <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? "作成中..." : "グッジョブを作成"}
-        </Button>
+        <div className="flex gap-2">
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting
+              ? "公開中..."
+              : draftIdState
+                ? "グッジョブを公開"
+                : "グッジョブを作成"}
+          </Button>
+        </div>
       </form>
     </Form>
   );

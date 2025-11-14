@@ -121,9 +121,9 @@ async function MyMissionsList() {
     switch (status) {
       case "pending":
         return (
-          <Badge variant="secondary">
+          <Badge variant="outline">
             <Clock className="mr-1 h-3 w-3" />
-            承認待ち
+            下書き
           </Badge>
         );
       case "approved":
@@ -145,53 +145,107 @@ async function MyMissionsList() {
     }
   };
 
-  return (
-    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-      {missions.map((mission) => (
-        <Card key={mission.id} className="flex flex-col">
-          <CardHeader>
-            <div className="flex justify-between items-start mb-2">
-              <CardTitle className="line-clamp-2 flex-1">
-                {mission.title}
-              </CardTitle>
-              {getStatusBadge(mission.status)}
-            </div>
-            <CardDescription className="flex items-center gap-2">
-              <User className="h-4 w-4" />
-              {mission.praisedUsers.join(", ")}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex-1">
-            <p className="text-sm text-muted-foreground line-clamp-3">
-              {mission.content}
-            </p>
-            <div className="mt-4 flex flex-wrap gap-2">
-              {mission.mvvItems.passionateExecution && (
-                <Badge variant="outline">夢中になってやりきる</Badge>
-              )}
-              {mission.mvvItems.supremeRelationships && (
-                <Badge variant="outline">至高な人間関係</Badge>
-              )}
-              {mission.mvvItems.happinessCirculation && (
-                <Badge variant="outline">幸せの循環</Badge>
-              )}
-            </div>
-          </CardContent>
-          <CardFooter className="flex justify-between items-center">
-            {mission.status === "approved" && (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Heart className="h-4 w-4" />
-                {mission.likesCount}
-              </div>
+  // 下書きと公開済みを分離
+  const drafts = missions.filter((m) => m.status === "pending");
+  const published = missions.filter((m) => m.status !== "pending");
+
+  const renderMissionCard = (mission: (typeof missions)[0]) => (
+    <Card key={mission.id} className="flex flex-col">
+      <CardHeader>
+        <div className="flex justify-between items-start mb-2">
+          <CardTitle className="line-clamp-2 flex-1">{mission.title}</CardTitle>
+          {getStatusBadge(mission.status)}
+        </div>
+        <CardDescription className="flex items-center gap-2">
+          <User className="h-4 w-4" />
+          {mission.praisedUsers.length > 0
+            ? mission.praisedUsers.join(", ")
+            : "（未選択）"}
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="flex-1">
+        <p className="text-sm text-muted-foreground line-clamp-3">
+          {mission.content || "（内容未入力）"}
+        </p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          {mission.mvvItems.passionateExecution && (
+            <Badge variant="outline">夢中になってやりきる</Badge>
+          )}
+          {mission.mvvItems.supremeRelationships && (
+            <Badge variant="outline">至高な人間関係</Badge>
+          )}
+          {mission.mvvItems.happinessCirculation && (
+            <Badge variant="outline">幸せの循環</Badge>
+          )}
+          {!mission.mvvItems.passionateExecution &&
+            !mission.mvvItems.supremeRelationships &&
+            !mission.mvvItems.happinessCirculation && (
+              <span className="text-xs text-muted-foreground">
+                MVV項目未選択
+              </span>
             )}
-            <Link href={`/user-missions/${mission.id}`} className="ml-auto">
-              <Button variant="ghost" size="sm">
-                詳細を見る
-              </Button>
-            </Link>
-          </CardFooter>
-        </Card>
-      ))}
+        </div>
+      </CardContent>
+      <CardFooter className="flex justify-between items-center">
+        {mission.status === "approved" && (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Heart className="h-4 w-4" />
+            {mission.likesCount}
+          </div>
+        )}
+        {mission.status === "pending" ? (
+          <Link href={`/user-missions/${mission.id}/edit`} className="ml-auto">
+            <Button variant="default" size="sm">
+              編集する
+            </Button>
+          </Link>
+        ) : (
+          <Link href={`/user-missions/${mission.id}`} className="ml-auto">
+            <Button variant="ghost" size="sm">
+              詳細を見る
+            </Button>
+          </Link>
+        )}
+      </CardFooter>
+    </Card>
+  );
+
+  return (
+    <div className="space-y-8">
+      {/* 下書きセクション */}
+      {drafts.length > 0 && (
+        <div>
+          <h2 className="text-2xl font-semibold mb-4">下書き</h2>
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {drafts.map(renderMissionCard)}
+          </div>
+        </div>
+      )}
+
+      {/* 公開済みセクション */}
+      {published.length > 0 && (
+        <div>
+          <h2 className="text-2xl font-semibold mb-4">公開済み</h2>
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {published.map(renderMissionCard)}
+          </div>
+        </div>
+      )}
+
+      {/* 下書きも公開済みもない場合 */}
+      {drafts.length === 0 && published.length === 0 && (
+        <div className="text-center py-12">
+          <p className="text-muted-foreground mb-4">
+            まだグッジョブを作成していません
+          </p>
+          <Link href="/user-missions/new">
+            <Button>
+              <Plus className="mr-2 h-4 w-4" />
+              最初のグッジョブを作成
+            </Button>
+          </Link>
+        </div>
+      )}
     </div>
   );
 }
