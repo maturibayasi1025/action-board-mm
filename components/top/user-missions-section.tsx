@@ -11,7 +11,7 @@ import {
 import { LikeButton } from "@/components/user-mission/like-button";
 import { createClient } from "@/lib/supabase/server";
 import type { Like, MvvItem, PraisedUser } from "@/lib/types/user-missions";
-import { ArrowRight, Plus, User } from "lucide-react";
+import { ArrowRight, PenTool, Plus, User } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
 
@@ -49,6 +49,15 @@ async function getUserMissionsServer() {
     const {
       data: { user },
     } = await supabase.auth.getUser();
+
+    // 作成者名を一括取得
+    const creatorIds = Array.from(new Set(data.map((m) => m.created_by)));
+    const { data: creators } = await supabase
+      .from("private_users")
+      .select("id, name")
+      .in("id", creatorIds);
+
+    const creatorMap = new Map(creators?.map((c) => [c.id, c.name]) || []);
 
     const results = [];
 
@@ -95,6 +104,7 @@ async function getUserMissionsServer() {
         const missionResult = {
           id: mission.id,
           createdBy: mission.created_by,
+          createdByName: creatorMap.get(mission.created_by) || "不明なユーザー",
           title: mission.title,
           content: mission.content,
           praisedUsers:
@@ -144,6 +154,7 @@ async function getUserMissionsServer() {
         results.push({
           id: mission.id,
           createdBy: mission.created_by,
+          createdByName: creatorMap.get(mission.created_by) || "不明なユーザー",
           title: mission.title,
           content: mission.content,
           praisedUsers: [],
@@ -201,10 +212,18 @@ async function UserMissionsList() {
                 <CardTitle className="line-clamp-2 text-lg">
                   {mission.title}
                 </CardTitle>
-                <CardDescription className="flex items-center gap-2">
-                  <User className="h-4 w-4" />
-                  {mission.praisedUsers.join(", ")}
-                </CardDescription>
+                <div className="space-y-1">
+                  <CardDescription className="flex items-center gap-2">
+                    <PenTool className="h-4 w-4" />
+                    作成者: {mission.createdByName}
+                  </CardDescription>
+                  {mission.praisedUsers.length > 0 && (
+                    <CardDescription className="flex items-center gap-2">
+                      <User className="h-4 w-4" />
+                      {mission.praisedUsers.join(", ")}
+                    </CardDescription>
+                  )}
+                </div>
               </CardHeader>
               <CardContent className="flex-1">
                 <p className="text-sm text-muted-foreground line-clamp-3">
