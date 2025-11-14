@@ -107,10 +107,10 @@ export default function Mission({
           <Button
             variant="default"
             className={clsx(
-              "w-full rounded-full py-6 text-base font-bold text-white shadow-md hover:shadow-lg",
+              "w-full rounded-full py-6 text-base font-bold shadow-md hover:shadow-lg",
               hasReachedMaxAchievements
-                ? "bg-gradient-to-r from-gray-400 to-gray-500 hover:from-gray-500 hover:to-gray-600"
-                : "bg-gradient-to-r from-[#AA8000] to-[#CC9933] hover:from-[#886600] hover:to-[#AA8000]",
+                ? "bg-gradient-to-r from-gray-400 to-gray-500 hover:from-gray-500 hover:to-gray-600 text-white"
+                : "bg-gradient-to-r from-[#F0DC00] to-[#FFE800] hover:from-[#D4C400] hover:to-[#F0DC00] text-gray-900",
             )}
           >
             {hasReachedMaxAchievements ? "達成内容を見る →" : "詳細を見る →"}

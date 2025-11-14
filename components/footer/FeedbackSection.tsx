@@ -45,7 +45,7 @@ export function FeedbackSection() {
           target="_blank"
           rel="noopener noreferrer"
           aria-label="アクションボードへのご意見フォーム（新しいタブで開きます）"
-          className="inline-flex items-center justify-center whitespace-nowrap ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary hover:bg-primary/90 h-10 px-8 max-w-xs rounded-full py-6 text-base font-bold text-white shadow-md hover:shadow-lg bg-gradient-to-r from-[#AA8000] to-[#CC9933] hover:from-[#886600] hover:to-[#AA8000]"
+          className="inline-flex items-center justify-center whitespace-nowrap ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary hover:bg-primary/90 h-10 px-8 max-w-xs rounded-full py-6 text-base font-bold text-gray-900 shadow-md hover:shadow-lg bg-gradient-to-r from-[#F0DC00] to-[#FFE800] hover:from-[#D4C400] hover:to-[#F0DC00]"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
