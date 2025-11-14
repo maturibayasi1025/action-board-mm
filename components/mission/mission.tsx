@@ -110,7 +110,7 @@ export default function Mission({
               "w-full rounded-full py-6 text-base font-bold text-white shadow-md hover:shadow-lg",
               hasReachedMaxAchievements
                 ? "bg-gradient-to-r from-gray-400 to-gray-500 hover:from-gray-500 hover:to-gray-600"
-                : "bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700",
+                : "bg-gradient-to-r from-[#AA8000] to-[#CC9933] hover:from-[#886600] hover:to-[#AA8000]",
             )}
           >
             {hasReachedMaxAchievements ? "達成内容を見る →" : "詳細を見る →"}

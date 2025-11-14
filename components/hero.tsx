@@ -15,19 +15,19 @@ export default async function Hero() {
   }
 
   return (
-    <section className="relative bg-gradient-to-br from-emerald-50 via-teal-50 to-green-50 overflow-hidden">
+    <section className="relative bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-50 overflow-hidden">
       {/* 背景グラデーションオーバーレイ */}
-      <div className="absolute inset-0 bg-gradient-to-br from-emerald-100/50 via-transparent to-teal-100/40" />
+      <div className="absolute inset-0 bg-gradient-to-br from-amber-100/50 via-transparent to-yellow-100/40" />
 
       {/* 放射状グラデーション */}
-      <div className="absolute inset-0 bg-gradient-radial from-emerald-200/30 via-transparent to-transparent" />
+      <div className="absolute inset-0 bg-gradient-radial from-amber-200/30 via-transparent to-transparent" />
 
       {/* パターン背景 */}
       <div className="absolute inset-0 opacity-5">
         <div
           className="absolute inset-0"
           style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%2310B981' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23AA8000' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
           }}
         />
       </div>
@@ -37,7 +37,7 @@ export default async function Hero() {
           <h1 className="text-4xl md:text-5xl lg:text-6xl text-gray-900 mb-4 leading-tight">
             MAISON MARC経済圏
             <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#AA8000] via-[#CC9933] to-[#886600]">
               アクションボード
             </span>
           </h1>
@@ -50,7 +50,7 @@ export default async function Hero() {
               <Link href="/">
                 <Button
                   size="lg"
-                  className="min-w-72 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-700 hover:via-teal-700 hover:to-emerald-800 text-white font-bold py-6 px-8 rounded-full shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300"
+                  className="min-w-72 bg-gradient-to-r from-[#AA8000] via-[#CC9933] to-[#886600] hover:from-[#886600] hover:via-[#AA8000] hover:to-[#664400] text-white font-bold py-6 px-8 rounded-full shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300"
                 >
                   <span className="text-lg">
                     🚀 MAISON MARC経済圏ともに手を動かす

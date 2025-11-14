@@ -10,19 +10,19 @@
     --card-foreground: 0 0% 20%;
     --popover: 0 0% 100%;
     --popover-foreground: 0 0% 20%;
-    --primary: 158 64% 42%;
+    --primary: 38 100% 33%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 156 72% 67%;
+    --secondary: 38 80% 50%;
     --secondary-foreground: 0 0% 20%;
     --muted: 0 0% 96.1%;
     --muted-foreground: 0 0% 45.1%;
-    --accent: 158 64% 42%;
+    --accent: 38 100% 33%;
     --accent-foreground: 0 0% 100%;
     --destructive: 4 100% 60%;
     --destructive-foreground: 0 0% 98%;
     --border: 0 0% 89.8%;
     --input: 0 0% 89.8%;
-    --ring: 158 64% 42%;
+    --ring: 38 100% 33%;
     --radius: 0.75rem;
     --chart-1: 12 76% 61%;
     --chart-2: 173 58% 39%;
@@ -83,15 +83,15 @@
 
 @layer utilities {
   .text-gradient {
-    @apply text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-600;
+    @apply text-transparent bg-clip-text bg-gradient-to-r from-[#AA8000] to-[#CC9933];
   }
 
   .bg-gradient-primary {
-    @apply bg-gradient-to-r from-emerald-600 to-teal-600;
+    @apply bg-gradient-to-r from-[#AA8000] to-[#CC9933];
   }
 
   .bg-gradient-secondary {
-    @apply bg-gradient-to-r from-teal-600 to-emerald-600;
+    @apply bg-gradient-to-r from-[#CC9933] to-[#AA8000];
   }
 
   .bg-gradient-hero {
