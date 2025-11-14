@@ -484,7 +484,15 @@ async function sendSlackNotificationForMissionCreation(
     // Slack通知APIを呼び出し（サーバーサイド）
     const apiUrl =
       process.env.NEXT_PUBLIC_APP_ORIGIN || "http://localhost:3000";
-    await fetch(`${apiUrl}/api/slack-notification`, {
+
+    if (!apiUrl) {
+      console.warn(
+        "[Slack通知] NEXT_PUBLIC_APP_ORIGINが設定されていません。Slack通知をスキップします。",
+      );
+      return;
+    }
+
+    const response = await fetch(`${apiUrl}/api/slack-notification`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -498,8 +506,36 @@ async function sendSlackNotificationForMissionCreation(
         },
       }),
     });
+
+    if (!response.ok) {
+      const errorText = await response
+        .text()
+        .catch(() => "エラーレスポンスの取得に失敗");
+      console.error(
+        `[Slack通知] API呼び出し失敗: status=${response.status}, statusText=${response.statusText}, error=${errorText}`,
+      );
+      throw new Error(
+        `Slack通知API呼び出し失敗: ${response.status} ${response.statusText}`,
+      );
+    }
+
+    const result = await response.json().catch(() => null);
+    if (result && !result.success) {
+      console.error("[Slack通知] API呼び出し失敗:", result);
+      throw new Error(
+        `Slack通知API呼び出し失敗: ${result.error || "不明なエラー"}`,
+      );
+    }
+
+    console.log("[Slack通知] グッジョブ作成通知を送信しました:", missionId);
   } catch (error) {
-    console.error("Slack通知エラー:", error);
+    console.error("[Slack通知] エラー詳細:", {
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      missionId,
+      title,
+    });
+    // エラーを再スローしない（グッジョブ作成処理は継続）
   }
 }
 
@@ -536,7 +572,15 @@ async function sendSlackNotificationForLike(
     // Slack通知APIを呼び出し（サーバーサイド）
     const apiUrl =
       process.env.NEXT_PUBLIC_APP_ORIGIN || "http://localhost:3000";
-    await fetch(`${apiUrl}/api/slack-notification`, {
+
+    if (!apiUrl) {
+      console.warn(
+        "[Slack通知] NEXT_PUBLIC_APP_ORIGINが設定されていません。Slack通知をスキップします。",
+      );
+      return;
+    }
+
+    const response = await fetch(`${apiUrl}/api/slack-notification`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -549,7 +593,35 @@ async function sendSlackNotificationForLike(
         },
       }),
     });
+
+    if (!response.ok) {
+      const errorText = await response
+        .text()
+        .catch(() => "エラーレスポンスの取得に失敗");
+      console.error(
+        `[Slack通知] API呼び出し失敗: status=${response.status}, statusText=${response.statusText}, error=${errorText}`,
+      );
+      throw new Error(
+        `Slack通知API呼び出し失敗: ${response.status} ${response.statusText}`,
+      );
+    }
+
+    const result = await response.json().catch(() => null);
+    if (result && !result.success) {
+      console.error("[Slack通知] API呼び出し失敗:", result);
+      throw new Error(
+        `Slack通知API呼び出し失敗: ${result.error || "不明なエラー"}`,
+      );
+    }
+
+    console.log("[Slack通知] いいね通知を送信しました:", missionId);
   } catch (error) {
-    console.error("Slack通知エラー:", error);
+    console.error("[Slack通知] エラー詳細:", {
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      missionId,
+      userId,
+    });
+    // エラーを再スローしない（いいね処理は継続）
   }
 }
