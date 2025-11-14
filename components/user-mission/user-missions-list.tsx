@@ -241,7 +241,7 @@ export function UserMissionsList({ missions }: { missions: UserMission[] }) {
                 <CardDescription className="flex flex-col gap-2">
                   <div className="flex items-center gap-2">
                     <PenTool className="h-4 w-4" />
-                    {mission.createdByName}さんが賞賛しました
+                    {mission.createdByName}さんがグッジョブしました
                   </div>
                   {mission.praisedUsers.length > 0 && (
                     <div className="flex items-center gap-2">
