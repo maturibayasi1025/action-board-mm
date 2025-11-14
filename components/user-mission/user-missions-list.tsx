@@ -30,7 +30,10 @@ type UserMission = {
   title: string;
   content: string;
   praisedUsers: string[];
-  praisedUsersWithXUsername?: Array<{ name: string; x_username?: string }>;
+  praisedUsersWithXUsername?: Array<{
+    name: string;
+    x_username: string | null;
+  }>;
   status: string;
   rejectionReason: string | null;
   createdAt: string;
