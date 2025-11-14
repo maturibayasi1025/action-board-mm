@@ -11,6 +11,7 @@ type SlackUser = {
   real_name?: string;
   display_name?: string;
   is_bot?: boolean;
+  deleted?: boolean;
   profile?: {
     display_name?: string;
     real_name?: string;
@@ -67,16 +68,19 @@ function findSlackUserIdByName(
     return null;
   }
 
-  // 大文字小文字を区別しない比較
-  const normalizedUserName = userName.trim().toLowerCase();
+  // 大文字小文字を区別しない比較（前後の空白と中間のスペースも除去）
+  const normalizedUserName = userName.trim().replace(/\s+/g, "").toLowerCase();
+  if (!normalizedUserName) {
+    return null;
+  }
 
   for (const user of slackUsers) {
-    // ボットユーザーは除外
-    if (user.id.startsWith("B") || user.is_bot) {
+    // ボットユーザーと解除済みアカウントは除外
+    if (user.id.startsWith("B") || user.is_bot || user.deleted === true) {
       continue;
     }
 
-    // 表示名、実名、ユーザー名でマッチング
+    // 表示名、実名、ユーザー名でマッチング（部分一致、スペースも除去）
     const displayName = (
       user.profile?.display_name ||
       user.display_name ||
@@ -85,16 +89,24 @@ function findSlackUserIdByName(
       ""
     )
       .trim()
+      .replace(/\s+/g, "")
       .toLowerCase();
 
-    const realName = (user.real_name || user.name || "").trim().toLowerCase();
+    const realName = (user.real_name || user.name || "")
+      .trim()
+      .replace(/\s+/g, "")
+      .toLowerCase();
 
-    const userNameLower = (user.name || "").trim().toLowerCase();
+    const userNameLower = (user.name || "")
+      .trim()
+      .replace(/\s+/g, "")
+      .toLowerCase();
 
+    // 部分一致マッチング（検索対象の名前がSlackのユーザー名に含まれているかチェック）
     if (
-      displayName === normalizedUserName ||
-      realName === normalizedUserName ||
-      userNameLower === normalizedUserName
+      displayName?.includes(normalizedUserName) ||
+      realName?.includes(normalizedUserName) ||
+      userNameLower?.includes(normalizedUserName)
     ) {
       return user.id;
     }
@@ -105,7 +117,7 @@ function findSlackUserIdByName(
 
 /**
  * 賞賛対象者の名前リストをメンション形式に変換
- * 例: "田中太郎, 佐藤花子" -> "<@U123456> 田中太郎, <@U789012> 佐藤花子"
+ * 例: "田中太郎, 佐藤花子" -> "<@U123456>, <@U789012>"
  */
 function formatPraisedNamesWithMentions(
   praisedNames: string,
@@ -115,20 +127,23 @@ function formatPraisedNamesWithMentions(
     return "";
   }
 
-  // カンマで分割して各ユーザー名を処理
-  const names = praisedNames.split(",").map((name) => name.trim());
+  // カンマで分割して各ユーザー名を処理（前後の空白を確実に除去）
+  const names = praisedNames
+    .split(",")
+    .map((name) => name.trim())
+    .filter((name) => name.length > 0); // 空文字列を除外
   const formattedNames: string[] = [];
 
   for (const name of names) {
-    if (!name) continue;
+    if (!name || name.trim() === "") continue;
 
-    const slackUserId = findSlackUserIdByName(name, slackUsers);
+    const slackUserId = findSlackUserIdByName(name.trim(), slackUsers);
     if (slackUserId) {
-      // メンション形式に変換: <@USER_ID> 名前
-      formattedNames.push(`<@${slackUserId}> ${name}`);
+      // メンション形式のみ（名前は表示しない）
+      formattedNames.push(`<@${slackUserId}>`);
     } else {
       // SlackユーザーIDが見つからない場合は名前のみ
-      formattedNames.push(name);
+      formattedNames.push(name.trim());
     }
   }
 
