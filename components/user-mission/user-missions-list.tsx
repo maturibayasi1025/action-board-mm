@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { LikeButton } from "@/components/user-mission/like-button";
-import { Calendar, Plus, Search, User, X } from "lucide-react";
+import { Calendar, PenTool, Plus, Search, User, X } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
@@ -225,9 +225,15 @@ export function UserMissionsList({ missions }: { missions: UserMission[] }) {
                 <CardTitle className="line-clamp-2">{mission.title}</CardTitle>
                 <CardDescription className="flex flex-col gap-2">
                   <div className="flex items-center gap-2">
-                    <User className="h-4 w-4" />
-                    {mission.praisedUsers.join(", ")}
+                    <PenTool className="h-4 w-4" />
+                    {mission.createdByName}さんが賞賛しました
                   </div>
+                  {mission.praisedUsers.length > 0 && (
+                    <div className="flex items-center gap-2">
+                      <User className="h-4 w-4" />
+                      {mission.praisedUsers.join(", ")}
+                    </div>
+                  )}
                   <div className="flex items-center gap-2 text-xs">
                     <Calendar className="h-3 w-3" />
                     {formatDate(mission.createdAt)}
