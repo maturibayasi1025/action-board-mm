@@ -4,6 +4,7 @@ export interface PraisedUser {
   praised_user_id: string;
   private_users: {
     name: string;
+    x_username?: string;
   } | null;
 }
 

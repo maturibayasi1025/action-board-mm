@@ -30,6 +30,7 @@ type UserMission = {
   title: string;
   content: string;
   praisedUsers: string[];
+  praisedUsersWithXUsername?: Array<{ name: string; x_username?: string }>;
   status: string;
   rejectionReason: string | null;
   createdAt: string;
@@ -72,6 +73,17 @@ export function UserMissionsList({ missions }: { missions: UserMission[] }) {
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter((mission) => {
+        // praisedUsersWithXUsernameがあればそれを使用、なければpraisedUsersを使用
+        if (mission.praisedUsersWithXUsername) {
+          return mission.praisedUsersWithXUsername.some((user) => {
+            const nameMatch = user.name.toLowerCase().includes(query);
+            const xUsernameMatch = user.x_username
+              ? user.x_username.toLowerCase().includes(query)
+              : false;
+            return nameMatch || xUsernameMatch;
+          });
+        }
+        // フォールバック: 文字列配列の場合
         return mission.praisedUsers.some((userName) =>
           userName.toLowerCase().includes(query),
         );

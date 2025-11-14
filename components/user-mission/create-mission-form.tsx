@@ -55,6 +55,7 @@ type FormData = z.infer<typeof formSchema>;
 interface User {
   id: string;
   name: string;
+  x_username?: string;
 }
 
 export function CreateMissionForm() {
@@ -84,7 +85,7 @@ export function CreateMissionForm() {
     async function fetchUsers() {
       const { data, error } = await supabase
         .from("private_users")
-        .select("id, name")
+        .select("id, name, x_username")
         .order("name");
 
       if (data && !error) {
@@ -95,9 +96,14 @@ export function CreateMissionForm() {
   }, [supabase]);
 
   // 検索クエリに基づいてユーザーをフィルタリング
-  const filteredUsers = availableUsers.filter((user) =>
-    user.name.toLowerCase().includes(searchQuery.toLowerCase()),
-  );
+  const filteredUsers = availableUsers.filter((user) => {
+    const query = searchQuery.toLowerCase();
+    const nameMatch = user.name.toLowerCase().includes(query);
+    const xUsernameMatch = user.x_username
+      ? user.x_username.toLowerCase().includes(query)
+      : false;
+    return nameMatch || xUsernameMatch;
+  });
 
   // ユーザーを選択/選択解除
   const toggleUser = (userId: string) => {

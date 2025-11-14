@@ -31,7 +31,8 @@ async function getUserMissionsServer() {
       user_mission_praised_users (
         praised_user_id,
         private_users!praised_user_id (
-          name
+          name,
+          x_username
         )
       )
     `)
@@ -70,6 +71,13 @@ async function getUserMissionsServer() {
       mission.user_mission_praised_users
         ?.map((p: PraisedUser) => p.private_users?.name)
         .filter((name): name is string => Boolean(name)) || [],
+    praisedUsersWithXUsername:
+      mission.user_mission_praised_users
+        ?.map((p: PraisedUser) => ({
+          name: p.private_users?.name || "",
+          x_username: p.private_users?.x_username,
+        }))
+        .filter((user) => Boolean(user.name)) || [],
     status: mission.status,
     rejectionReason: mission.rejection_reason,
     createdAt: mission.created_at,
