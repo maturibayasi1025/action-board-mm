@@ -215,7 +215,7 @@ async function UserMissionsList() {
                 <div className="space-y-1">
                   <CardDescription className="flex items-center gap-2">
                     <PenTool className="h-4 w-4" />
-                    {mission.createdByName}さんが賞賛しました
+                    {mission.createdByName}さんがグッジョブしました
                   </CardDescription>
                   {mission.praisedUsers.length > 0 && (
                     <CardDescription className="flex items-center gap-2">
