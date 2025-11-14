@@ -55,7 +55,7 @@ type FormData = z.infer<typeof formSchema>;
 interface User {
   id: string;
   name: string;
-  x_username?: string;
+  x_username: string | null;
 }
 
 export function CreateMissionForm() {

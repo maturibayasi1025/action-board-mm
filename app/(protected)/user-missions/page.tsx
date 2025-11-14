@@ -75,7 +75,7 @@ async function getUserMissionsServer() {
       mission.user_mission_praised_users
         ?.map((p: PraisedUser) => ({
           name: p.private_users?.name || "",
-          x_username: p.private_users?.x_username,
+          x_username: p.private_users?.x_username ?? null,
         }))
         .filter((user) => Boolean(user.name)) || [],
     status: mission.status,
