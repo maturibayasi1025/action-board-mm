@@ -31,7 +31,7 @@ jest.mock("@/components/ui/progress-bar-animated", () => ({
     return (
       <div data-testid="progress-bar" className={className}>
         <div className="w-full bg-gray-200 rounded-full h-3 shadow-inner">
-          <div className="bg-gradient-to-r from-[#30baa7] to-[#47c991] h-3 rounded-full transition-all duration-300 shadow-sm" />
+          <div className="bg-gradient-to-r from-[#F0DC00] to-[#FFE800] h-3 rounded-full transition-all duration-300 shadow-sm" />
         </div>
       </div>
     );
