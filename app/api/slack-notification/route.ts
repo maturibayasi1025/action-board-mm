@@ -2,6 +2,139 @@ import { type NextRequest, NextResponse } from "next/server";
 
 export const runtime = "edge";
 
+/**
+ * Slackユーザー情報の型定義
+ */
+type SlackUser = {
+  id: string;
+  name: string;
+  real_name?: string;
+  display_name?: string;
+  is_bot?: boolean;
+  profile?: {
+    display_name?: string;
+    real_name?: string;
+  };
+};
+
+/**
+ * Slack APIのusers.listを使用して全ユーザーを取得
+ */
+async function getSlackUsersList(): Promise<SlackUser[]> {
+  const botToken = process.env.SLACK_BOT_TOKEN;
+  if (!botToken) {
+    console.warn(
+      "[Slack通知] SLACK_BOT_TOKENが設定されていません。ユーザー情報を取得できません。",
+    );
+    return [];
+  }
+
+  try {
+    const response = await fetch("https://slack.com/api/users.list", {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${botToken}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      console.error(`[Slack通知] Slack API エラー: ${response.status}`);
+      return [];
+    }
+
+    const data = await response.json();
+    if (!data.ok) {
+      console.error(`[Slack通知] Slack API エラー: ${data.error}`);
+      return [];
+    }
+
+    return data.members || [];
+  } catch (error) {
+    console.error("[Slack通知] Slack API呼び出しエラー:", error);
+    return [];
+  }
+}
+
+/**
+ * ユーザー名からSlackユーザーIDを取得（名前でマッチング）
+ */
+function findSlackUserIdByName(
+  userName: string,
+  slackUsers: SlackUser[],
+): string | null {
+  if (!userName || slackUsers.length === 0) {
+    return null;
+  }
+
+  // 大文字小文字を区別しない比較
+  const normalizedUserName = userName.trim().toLowerCase();
+
+  for (const user of slackUsers) {
+    // ボットユーザーは除外
+    if (user.id.startsWith("B") || user.is_bot) {
+      continue;
+    }
+
+    // 表示名、実名、ユーザー名でマッチング
+    const displayName = (
+      user.profile?.display_name ||
+      user.display_name ||
+      user.real_name ||
+      user.name ||
+      ""
+    )
+      .trim()
+      .toLowerCase();
+
+    const realName = (user.real_name || user.name || "").trim().toLowerCase();
+
+    const userNameLower = (user.name || "").trim().toLowerCase();
+
+    if (
+      displayName === normalizedUserName ||
+      realName === normalizedUserName ||
+      userNameLower === normalizedUserName
+    ) {
+      return user.id;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * 賞賛対象者の名前リストをメンション形式に変換
+ * 例: "田中太郎, 佐藤花子" -> "<@U123456> 田中太郎, <@U789012> 佐藤花子"
+ */
+function formatPraisedNamesWithMentions(
+  praisedNames: string,
+  slackUsers: SlackUser[],
+): string {
+  if (!praisedNames || praisedNames.trim() === "") {
+    return "";
+  }
+
+  // カンマで分割して各ユーザー名を処理
+  const names = praisedNames.split(",").map((name) => name.trim());
+  const formattedNames: string[] = [];
+
+  for (const name of names) {
+    if (!name) continue;
+
+    const slackUserId = findSlackUserIdByName(name, slackUsers);
+    if (slackUserId) {
+      // メンション形式に変換: <@USER_ID> 名前
+      formattedNames.push(`<@${slackUserId}> ${name}`);
+    } else {
+      // SlackユーザーIDが見つからない場合は名前のみ
+      formattedNames.push(name);
+    }
+  }
+
+  return formattedNames.join(", ");
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -40,6 +173,14 @@ export async function POST(request: NextRequest) {
     // ユーザーグッジョブ用のメッセージ構築
     if (type === "user_mission_created") {
       const { title, content, creatorName, praisedNames } = data;
+
+      // Slackユーザーリストを取得してメンション形式に変換
+      const slackUsers = await getSlackUsersList();
+      const praisedNamesWithMentions = formatPraisedNamesWithMentions(
+        praisedNames || "",
+        slackUsers,
+      );
+
       slackMessage = {
         text: ":tada: 新しいグッジョブが作成されました！",
         blocks: [
@@ -63,7 +204,7 @@ export async function POST(request: NextRequest) {
               },
               {
                 type: "mrkdwn",
-                text: `*賞賛対象:*\n${praisedNames}`,
+                text: `*賞賛対象:*\n${praisedNamesWithMentions || praisedNames || "なし"}`,
               },
             ],
           },
