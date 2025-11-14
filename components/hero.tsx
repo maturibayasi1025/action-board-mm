@@ -42,7 +42,7 @@ export default async function Hero() {
             </span>
           </h1>
           <p className="text-lg md:text-xl text-gray-700 mb-8 font-medium">
-            テクノロジーで経済圏をかえる。共存共栄・相互扶助をもっと身近に。
+            テクノロジーで経済圏を繋ぐ。共存共栄・相互扶助をもっと身近に。
           </p>
 
           {!user && (
