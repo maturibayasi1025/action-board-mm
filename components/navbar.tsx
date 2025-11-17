@@ -47,6 +47,9 @@ export default async function Navbar() {
             <div className="font-semibold hidden sm:flex">
               <Link href="/user-missions/my">マイグッジョブ</Link>
             </div>
+            <div className="font-semibold hidden sm:flex">
+              <Link href="/user-missions/praised">自分宛のグッジョブ</Link>
+            </div>
             <HeaderAuth />
           </div>
         ) : (
@@ -78,6 +81,11 @@ export default async function Navbar() {
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
                       <Link href="/user-missions/my">マイグッジョブ</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/user-missions/praised">
+                        自分宛のグッジョブ
+                      </Link>
                     </DropdownMenuItem>
                     {/* <DropdownMenuItem asChild>
                       <Link href="/map/posting">機関誌配布マップ</Link>
