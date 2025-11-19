@@ -52,6 +52,20 @@ async function getUserMissionById(id: string) {
     data: { user },
   } = await supabase.auth.getUser();
 
+  // 外部ユーザー（メンバー以外）を取得
+  const { data: praisedExternalUsers, error: praisedExternalError } =
+    await supabase
+      .from("user_mission_praised_external_users")
+      .select("praised_person_name")
+      .eq("user_mission_id", data.id);
+
+  if (praisedExternalError) {
+    console.error(
+      `Praised external users error for mission ${data.id}:`,
+      praisedExternalError,
+    );
+  }
+
   return {
     id: data.id,
     createdBy: data.created_by,
@@ -62,6 +76,10 @@ async function getUserMissionById(id: string) {
       data.user_mission_praised_users
         ?.map((p: unknown) => (p as unknown as PraisedUser).private_users?.name)
         .filter(Boolean) || [],
+    praisedExternalUsers:
+      praisedExternalUsers?.map(
+        (p: { praised_person_name: string }) => p.praised_person_name,
+      ) || [],
     status: data.status,
     rejectionReason: data.rejection_reason,
     createdAt: data.created_at,
@@ -113,10 +131,20 @@ export default async function UserMissionDetailPage({
               <CardTitle className="text-2xl mb-4">{mission.title}</CardTitle>
               <CardDescription>
                 <div className="flex flex-col gap-2">
-                  <div className="flex items-center gap-2">
-                    <User className="h-4 w-4" />
-                    <span>賞賛対象: {mission.praisedUsers.join(", ")}</span>
-                  </div>
+                  {(mission.praisedUsers.length > 0 ||
+                    (mission.praisedExternalUsers &&
+                      mission.praisedExternalUsers.length > 0)) && (
+                    <div className="flex items-center gap-2">
+                      <User className="h-4 w-4" />
+                      <span>
+                        賞賛対象:{" "}
+                        {[
+                          ...mission.praisedUsers,
+                          ...(mission.praisedExternalUsers || []),
+                        ].join(", ")}
+                      </span>
+                    </div>
+                  )}
                   <div className="flex items-center gap-2">
                     <Calendar className="h-4 w-4" />
                     <span>

@@ -78,6 +78,29 @@ async function getPraisedMissionsServer(userId: string) {
 
   const creatorMap = new Map(creators?.map((c) => [c.id, c.name]) || []);
 
+  // 外部ユーザーを一括取得
+  const dataMissionIds = data.map((m) => m.id);
+  const { data: allExternalUsers, error: externalUsersError } = await supabase
+    .from("user_mission_praised_external_users")
+    .select("user_mission_id, praised_person_name")
+    .in("user_mission_id", dataMissionIds);
+
+  if (externalUsersError) {
+    console.error("Error fetching external users:", externalUsersError);
+  }
+
+  // ミッションIDごとに外部ユーザーをグループ化
+  const externalUsersMap = new Map<string, string[]>();
+  if (allExternalUsers) {
+    for (const eu of allExternalUsers) {
+      const missionId = eu.user_mission_id;
+      if (!externalUsersMap.has(missionId)) {
+        externalUsersMap.set(missionId, []);
+      }
+      externalUsersMap.get(missionId)?.push(eu.praised_person_name);
+    }
+  }
+
   return data.map((mission) => ({
     id: mission.id,
     createdBy: mission.created_by,
@@ -88,6 +111,7 @@ async function getPraisedMissionsServer(userId: string) {
       mission.user_mission_praised_users
         ?.map((p: unknown) => (p as unknown as PraisedUser).private_users?.name)
         .filter(Boolean) || [],
+    praisedExternalUsers: externalUsersMap.get(mission.id) || [],
     status: mission.status as "pending" | "approved" | "rejected",
     rejectionReason: mission.rejection_reason || undefined,
     createdAt: mission.created_at,
@@ -150,10 +174,20 @@ async function PraisedMissionsList() {
           <CardTitle className="line-clamp-2 flex-1">{mission.title}</CardTitle>
         </div>
         <CardDescription className="flex flex-col gap-2">
-          <div className="flex items-center gap-2">
-            <User className="h-4 w-4" />
-            <span>賞賛対象: {mission.praisedUsers.join(", ")}</span>
-          </div>
+          {(mission.praisedUsers.length > 0 ||
+            (mission.praisedExternalUsers &&
+              mission.praisedExternalUsers.length > 0)) && (
+            <div className="flex items-center gap-2">
+              <User className="h-4 w-4" />
+              <span>
+                賞賛対象:{" "}
+                {[
+                  ...mission.praisedUsers,
+                  ...(mission.praisedExternalUsers || []),
+                ].join(", ")}
+              </span>
+            </div>
+          )}
           <div className="text-sm text-muted-foreground">
             作成者: {mission.createdByName}
           </div>

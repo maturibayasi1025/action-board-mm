@@ -61,6 +61,29 @@ async function getUserMissionsServer() {
 
   const creatorMap = new Map(creators?.map((c) => [c.id, c.name]) || []);
 
+  // 外部ユーザーを一括取得
+  const missionIds = data.map((m) => m.id);
+  const { data: allExternalUsers, error: externalUsersError } = await supabase
+    .from("user_mission_praised_external_users")
+    .select("user_mission_id, praised_person_name")
+    .in("user_mission_id", missionIds);
+
+  if (externalUsersError) {
+    console.error("Error fetching external users:", externalUsersError);
+  }
+
+  // ミッションIDごとに外部ユーザーをグループ化
+  const externalUsersMap = new Map<string, string[]>();
+  if (allExternalUsers) {
+    for (const eu of allExternalUsers) {
+      const missionId = eu.user_mission_id;
+      if (!externalUsersMap.has(missionId)) {
+        externalUsersMap.set(missionId, []);
+      }
+      externalUsersMap.get(missionId)?.push(eu.praised_person_name);
+    }
+  }
+
   return data.map((mission) => ({
     id: mission.id,
     createdBy: mission.created_by,
@@ -81,6 +104,7 @@ async function getUserMissionsServer() {
         .filter((user: { name: string; x_username: string | null }) =>
           Boolean(user.name),
         ) || [],
+    praisedExternalUsers: externalUsersMap.get(mission.id) || [],
     status: mission.status,
     rejectionReason: mission.rejection_reason,
     createdAt: mission.created_at,

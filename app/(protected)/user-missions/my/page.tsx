@@ -50,6 +50,29 @@ async function getUserMissionsServer(userId: string) {
     data: { user },
   } = await supabase.auth.getUser();
 
+  // 外部ユーザーを一括取得
+  const missionIds = data.map((m) => m.id);
+  const { data: allExternalUsers, error: externalUsersError } = await supabase
+    .from("user_mission_praised_external_users")
+    .select("user_mission_id, praised_person_name")
+    .in("user_mission_id", missionIds);
+
+  if (externalUsersError) {
+    console.error("Error fetching external users:", externalUsersError);
+  }
+
+  // ミッションIDごとに外部ユーザーをグループ化
+  const externalUsersMap = new Map<string, string[]>();
+  if (allExternalUsers) {
+    for (const eu of allExternalUsers) {
+      const missionId = eu.user_mission_id;
+      if (!externalUsersMap.has(missionId)) {
+        externalUsersMap.set(missionId, []);
+      }
+      externalUsersMap.get(missionId)?.push(eu.praised_person_name);
+    }
+  }
+
   return data.map((mission) => ({
     id: mission.id,
     createdBy: mission.created_by,
@@ -59,6 +82,7 @@ async function getUserMissionsServer(userId: string) {
       mission.user_mission_praised_users
         ?.map((p: unknown) => (p as unknown as PraisedUser).private_users?.name)
         .filter(Boolean) || [],
+    praisedExternalUsers: externalUsersMap.get(mission.id) || [],
     status: mission.status as "pending" | "approved" | "rejected",
     rejectionReason: mission.rejection_reason || undefined,
     createdAt: mission.created_at,
@@ -158,8 +182,13 @@ async function MyMissionsList() {
         </div>
         <CardDescription className="flex items-center gap-2">
           <User className="h-4 w-4" />
-          {mission.praisedUsers.length > 0
-            ? mission.praisedUsers.join(", ")
+          {mission.praisedUsers.length > 0 ||
+          (mission.praisedExternalUsers &&
+            mission.praisedExternalUsers.length > 0)
+            ? [
+                ...mission.praisedUsers,
+                ...(mission.praisedExternalUsers || []),
+              ].join(", ")
             : "（未選択）"}
         </CardDescription>
       </CardHeader>
