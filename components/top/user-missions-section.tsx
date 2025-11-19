@@ -91,6 +91,20 @@ async function getUserMissionsServer() {
           );
         }
 
+        // 外部ユーザー（メンバー以外）を個別に取得
+        const { data: praisedExternalUsers, error: praisedExternalError } =
+          await supabase
+            .from("user_mission_praised_external_users")
+            .select("praised_person_name")
+            .eq("user_mission_id", mission.id);
+
+        if (praisedExternalError) {
+          console.error(
+            `Praised external users error for mission ${mission.id}:`,
+            praisedExternalError,
+          );
+        }
+
         // いいね情報を個別に取得
         const { data: likes, error: likesError } = await supabase
           .from("user_mission_likes")
@@ -122,6 +136,10 @@ async function getUserMissionsServer() {
               .filter((name: string | undefined): name is string =>
                 Boolean(name),
               ) || [],
+          praisedExternalUsers:
+            praisedExternalUsers?.map(
+              (p: { praised_person_name: string }) => p.praised_person_name,
+            ) || [],
           status: mission.status,
           rejectionReason: mission.rejection_reason,
           createdAt: mission.created_at,
@@ -160,6 +178,7 @@ async function getUserMissionsServer() {
           title: mission.title,
           content: mission.content,
           praisedUsers: [],
+          praisedExternalUsers: [],
           status: mission.status,
           rejectionReason: mission.rejection_reason,
           createdAt: mission.created_at,
@@ -219,10 +238,15 @@ async function UserMissionsList() {
                     <PenTool className="h-4 w-4" />
                     {mission.createdByName}さんがグッジョブしました
                   </CardDescription>
-                  {mission.praisedUsers.length > 0 && (
+                  {(mission.praisedUsers.length > 0 ||
+                    (mission.praisedExternalUsers &&
+                      mission.praisedExternalUsers.length > 0)) && (
                     <CardDescription className="flex items-center gap-2">
                       <User className="h-4 w-4" />
-                      {mission.praisedUsers.join(", ")}
+                      {[
+                        ...mission.praisedUsers,
+                        ...(mission.praisedExternalUsers || []),
+                      ].join(", ")}
                     </CardDescription>
                   )}
                 </div>
