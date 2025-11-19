@@ -60,7 +60,7 @@ async function getUserMissionById(id: string) {
     content: data.content,
     praisedUsers:
       data.user_mission_praised_users
-        ?.map((p) => (p as unknown as PraisedUser).private_users?.name)
+        ?.map((p: unknown) => (p as unknown as PraisedUser).private_users?.name)
         .filter(Boolean) || [],
     status: data.status,
     rejectionReason: data.rejection_reason,

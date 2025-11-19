@@ -57,7 +57,7 @@ async function getUserMissionsServer(userId: string) {
     content: mission.content,
     praisedUsers:
       mission.user_mission_praised_users
-        ?.map((p) => (p as unknown as PraisedUser).private_users?.name)
+        ?.map((p: unknown) => (p as unknown as PraisedUser).private_users?.name)
         .filter(Boolean) || [],
     status: mission.status as "pending" | "approved" | "rejected",
     rejectionReason: mission.rejection_reason || undefined,
