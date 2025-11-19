@@ -258,7 +258,7 @@ export function UserMissionsList({ missions }: { missions: UserMission[] }) {
                         {[
                           ...mission.praisedUsers,
                           ...(mission.praisedExternalUsers || []).map(
-                            (name) => `${name}（外部）`,
+                            (name) => `${name}`,
                           ),
                         ].join(", ")}
                       </span>

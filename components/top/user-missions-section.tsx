@@ -73,36 +73,48 @@ async function getUserMissionsServer() {
           console.error(`MVV error for mission ${mission.id}:`, mvvError);
         }
 
-        // 賞賛対象ユーザーを個別に取得
-        const { data: praisedUsers, error: praisedError } = await supabase
-          .from("user_mission_praised_users")
-          .select(`
-            praised_user_id,
-            private_users!praised_user_id (
-              name
-            )
-          `)
-          .eq("user_mission_id", mission.id);
+        // ログインしている場合のみ賞賛対象ユーザーを取得
+        let praisedUsers = null;
+        let praisedExternalUsers = null;
 
-        if (praisedError) {
-          console.error(
-            `Praised users error for mission ${mission.id}:`,
-            praisedError,
-          );
-        }
+        if (user) {
+          // 賞賛対象ユーザーを個別に取得
+          const { data: praisedUsersData, error: praisedError } = await supabase
+            .from("user_mission_praised_users")
+            .select(`
+              praised_user_id,
+              private_users!praised_user_id (
+                name
+              )
+            `)
+            .eq("user_mission_id", mission.id);
 
-        // 外部ユーザー（メンバー以外）を個別に取得
-        const { data: praisedExternalUsers, error: praisedExternalError } =
-          await supabase
+          if (praisedError) {
+            console.error(
+              `Praised users error for mission ${mission.id}:`,
+              praisedError,
+            );
+          }
+
+          praisedUsers = praisedUsersData;
+
+          // 外部ユーザー（メンバー以外）を個別に取得
+          const {
+            data: praisedExternalUsersData,
+            error: praisedExternalError,
+          } = await supabase
             .from("user_mission_praised_external_users")
             .select("praised_person_name")
             .eq("user_mission_id", mission.id);
 
-        if (praisedExternalError) {
-          console.error(
-            `Praised external users error for mission ${mission.id}:`,
-            praisedExternalError,
-          );
+          if (praisedExternalError) {
+            console.error(
+              `Praised external users error for mission ${mission.id}:`,
+              praisedExternalError,
+            );
+          }
+
+          praisedExternalUsers = praisedExternalUsersData;
         }
 
         // いいね情報を個別に取得
