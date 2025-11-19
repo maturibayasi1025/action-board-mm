@@ -228,7 +228,9 @@ export async function getUserMissions(userId?: string) {
         content: mission.content,
         praisedUsers:
           mission.user_mission_praised_users
-            ?.map((p) => (p as unknown as PraisedUser).private_users?.name)
+            ?.map(
+              (p: unknown) => (p as unknown as PraisedUser).private_users?.name,
+            )
             .filter((name: string | undefined): name is string =>
               Boolean(name),
             ) || [],
@@ -247,26 +249,26 @@ export async function getUserMissions(userId?: string) {
         mvvItems: {
           passionateExecution:
             mission.user_mission_mvv_items?.some(
-              (item) =>
+              (item: unknown) =>
                 (item as unknown as { mvv_type: string }).mvv_type ===
                 "passionate_execution",
             ) || false,
           supremeRelationships:
             mission.user_mission_mvv_items?.some(
-              (item) =>
+              (item: unknown) =>
                 (item as unknown as { mvv_type: string }).mvv_type ===
                 "supreme_relationships",
             ) || false,
           happinessCirculation:
             mission.user_mission_mvv_items?.some(
-              (item) =>
+              (item: unknown) =>
                 (item as unknown as { mvv_type: string }).mvv_type ===
                 "happiness_circulation",
             ) || false,
         },
         isLikedByCurrentUser: user
           ? mission.user_mission_likes?.some(
-              (like) =>
+              (like: unknown) =>
                 (like as unknown as { user_id: string }).user_id === user.id,
             ) || false
           : false,

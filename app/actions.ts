@@ -100,7 +100,16 @@ export const signUpActionWithState = async (
       emailRedirectTo: `${origin}/auth/callback`,
     },
   });
-  //サインアップ完了後にuserIdを取得
+
+  // エラーチェック
+  if (error) {
+    return {
+      error: `ユーザー登録に失敗しました: ${error.message}`,
+      formData: currentFormData,
+    };
+  }
+
+  // サインアップ完了後にuserIdを取得（型安全に）
   const userId = data?.user?.id;
   if (!userId) {
     return { error: "ユーザー登録に失敗しました", formData: currentFormData };
@@ -180,9 +189,10 @@ export const signUpActionWithState = async (
     await deleteCookie("referral_code");
   }
 
-  if (data.user?.id) {
+  // userIdは104行目で既に取得・チェック済み
+  if (userId) {
     try {
-      await getOrInitializeUserLevel(data.user.id);
+      await getOrInitializeUserLevel(userId);
 
       // 外部ユーザー用の保留ポイントを付与
       const serviceSupabase = await createServiceClient();
@@ -191,7 +201,7 @@ export const signUpActionWithState = async (
       const { data: userProfile } = await serviceSupabase
         .from("private_users")
         .select("name")
-        .eq("id", data.user.id)
+        .eq("id", userId)
         .maybeSingle();
 
       if (userProfile?.name) {
@@ -210,7 +220,7 @@ export const signUpActionWithState = async (
         ) {
           // 保留ポイントをxp_transactionsに変換
           const xpTransactions = pendingXpRecords.map((record) => ({
-            user_id: data.user.id,
+            user_id: userId,
             xp_amount: record.xp_amount,
             source_type: "USER_MISSION_PRAISED_EXTERNAL",
             source_id: record.user_mission_id,
@@ -231,7 +241,7 @@ export const signUpActionWithState = async (
               .from("external_user_pending_xp")
               .update({
                 claimed_at: new Date().toISOString(),
-                claimed_by_user_id: data.user.id,
+                claimed_by_user_id: userId,
               })
               .in("id", recordIds);
 
