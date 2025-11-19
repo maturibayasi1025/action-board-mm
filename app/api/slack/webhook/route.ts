@@ -217,6 +217,7 @@ async function createGoodJobFromSlack(
 
     // メンション先のユーザーを特定
     const praisedUserIds: string[] = [];
+    const praisedExternalUserNames: string[] = [];
     for (const mentionedId of mentionedUserIds) {
       // Slack APIでユーザー情報を取得
       const userInfo = await getSlackUserInfo(mentionedId);
@@ -230,8 +231,10 @@ async function createGoodJobFromSlack(
         if (mentionedUserId && mentionedUserId !== creatorId) {
           praisedUserIds.push(mentionedUserId);
         } else if (!mentionedUserId) {
-          console.warn(
-            `メンションされたユーザーが見つかりませんでした: ${mentionedUserName}`,
+          // 登録されていないユーザーは外部ユーザーとして扱う
+          praisedExternalUserNames.push(mentionedUserName);
+          console.log(
+            `メンションされたユーザーが見つかりませんでした。外部ユーザーとして登録: ${mentionedUserName}`,
           );
         }
       }
@@ -285,11 +288,47 @@ async function createGoodJobFromSlack(
       }
     }
 
+    // 外部ユーザーを挿入
+    if (praisedExternalUserNames.length > 0) {
+      const externalUsers = praisedExternalUserNames.map((name) => ({
+        user_mission_id: mission.id,
+        praised_person_name: name,
+      }));
+
+      const { error: externalError } = await supabase
+        .from("user_mission_praised_external_users")
+        .insert(externalUsers);
+
+      if (externalError) {
+        console.error("外部ユーザー挿入エラー:", externalError);
+        // エラーが発生してもグッジョブは作成されているので続行
+      } else {
+        // 外部ユーザー用の保留ポイントを保存
+        const pendingXpRecords = externalUsers.map((extUser) => ({
+          external_user_name: extUser.praised_person_name,
+          user_mission_id: mission.id,
+          xp_amount: 5,
+          source_type: "USER_MISSION_PRAISED_EXTERNAL",
+          description: `ユーザーグッジョブ「${title}」で賞賛されました（保留中・Slack投稿）`,
+        }));
+
+        const { error: pendingXpError } = await supabase
+          .from("external_user_pending_xp")
+          .insert(pendingXpRecords);
+
+        if (pendingXpError) {
+          console.error("保留ポイント挿入エラー:", pendingXpError);
+          // エラーが発生してもグッジョブ作成処理は継続
+        }
+      }
+    }
+
     // ポイント付与
     await awardPointsForMissionCreation(
       mission.id,
       creatorId,
       praisedUserIds,
+      praisedExternalUserNames,
       supabase,
     );
 
@@ -310,6 +349,7 @@ async function awardPointsForMissionCreation(
   missionId: string,
   creatorId: string,
   praisedUserIds: string[],
+  praisedExternalUserNames: string[],
   supabase: Awaited<ReturnType<typeof createServiceClient>>,
 ) {
   try {
@@ -333,6 +373,8 @@ async function awardPointsForMissionCreation(
         description: "ユーザーグッジョブで賞賛されました（Slack投稿）",
       });
     }
+
+    // 外部ユーザーのポイントは保留テーブルに既に保存済み
   } catch (error) {
     console.error("ポイント付与エラー:", error);
   }

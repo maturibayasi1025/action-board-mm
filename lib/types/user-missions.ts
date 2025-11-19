@@ -16,6 +16,11 @@ export interface Like {
   user_id: string;
 }
 
+export interface PraisedExternalUser {
+  id: string;
+  praised_person_name: string;
+}
+
 // Supabaseクエリ結果の型定義
 export interface UserMissionWithRelations {
   id: string;
@@ -33,4 +38,5 @@ export interface UserMissionWithRelations {
   user_mission_mvv_items: MvvItem[] | null;
   user_mission_likes: Like[] | null;
   user_mission_praised_users: PraisedUser[] | null;
+  user_mission_praised_external_users?: PraisedExternalUser[] | null;
 }

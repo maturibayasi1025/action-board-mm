@@ -96,20 +96,11 @@ export default async function Navbar() {
                         自分宛のグッジョブ
                       </Link>
                     </DropdownMenuItem>
-                    {/* <DropdownMenuItem asChild>
-                      <Link href="/map/posting">機関誌配布マップ</Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link href="/map/poster">ポスター掲示板マップ</Link>
-                    </DropdownMenuItem> */}
                   </DropdownMenuGroup>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
                     <Link href="/sign-in">ログイン</Link>
                   </DropdownMenuItem>
-                  {/* <DropdownMenuItem asChild>
-                    <Link href="/sign-up">新規登録</Link>
-                  </DropdownMenuItem> */}
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>

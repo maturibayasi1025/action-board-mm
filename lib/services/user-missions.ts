@@ -5,6 +5,7 @@ export interface CreateUserMissionInput {
   title: string;
   content: string;
   praisedUserIds: string[];
+  praisedExternalUserNames?: string[];
   mvvItems: {
     passionateExecution: boolean;
     supremeRelationships: boolean;
@@ -18,6 +19,7 @@ export interface UserMission {
   title: string;
   content: string;
   praisedUsers: string[];
+  praisedExternalUsers?: string[];
   status: "pending" | "approved" | "rejected";
   rejectionReason?: string;
   createdAt: string;
@@ -183,6 +185,9 @@ export async function getUserMissions(userId?: string) {
           private_users!praised_user_id (
             name
           )
+        ),
+        user_mission_praised_external_users (
+          praised_person_name
         )
       `)
       .order("created_at", { ascending: false });
@@ -225,6 +230,10 @@ export async function getUserMissions(userId?: string) {
           mission.user_mission_praised_users
             ?.map((p) => (p as unknown as PraisedUser).private_users?.name)
             .filter((name): name is string => Boolean(name)) || [],
+        praisedExternalUsers:
+          mission.user_mission_praised_external_users?.map(
+            (p: { praised_person_name: string }) => p.praised_person_name,
+          ) || [],
         status: mission.status as "pending" | "approved" | "rejected",
         rejectionReason: mission.rejection_reason || undefined,
         createdAt: mission.created_at,

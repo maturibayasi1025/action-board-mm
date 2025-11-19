@@ -7,6 +7,7 @@ export interface CreateUserMissionInput {
   title: string;
   content: string;
   praisedUserIds: string[];
+  praisedExternalUserNames?: string[];
   mvvItems: {
     passionateExecution: boolean;
     supremeRelationships: boolean;
@@ -19,6 +20,7 @@ export interface SaveDraftUserMissionInput {
   title: string;
   content: string;
   praisedUserIds: string[];
+  praisedExternalUserNames?: string[];
   mvvItems: {
     passionateExecution: boolean;
     supremeRelationships: boolean;
@@ -139,11 +141,63 @@ export async function createUserMissionAction(input: CreateUserMissionInput) {
       }
     }
 
+    // 外部ユーザーを挿入
+    if (
+      input.praisedExternalUserNames &&
+      input.praisedExternalUserNames.length > 0
+    ) {
+      const externalUsers = input.praisedExternalUserNames
+        .map((name) => name.trim())
+        .filter((name) => name.length > 0)
+        .map((name) => ({
+          user_mission_id: mission.id,
+          praised_person_name: name,
+        }));
+
+      if (externalUsers.length > 0) {
+        const { error: externalError } = await supabase
+          .from("user_mission_praised_external_users")
+          .insert(externalUsers);
+
+        if (externalError) {
+          console.error("外部ユーザー挿入エラー:", externalError);
+          // ロールバック
+          await supabase.from("user_missions").delete().eq("id", mission.id);
+          throw new Error(
+            `外部ユーザーの保存に失敗しました: ${externalError.message}`,
+          );
+        }
+
+        // 外部ユーザー用の保留ポイントを保存
+        const pendingXpRecords = externalUsers.map((extUser) => ({
+          external_user_name: extUser.praised_person_name,
+          user_mission_id: mission.id,
+          xp_amount: 5,
+          source_type: "USER_MISSION_PRAISED_EXTERNAL",
+          description: `ユーザーグッジョブ「${input.title}」で賞賛されました（保留中）`,
+        }));
+
+        // サービスロールで挿入（RLSポリシーで通常ユーザーは挿入不可）
+        const { createServiceClient } = await import("@/lib/supabase/server");
+        const serviceSupabase = await createServiceClient();
+
+        const { error: pendingXpError } = await serviceSupabase
+          .from("external_user_pending_xp")
+          .insert(pendingXpRecords);
+
+        if (pendingXpError) {
+          console.error("保留ポイント挿入エラー:", pendingXpError);
+          // エラーが発生してもグッジョブ作成は続行（ポイントは後で手動で付与可能）
+        }
+      }
+    }
+
     // ポイント付与処理
     await awardPointsForMissionCreation(
       mission.id,
       user.id,
       input.praisedUserIds,
+      input.praisedExternalUserNames || [],
       supabase,
     );
 
@@ -156,6 +210,7 @@ export async function createUserMissionAction(input: CreateUserMissionInput) {
           input.content,
           user.id,
           input.praisedUserIds,
+          input.praisedExternalUserNames || [],
           supabase,
         );
       } catch (slackError) {
@@ -443,6 +498,7 @@ async function awardPointsForMissionCreation(
   missionId: string,
   creatorId: string,
   praisedUserIds: string[],
+  praisedExternalUserNames: string[],
   supabase: Awaited<ReturnType<typeof createClient>>,
 ) {
   try {
@@ -467,6 +523,9 @@ async function awardPointsForMissionCreation(
         description: "ユーザーグッジョブで賞賛されました",
       });
     }
+
+    // 外部ユーザーのポイントは保留テーブルに既に保存済み（createUserMissionAction内で処理）
+    // ここでは何もしない
   } catch (error) {
     console.error("ポイント付与エラー:", error);
   }
@@ -479,6 +538,7 @@ async function sendSlackNotificationForMissionCreation(
   content: string,
   creatorId: string,
   praisedUserIds: string[],
+  praisedExternalUserNames: string[],
   supabase: Awaited<ReturnType<typeof createClient>>,
 ) {
   try {
@@ -496,6 +556,10 @@ async function sendSlackNotificationForMissionCreation(
       .in("id", praisedUserIds);
 
     const praisedNames = praisedUsers?.map((u) => u.name).join(", ") || "";
+    const externalNames = praisedExternalUserNames?.join(", ") || "";
+    const allPraisedNames = [praisedNames, externalNames]
+      .filter((name) => name.length > 0)
+      .join(", ");
 
     // Slack通知APIを呼び出し（サーバーサイド）
     const apiUrl =
@@ -521,7 +585,7 @@ async function sendSlackNotificationForMissionCreation(
           title,
           content,
           creatorName: creator?.name || "不明",
-          praisedNames,
+          praisedNames: allPraisedNames,
         },
       }),
     });
@@ -802,6 +866,31 @@ export async function saveDraftUserMissionAction(
         await supabase.from("user_mission_praised_users").insert(praisedUsers);
       }
 
+      // 外部ユーザーを更新（既存を削除して再挿入）
+      await supabase
+        .from("user_mission_praised_external_users")
+        .delete()
+        .eq("user_mission_id", mission.id);
+
+      if (
+        input.praisedExternalUserNames &&
+        input.praisedExternalUserNames.length > 0
+      ) {
+        const externalUsers = input.praisedExternalUserNames
+          .map((name) => name.trim())
+          .filter((name) => name.length > 0)
+          .map((name) => ({
+            user_mission_id: mission.id,
+            praised_person_name: name,
+          }));
+
+        if (externalUsers.length > 0) {
+          await supabase
+            .from("user_mission_praised_external_users")
+            .insert(externalUsers);
+        }
+      }
+
       return { success: true, missionId: mission.id };
     }
     // 新規下書きを作成
@@ -873,6 +962,26 @@ async function createNewDraft(
     await supabase.from("user_mission_praised_users").insert(praisedUsers);
   }
 
+  // 外部ユーザーを挿入
+  if (
+    input.praisedExternalUserNames &&
+    input.praisedExternalUserNames.length > 0
+  ) {
+    const externalUsers = input.praisedExternalUserNames
+      .map((name) => name.trim())
+      .filter((name) => name.length > 0)
+      .map((name) => ({
+        user_mission_id: mission.id,
+        praised_person_name: name,
+      }));
+
+    if (externalUsers.length > 0) {
+      await supabase
+        .from("user_mission_praised_external_users")
+        .insert(externalUsers);
+    }
+  }
+
   return { success: true, missionId: mission.id };
 }
 
@@ -908,6 +1017,9 @@ export async function publishDraftUserMissionAction(draftId: string) {
         ),
         user_mission_praised_users (
           praised_user_id
+        ),
+        user_mission_praised_external_users (
+          praised_person_name
         )
       `)
       .eq("id", draftId)
@@ -940,7 +1052,12 @@ export async function publishDraftUserMissionAction(draftId: string) {
         (p: { praised_user_id: string }) => p.praised_user_id,
       ) || [];
 
-    if (praisedUserIds.length === 0) {
+    const praisedExternalUserNames =
+      draft.user_mission_praised_external_users?.map(
+        (p: { praised_person_name: string }) => p.praised_person_name,
+      ) || [];
+
+    if (praisedUserIds.length === 0 && praisedExternalUserNames.length === 0) {
       throw new Error("賞賛に値するメンバーを少なくとも1人選択してください");
     }
 
@@ -972,6 +1089,7 @@ export async function publishDraftUserMissionAction(draftId: string) {
       mission.id,
       user.id,
       praisedUserIds,
+      praisedExternalUserNames,
       supabase,
     );
 
@@ -984,6 +1102,7 @@ export async function publishDraftUserMissionAction(draftId: string) {
           mission.content,
           user.id,
           praisedUserIds,
+          praisedExternalUserNames,
           supabase,
         );
       } catch (slackError) {

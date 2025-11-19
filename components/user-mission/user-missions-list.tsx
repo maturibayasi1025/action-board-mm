@@ -30,6 +30,7 @@ type UserMission = {
   title: string;
   content: string;
   praisedUsers: string[];
+  praisedExternalUsers?: string[];
   praisedUsersWithXUsername?: Array<{
     name: string;
     x_username: string | null;
@@ -87,9 +88,14 @@ export function UserMissionsList({ missions }: { missions: UserMission[] }) {
           });
         }
         // フォールバック: 文字列配列の場合
-        return mission.praisedUsers.some((userName) =>
+        const praisedUsersMatch = mission.praisedUsers.some((userName) =>
           userName.toLowerCase().includes(query),
         );
+        const externalUsersMatch =
+          mission.praisedExternalUsers?.some((userName) =>
+            userName.toLowerCase().includes(query),
+          ) || false;
+        return praisedUsersMatch || externalUsersMatch;
       });
     }
 
@@ -243,10 +249,19 @@ export function UserMissionsList({ missions }: { missions: UserMission[] }) {
                     <PenTool className="h-4 w-4" />
                     {mission.createdByName}さんがグッジョブしました
                   </div>
-                  {mission.praisedUsers.length > 0 && (
+                  {(mission.praisedUsers.length > 0 ||
+                    (mission.praisedExternalUsers &&
+                      mission.praisedExternalUsers.length > 0)) && (
                     <div className="flex items-center gap-2">
                       <User className="h-4 w-4" />
-                      {mission.praisedUsers.join(", ")}
+                      <span>
+                        {[
+                          ...mission.praisedUsers,
+                          ...(mission.praisedExternalUsers || []).map(
+                            (name) => `${name}（外部）`,
+                          ),
+                        ].join(", ")}
+                      </span>
                     </div>
                   )}
                   <div className="flex items-center gap-2 text-xs">

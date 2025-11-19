@@ -27,32 +27,42 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import * as z from "zod";
 
-const formSchema = z.object({
-  title: z
-    .string()
-    .min(1, "タイトルは必須です")
-    .max(100, "タイトルは100文字以内で入力してください"),
-  content: z
-    .string()
-    .min(1, "内容は必須です")
-    .max(1000, "内容は1000文字以内で入力してください"),
-  praisedUserIds: z
-    .array(z.string())
-    .min(1, "賞賛に値するメンバーを少なくとも1人選択してください"),
-  mvvItems: z
-    .object({
-      passionateExecution: z.boolean(),
-      supremeRelationships: z.boolean(),
-      happinessCirculation: z.boolean(),
-    })
-    .refine(
-      (data) =>
-        data.passionateExecution ||
-        data.supremeRelationships ||
-        data.happinessCirculation,
-      { message: "MVV項目を少なくとも1つ選択してください" },
-    ),
-});
+const formSchema = z
+  .object({
+    title: z
+      .string()
+      .min(1, "タイトルは必須です")
+      .max(100, "タイトルは100文字以内で入力してください"),
+    content: z
+      .string()
+      .min(1, "内容は必須です")
+      .max(1000, "内容は1000文字以内で入力してください"),
+    praisedUserIds: z.array(z.string()),
+    praisedExternalUserNames: z.array(z.string()),
+    mvvItems: z
+      .object({
+        passionateExecution: z.boolean(),
+        supremeRelationships: z.boolean(),
+        happinessCirculation: z.boolean(),
+      })
+      .refine(
+        (data) =>
+          data.passionateExecution ||
+          data.supremeRelationships ||
+          data.happinessCirculation,
+        { message: "MVV項目を少なくとも1つ選択してください" },
+      ),
+  })
+  .refine(
+    (data) =>
+      data.praisedUserIds.length > 0 ||
+      (data.praisedExternalUserNames &&
+        data.praisedExternalUserNames.length > 0),
+    {
+      message: "賞賛に値するメンバーを少なくとも1人選択してください",
+      path: ["praisedUserIds"],
+    },
+  );
 
 type FormData = z.infer<typeof formSchema>;
 
@@ -68,6 +78,7 @@ interface CreateMissionFormProps {
     title: string;
     content: string;
     praisedUserIds: string[];
+    praisedExternalUserNames?: string[];
     mvvItems: {
       passionateExecution: boolean;
       supremeRelationships: boolean;
@@ -86,6 +97,8 @@ export function CreateMissionForm(
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [availableUsers, setAvailableUsers] = useState<User[]>([]);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
+  const [externalUserNames, setExternalUserNames] = useState<string[]>([]);
+  const [externalUserNameInput, setExternalUserNameInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [draftIdState, setDraftIdState] = useState<string | undefined>(draftId);
   const [saveStatus, setSaveStatus] = useState<
@@ -100,6 +113,7 @@ export function CreateMissionForm(
       title: initialData?.title || "",
       content: initialData?.content || "",
       praisedUserIds: initialData?.praisedUserIds || [],
+      praisedExternalUserNames: initialData?.praisedExternalUserNames || [],
       mvvItems: initialData?.mvvItems || {
         passionateExecution: false,
         supremeRelationships: false,
@@ -108,10 +122,13 @@ export function CreateMissionForm(
     },
   });
 
-  // 初期データがある場合はselectedUsersも設定
+  // 初期データがある場合はselectedUsersとexternalUserNamesも設定
   useEffect(() => {
     if (initialData?.praisedUserIds) {
       setSelectedUsers(initialData.praisedUserIds);
+    }
+    if (initialData?.praisedExternalUserNames) {
+      setExternalUserNames(initialData.praisedExternalUserNames);
     }
   }, [initialData]);
 
@@ -151,6 +168,24 @@ export function CreateMissionForm(
     });
   };
 
+  // 外部ユーザー名を追加
+  const addExternalUserName = () => {
+    const trimmedName = externalUserNameInput.trim();
+    if (trimmedName && !externalUserNames.includes(trimmedName)) {
+      const newNames = [...externalUserNames, trimmedName];
+      setExternalUserNames(newNames);
+      form.setValue("praisedExternalUserNames", newNames);
+      setExternalUserNameInput("");
+    }
+  };
+
+  // 外部ユーザー名を削除
+  const removeExternalUserName = (name: string) => {
+    const newNames = externalUserNames.filter((n) => n !== name);
+    setExternalUserNames(newNames);
+    form.setValue("praisedExternalUserNames", newNames);
+  };
+
   // 自動保存関数
   const autoSave = useCallback(async () => {
     const values = form.getValues();
@@ -168,6 +203,7 @@ export function CreateMissionForm(
         title: values.title,
         content: values.content,
         praisedUserIds: values.praisedUserIds,
+        praisedExternalUserNames: values.praisedExternalUserNames,
         mvvItems: values.mvvItems,
       };
 
@@ -234,6 +270,7 @@ export function CreateMissionForm(
           title: values.title,
           content: values.content,
           praisedUserIds: values.praisedUserIds,
+          praisedExternalUserNames: values.praisedExternalUserNames,
           mvvItems: values.mvvItems,
         });
 
@@ -419,6 +456,65 @@ export function CreateMissionForm(
                       該当するメンバーが見つかりません
                     </div>
                   )}
+                </div>
+              </div>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="praisedExternalUserNames"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>MM経済圏ユーザーを賞賛</FormLabel>
+              <FormDescription>
+                登録されていないMM経済圏ユーザーも表彰できます。名前を入力して追加してください。
+              </FormDescription>
+              <div className="space-y-2">
+                {/* 追加済み外部ユーザー */}
+                {externalUserNames.length > 0 && (
+                  <div className="flex flex-wrap gap-2 p-3 border rounded-md bg-muted/50">
+                    {externalUserNames.map((name) => (
+                      <div
+                        key={name}
+                        className="flex items-center gap-1 px-3 py-1 bg-secondary/10 rounded-full"
+                      >
+                        <span className="text-sm">{name}</span>
+                        <button
+                          type="button"
+                          onClick={() => removeExternalUserName(name)}
+                          className="hover:bg-secondary/20 rounded-full p-0.5"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {/* 外部ユーザー名入力欄 */}
+                <div className="flex gap-2">
+                  <Input
+                    type="text"
+                    placeholder="MM経済圏ユーザーの名前を入力..."
+                    value={externalUserNameInput}
+                    onChange={(e) => setExternalUserNameInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        addExternalUserName();
+                      }
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={addExternalUserName}
+                    disabled={!externalUserNameInput.trim()}
+                  >
+                    追加
+                  </Button>
                 </div>
               </div>
               <FormMessage />
