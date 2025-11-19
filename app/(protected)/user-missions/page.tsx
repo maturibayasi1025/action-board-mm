@@ -78,7 +78,9 @@ async function getUserMissionsServer() {
           name: p.private_users?.name || "",
           x_username: p.private_users?.x_username ?? null,
         }))
-        .filter((user) => Boolean(user.name)) || [],
+        .filter((user: { name: string; x_username: string | null }) =>
+          Boolean(user.name),
+        ) || [],
     status: mission.status,
     rejectionReason: mission.rejection_reason,
     createdAt: mission.created_at,
