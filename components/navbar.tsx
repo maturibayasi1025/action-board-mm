@@ -1,4 +1,5 @@
 import HeaderAuth from "@/components/header-auth";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -8,7 +9,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { createClient } from "@/lib/supabase/server";
-import { Menu } from "lucide-react";
+import { Menu, Plus } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -39,16 +40,24 @@ export default async function Navbar() {
               <Link href="/">ホーム</Link>
             </div>
             <div className="font-semibold hidden sm:flex">
-              <Link href="/user-missions/new">グッジョブ作成</Link>
-            </div>
-            <div className="font-semibold hidden sm:flex">
-              <Link href="/user-missions">ユーザーグッジョブ</Link>
-            </div>
-            <div className="font-semibold hidden sm:flex">
-              <Link href="/user-missions/my">マイグッジョブ</Link>
-            </div>
-            <div className="font-semibold hidden sm:flex">
               <Link href="/user-missions/praised">自分宛のグッジョブ</Link>
+            </div>
+            <div className="font-semibold hidden sm:flex">
+              <Link href="/user-missions">みんなの投稿</Link>
+            </div>
+            <div className="font-semibold hidden sm:flex">
+              <Link href="/user-missions/my">自分の投稿</Link>
+            </div>
+            <div className="hidden sm:flex">
+              <Button asChild size="sm" variant="default">
+                <Link
+                  href="/user-missions/new"
+                  className="flex items-center gap-1"
+                >
+                  <Plus className="h-4 w-4" />
+                  グッジョブを作成
+                </Link>
+              </Button>
             </div>
             <HeaderAuth />
           </div>
