@@ -281,7 +281,9 @@ export default function PrefecturePosterMapClient({
     const result = await achieveMissionAction(formData);
 
     if (result.success) {
-      toast.success(`グッジョブ達成！ +${result.xpGranted}XP獲得`);
+      toast.success(`グッジョブ達成！ +${result.xpGranted}XP獲得`, {
+        className: "bg-card text-card-foreground border border-border",
+      });
     }
   };
 
@@ -315,7 +317,9 @@ export default function PrefecturePosterMapClient({
         }
       }
 
-      toast.success("ステータスを更新しました");
+      toast.success("ステータスを更新しました", {
+        className: "bg-card text-card-foreground border border-border",
+      });
       setIsUpdateDialogOpen(false);
       await loadBoards(); // Reload to get updated data
       // Clear history so it's fresh next time

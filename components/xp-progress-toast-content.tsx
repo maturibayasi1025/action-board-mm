@@ -103,9 +103,9 @@ export function XpProgressToastContent({
 
   return (
     <>
-      <div className="p-6">
+      <div className="p-6 bg-card text-card-foreground border border-border shadow-lg">
         <div className="text-center mb-4">
-          <h3 className="text-lg font-bold text-foreground mb-2">
+          <h3 className="text-lg font-bold text-card-foreground mb-2">
             {xpGained}ポイント獲得しました！
           </h3>
         </div>
@@ -129,7 +129,7 @@ export function XpProgressToastContent({
         />
 
         <div className="text-center">
-          <div className="text-xs text-foreground/80">
+          <div className="text-xs text-card-foreground/80">
             レベル {currentLevel}
             {showFinalState && (
               <span> • 次のレベルまで{pointsToNextLevel}ポイント🔥</span>

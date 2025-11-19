@@ -76,7 +76,10 @@ export function LikeButton({
 
       toast.success(
         newLiked ? "いいね！しました" : "いいね！を取り消しました",
-        { description: newLiked ? "+1XP獲得！" : "-1XP" },
+        {
+          description: newLiked ? "+1XP獲得！" : "-1XP",
+          className: "bg-card text-card-foreground border border-border",
+        },
       );
     } catch (error) {
       console.error("いいね処理エラー:", error);

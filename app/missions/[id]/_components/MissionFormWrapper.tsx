@@ -144,7 +144,7 @@ export function MissionFormWrapper({
         {
           duration: Number.POSITIVE_INFINITY,
           position: "bottom-center",
-          className: "rounded-md",
+          className: "rounded-md bg-transparent border-0 shadow-none",
         },
       );
     }
