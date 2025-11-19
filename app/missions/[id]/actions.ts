@@ -380,41 +380,40 @@ export const achieveMissionAction = async (formData: FormData) => {
       `[共有グッジョブ制限チェック] JST今日の終了(UTC): ${jstTodayEndUTC.toISOString()}`,
     );
 
-    // 今日（JST）の達成記録を検索
-    const { data: todayAchievements, error: todayAchievementError } =
+    // 今日（JST）にユーザーが作成したグッジョブを検索
+    const { data: todayUserMissions, error: todayUserMissionError } =
       await supabase
-        .from("achievements")
+        .from("user_missions")
         .select("id, created_at")
-        .eq("user_id", authUser.id)
-        .eq("mission_id", validatedMissionId)
+        .eq("created_by", authUser.id)
         .gte("created_at", jstTodayStartUTC.toISOString())
         .lte("created_at", jstTodayEndUTC.toISOString());
 
-    if (todayAchievementError) {
+    if (todayUserMissionError) {
       console.error(
-        `Today's achievement check error: ${todayAchievementError.message}`,
+        `Today's user mission check error: ${todayUserMissionError.message}`,
       );
       return {
         success: false,
-        error: "今日の達成記録の確認に失敗しました。",
+        error: "今日のグッジョブ作成記録の確認に失敗しました。",
       };
     }
 
     console.log(
-      `[共有グッジョブ制限チェック] 今日の達成記録数: ${todayAchievements?.length || 0}`,
+      `[共有グッジョブ制限チェック] 今日のグッジョブ作成記録数: ${todayUserMissions?.length || 0}`,
     );
-    if (todayAchievements && todayAchievements.length > 0) {
+    if (todayUserMissions && todayUserMissions.length > 0) {
       console.log(
-        "[共有グッジョブ制限チェック] 達成記録:",
-        todayAchievements.map((a) => ({
-          id: a.id,
-          created_at: a.created_at,
+        "[共有グッジョブ制限チェック] 作成記録:",
+        todayUserMissions.map((m) => ({
+          id: m.id,
+          created_at: m.created_at,
         })),
       );
     }
 
-    // 今日既に達成している場合はエラーを返す
-    if (todayAchievements && todayAchievements.length > 0) {
+    // 今日既にグッジョブを作成している場合はエラーを返す
+    if (todayUserMissions && todayUserMissions.length > 0) {
       return {
         success: false,
         error: "共有グッジョブは1日1回までしか達成できません。",
