@@ -346,79 +346,118 @@ export const achieveMissionAction = async (formData: FormData) => {
     }
   }
 
-  // 共有グッジョブの1日1回制限チェック（JSTで判定）
+  // 1日1回制限チェック（JSTで判定）
+  // user_missionsに今日作成されたグッジョブがある場合のみ、achievementsテーブルで今日達成したグッジョブをチェック
+  // JST（UTC+9）で今日の開始時刻と終了時刻を計算
+  // JSTの00:00はUTCの15:00（前日）なので、UTC 15:00を基準に計算
+  const now = new Date();
+
+  // JSTの今日の開始時刻（00:00:00）をUTCに変換
+  // UTC 15:00（前日）= JST 00:00（当日）
+  const jstTodayStartUTC = new Date(now);
+  jstTodayStartUTC.setUTCHours(15, 0, 0, 0);
+  if (jstTodayStartUTC > now) {
+    // まだ日本時間の0時になっていない場合は前日にする
+    jstTodayStartUTC.setUTCDate(jstTodayStartUTC.getUTCDate() - 1);
+  }
+
+  // JSTの今日の終了時刻（23:59:59.999）をUTCに変換
+  // JSTの今日の終了 = UTC 14:59:59.999（開始時刻の次の日）
+  const jstTodayEndUTC = new Date(jstTodayStartUTC);
+  jstTodayEndUTC.setUTCDate(jstTodayEndUTC.getUTCDate() + 1);
+  jstTodayEndUTC.setUTCHours(14, 59, 59, 999);
+
   console.log(
-    `[共有グッジョブ制限チェック] is_important: ${missionData?.is_important}, グッジョブID: ${validatedMissionId}`,
+    `[1日1回制限チェック] ユーザー: ${authUser.id}, グッジョブ: ${validatedMissionId}`,
   );
-  if (missionData?.is_important === true) {
-    // JST（UTC+9）で今日の開始時刻と終了時刻を計算
-    // JSTの00:00はUTCの15:00（前日）なので、UTC 15:00を基準に計算
-    const now = new Date();
+  console.log(
+    `[1日1回制限チェック] JST今日の開始(UTC): ${jstTodayStartUTC.toISOString()}`,
+  );
+  console.log(
+    `[1日1回制限チェック] JST今日の終了(UTC): ${jstTodayEndUTC.toISOString()}`,
+  );
 
-    // JSTの今日の開始時刻（00:00:00）をUTCに変換
-    // UTC 15:00（前日）= JST 00:00（当日）
-    const jstTodayStartUTC = new Date(now);
-    jstTodayStartUTC.setUTCHours(15, 0, 0, 0);
-    if (jstTodayStartUTC > now) {
-      // まだ日本時間の0時になっていない場合は前日にする
-      jstTodayStartUTC.setUTCDate(jstTodayStartUTC.getUTCDate() - 1);
-    }
+  // 今日（JST）にユーザーが作成したグッジョブを検索
+  const { data: todayUserMissions, error: todayUserMissionError } =
+    await supabase
+      .from("user_missions")
+      .select("id, created_at")
+      .eq("created_by", authUser.id)
+      .gte("created_at", jstTodayStartUTC.toISOString())
+      .lte("created_at", jstTodayEndUTC.toISOString());
 
-    // JSTの今日の終了時刻（23:59:59.999）をUTCに変換
-    // JSTの今日の終了 = UTC 14:59:59.999（開始時刻の次の日）
-    const jstTodayEndUTC = new Date(jstTodayStartUTC);
-    jstTodayEndUTC.setUTCDate(jstTodayEndUTC.getUTCDate() + 1);
-    jstTodayEndUTC.setUTCHours(14, 59, 59, 999);
-
-    console.log(
-      `[共有グッジョブ制限チェック] ユーザー: ${authUser.id}, グッジョブ: ${validatedMissionId}`,
+  if (todayUserMissionError) {
+    console.error(
+      `Today's user mission check error: ${todayUserMissionError.message}`,
     );
-    console.log(
-      `[共有グッジョブ制限チェック] JST今日の開始(UTC): ${jstTodayStartUTC.toISOString()}`,
+    return {
+      success: false,
+      error: "今日のグッジョブ作成記録の確認に失敗しました。",
+    };
+  }
+
+  console.log(
+    `[1日1回制限チェック] 今日のグッジョブ作成記録数: ${todayUserMissions?.length || 0}`,
+  );
+
+  // user_missionsに今日作成されたグッジョブがない場合はエラーを返す
+  if (!todayUserMissions || todayUserMissions.length === 0) {
+    return {
+      success: false,
+      error: "今日グッジョブを作成していないため、達成できません。",
+    };
+  }
+
+  // user_missionsに今日作成されたグッジョブがある場合、achievementsテーブルで今日達成したグッジョブをチェック
+  console.log(
+    "[1日1回制限チェック] 今日作成されたグッジョブがあるため、今日達成したグッジョブをチェックします",
+  );
+  console.log(
+    "[1日1回制限チェック] 作成記録:",
+    todayUserMissions.map((m) => ({
+      id: m.id,
+      created_at: m.created_at,
+    })),
+  );
+
+  // 今日（JST）の達成記録を検索
+  const { data: todayAchievements, error: todayAchievementError } =
+    await supabase
+      .from("achievements")
+      .select("id, created_at")
+      .eq("user_id", authUser.id)
+      .gte("created_at", jstTodayStartUTC.toISOString())
+      .lte("created_at", jstTodayEndUTC.toISOString());
+
+  if (todayAchievementError) {
+    console.error(
+      `Today's achievement check error: ${todayAchievementError.message}`,
     );
+    return {
+      success: false,
+      error: "今日の達成記録の確認に失敗しました。",
+    };
+  }
+
+  console.log(
+    `[1日1回制限チェック] 今日の達成記録数: ${todayAchievements?.length || 0}`,
+  );
+  if (todayAchievements && todayAchievements.length > 0) {
     console.log(
-      `[共有グッジョブ制限チェック] JST今日の終了(UTC): ${jstTodayEndUTC.toISOString()}`,
+      "[1日1回制限チェック] 達成記録:",
+      todayAchievements.map((a) => ({
+        id: a.id,
+        created_at: a.created_at,
+      })),
     );
+  }
 
-    // 今日（JST）にユーザーが作成したグッジョブを検索
-    const { data: todayUserMissions, error: todayUserMissionError } =
-      await supabase
-        .from("user_missions")
-        .select("id, created_at")
-        .eq("created_by", authUser.id)
-        .gte("created_at", jstTodayStartUTC.toISOString())
-        .lte("created_at", jstTodayEndUTC.toISOString());
-
-    if (todayUserMissionError) {
-      console.error(
-        `Today's user mission check error: ${todayUserMissionError.message}`,
-      );
-      return {
-        success: false,
-        error: "今日のグッジョブ作成記録の確認に失敗しました。",
-      };
-    }
-
-    console.log(
-      `[共有グッジョブ制限チェック] 今日のグッジョブ作成記録数: ${todayUserMissions?.length || 0}`,
-    );
-    if (todayUserMissions && todayUserMissions.length > 0) {
-      console.log(
-        "[共有グッジョブ制限チェック] 作成記録:",
-        todayUserMissions.map((m) => ({
-          id: m.id,
-          created_at: m.created_at,
-        })),
-      );
-    }
-
-    // 今日既にグッジョブを作成している場合はエラーを返す
-    if (todayUserMissions && todayUserMissions.length > 0) {
-      return {
-        success: false,
-        error: "共有グッジョブは1日1回までしか達成できません。",
-      };
-    }
+  // 今日既に達成している場合はエラーを返す
+  if (todayAchievements && todayAchievements.length > 0) {
+    return {
+      success: false,
+      error: "共有グッジョブは1日1回までしか達成できません。",
+    };
   }
 
   // LINK重複バリデーション
