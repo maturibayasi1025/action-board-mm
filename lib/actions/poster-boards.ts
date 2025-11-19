@@ -166,7 +166,7 @@ export async function getUserEditedBoardIdsAction(
       return (
         viewData
           ?.map((item) => item.board_id)
-          .filter((id): id is string => id !== null) || []
+          .filter((id: string | null): id is string => id !== null) || []
       );
     }
 

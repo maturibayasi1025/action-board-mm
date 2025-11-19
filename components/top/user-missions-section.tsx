@@ -119,7 +119,9 @@ async function getUserMissionsServer() {
                 }
                 return undefined;
               })
-              .filter((name): name is string => Boolean(name)) || [],
+              .filter((name: string | undefined): name is string =>
+                Boolean(name),
+              ) || [],
           status: mission.status,
           rejectionReason: mission.rejection_reason,
           createdAt: mission.created_at,

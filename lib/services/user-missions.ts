@@ -229,7 +229,9 @@ export async function getUserMissions(userId?: string) {
         praisedUsers:
           mission.user_mission_praised_users
             ?.map((p) => (p as unknown as PraisedUser).private_users?.name)
-            .filter((name): name is string => Boolean(name)) || [],
+            .filter((name: string | undefined): name is string =>
+              Boolean(name),
+            ) || [],
         praisedExternalUsers:
           mission.user_mission_praised_external_users?.map(
             (p: { praised_person_name: string }) => p.praised_person_name,
@@ -390,7 +392,8 @@ async function sendSlackNotification(mission: {
     const praisedUserNames =
       praisedUsers
         ?.map((p) => (p as unknown as PraisedUser).private_users?.name)
-        .filter((name): name is string => Boolean(name)) || [];
+        .filter((name: string | undefined): name is string => Boolean(name)) ||
+      [];
 
     const message = {
       text: "新しいユーザーグッジョブが作成されました",
