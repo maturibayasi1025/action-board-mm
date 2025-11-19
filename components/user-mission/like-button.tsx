@@ -78,7 +78,7 @@ export function LikeButton({
         newLiked ? "いいね！しました" : "いいね！を取り消しました",
         {
           description: newLiked ? "+1XP獲得！" : "-1XP",
-          className: "bg-card text-card-foreground border border-border",
+          className: "bg-card text-gray-800 border border-border",
         },
       );
     } catch (error) {
