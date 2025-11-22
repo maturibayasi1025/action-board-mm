@@ -210,6 +210,9 @@ export async function createUserMissionAction(input: CreateUserMissionInput) {
     // Slack通知を送信（Webhook URLが設定されている場合）
     if (process.env.SLACK_WEBHOOK_URL) {
       try {
+        // 画像パスを取得（データベースから取得したmissionから取得）
+        const imagePaths = ((mission as unknown as { image_paths?: string[] })
+          .image_paths || []) as string[];
         await sendSlackNotificationForMissionCreation(
           mission.id,
           input.title,
@@ -217,7 +220,7 @@ export async function createUserMissionAction(input: CreateUserMissionInput) {
           user.id,
           input.praisedUserIds,
           input.praisedExternalUserNames || [],
-          input.imagePaths || [],
+          imagePaths,
           supabase,
         );
       } catch (slackError) {
