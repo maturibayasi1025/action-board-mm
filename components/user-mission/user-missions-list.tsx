@@ -19,6 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { LikeButton } from "@/components/user-mission/like-button";
+import { createClient } from "@/lib/supabase/client";
 import { Calendar, PenTool, Plus, Search, User, X } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
@@ -29,6 +30,7 @@ type UserMission = {
   createdByName: string;
   title: string;
   content: string;
+  imagePaths?: string[];
   praisedUsers: string[];
   praisedExternalUsers?: string[];
   praisedUsersWithXUsername?: Array<{
@@ -271,6 +273,25 @@ export function UserMissionsList({ missions }: { missions: UserMission[] }) {
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex-1">
+                {/* 画像表示 */}
+                {mission.imagePaths && mission.imagePaths.length > 0 && (
+                  <div className="mb-4 grid grid-cols-3 gap-2">
+                    {mission.imagePaths.slice(0, 3).map((path) => {
+                      const supabase = createClient();
+                      const { data } = supabase.storage
+                        .from("user_mission_images")
+                        .getPublicUrl(path);
+                      return (
+                        <img
+                          key={path}
+                          src={data.publicUrl}
+                          alt={`${mission.title}`}
+                          className="w-full h-24 object-cover rounded border"
+                        />
+                      );
+                    })}
+                  </div>
+                )}
                 <p className="text-sm text-muted-foreground line-clamp-3">
                   {mission.content}
                 </p>

@@ -8,6 +8,7 @@ export interface CreateUserMissionInput {
   content: string;
   praisedUserIds: string[];
   praisedExternalUserNames?: string[];
+  imagePaths?: string[];
   mvvItems: {
     passionateExecution: boolean;
     supremeRelationships: boolean;
@@ -21,6 +22,7 @@ export interface SaveDraftUserMissionInput {
   content: string;
   praisedUserIds: string[];
   praisedExternalUserNames?: string[];
+  imagePaths?: string[];
   mvvItems: {
     passionateExecution: boolean;
     supremeRelationships: boolean;
@@ -62,6 +64,10 @@ export async function createUserMissionAction(input: CreateUserMissionInput) {
         created_by: user.id,
         title: input.title,
         content: input.content,
+        image_paths:
+          input.imagePaths && input.imagePaths.length > 0
+            ? (input.imagePaths as unknown)
+            : [],
         status: "approved", // 自動承認で即時表示
         approved_at: new Date().toISOString(),
         approved_by: user.id, // 自分自身を承認者として設定
@@ -211,6 +217,7 @@ export async function createUserMissionAction(input: CreateUserMissionInput) {
           user.id,
           input.praisedUserIds,
           input.praisedExternalUserNames || [],
+          input.imagePaths || [],
           supabase,
         );
       } catch (slackError) {
@@ -539,6 +546,7 @@ async function sendSlackNotificationForMissionCreation(
   creatorId: string,
   praisedUserIds: string[],
   praisedExternalUserNames: string[],
+  imagePaths: string[],
   supabase: Awaited<ReturnType<typeof createClient>>,
 ) {
   try {
@@ -575,6 +583,21 @@ async function sendSlackNotificationForMissionCreation(
     const notificationUrl = `${apiUrl}/api/slack-notification`;
     console.log("[Slack通知] 通知APIを呼び出します:", notificationUrl);
 
+    // 画像URLを取得
+    const imageUrls: string[] = [];
+    if (imagePaths && imagePaths.length > 0) {
+      const { createServiceClient } = await import("@/lib/supabase/server");
+      const serviceSupabase = await createServiceClient();
+      for (const path of imagePaths) {
+        const { data } = serviceSupabase.storage
+          .from("user_mission_images")
+          .getPublicUrl(path);
+        if (data?.publicUrl) {
+          imageUrls.push(data.publicUrl);
+        }
+      }
+    }
+
     const response = await fetch(notificationUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -586,6 +609,7 @@ async function sendSlackNotificationForMissionCreation(
           content,
           creatorName: creator?.name || "不明",
           praisedNames: allPraisedNames,
+          imageUrls: imageUrls.length > 0 ? imageUrls : undefined,
         },
       }),
     });
@@ -810,6 +834,10 @@ export async function saveDraftUserMissionAction(
         .update({
           title: input.title || "（タイトル未入力）",
           content: input.content || "",
+          image_paths:
+            input.imagePaths && input.imagePaths.length > 0
+              ? (input.imagePaths as unknown)
+              : [],
           updated_at: new Date().toISOString(),
         })
         .eq("id", input.draftId)
@@ -917,6 +945,10 @@ async function createNewDraft(
       created_by: userId,
       title: input.title || "（タイトル未入力）",
       content: input.content || "",
+      image_paths:
+        input.imagePaths && input.imagePaths.length > 0
+          ? (input.imagePaths as unknown)
+          : [],
       status: "pending", // 下書きとして保存
     })
     .select()
@@ -1096,6 +1128,8 @@ export async function publishDraftUserMissionAction(draftId: string) {
     // Slack通知を送信（Webhook URLが設定されている場合）
     if (process.env.SLACK_WEBHOOK_URL) {
       try {
+        // 画像パスを取得
+        const imagePaths = (mission.image_paths as string[]) || [];
         await sendSlackNotificationForMissionCreation(
           mission.id,
           mission.title,
@@ -1103,6 +1137,7 @@ export async function publishDraftUserMissionAction(draftId: string) {
           user.id,
           praisedUserIds,
           praisedExternalUserNames,
+          imagePaths,
           supabase,
         );
       } catch (slackError) {
