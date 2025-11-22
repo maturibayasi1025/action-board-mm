@@ -126,7 +126,7 @@ export default async function UserMissionDetailPage({
     <div className="container mx-auto py-8 max-w-4xl">
       <Card>
         <CardHeader>
-          <div className="flex justify-between items-start">
+          <div className="flex flex-col gap-4 md:flex-row md:justify-between md:items-start">
             <div className="flex-1">
               <CardTitle className="text-2xl mb-4">{mission.title}</CardTitle>
               <CardDescription>
@@ -158,7 +158,7 @@ export default async function UserMissionDetailPage({
                 </div>
               </CardDescription>
             </div>
-            <div className="ml-4">
+            <div className="md:ml-4">
               <LikeButton
                 missionId={mission.id}
                 initialLiked={mission.isLikedByCurrentUser}

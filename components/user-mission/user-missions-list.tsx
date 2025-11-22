@@ -169,7 +169,7 @@ export function UserMissionsList({ missions }: { missions: UserMission[] }) {
         </div>
 
         {/* 登録時期検索 */}
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col gap-2 md:flex-row md:items-center">
           <Calendar className="h-4 w-4 text-muted-foreground" />
           <Select value={selectedYear} onValueChange={setSelectedYear}>
             <SelectTrigger className="w-[140px]">
@@ -286,14 +286,21 @@ export function UserMissionsList({ missions }: { missions: UserMission[] }) {
                   )}
                 </div>
               </CardContent>
-              <CardFooter className="flex justify-between items-center">
+              <CardFooter className="flex flex-col gap-2 md:flex-row md:justify-between md:items-center">
                 <LikeButton
                   missionId={mission.id}
                   initialLiked={mission.isLikedByCurrentUser || false}
                   initialCount={mission.likesCount}
                 />
-                <Link href={`/user-missions/${mission.id}`}>
-                  <Button variant="ghost" size="sm">
+                <Link
+                  href={`/user-missions/${mission.id}`}
+                  className="w-full md:w-auto"
+                >
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full md:w-auto"
+                  >
                     詳細を見る
                   </Button>
                 </Link>

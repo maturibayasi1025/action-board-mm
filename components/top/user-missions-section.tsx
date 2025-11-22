@@ -285,14 +285,21 @@ async function UserMissionsList() {
                   )}
                 </div>
               </CardContent>
-              <CardFooter className="flex justify-between items-center pt-4">
+              <CardFooter className="flex flex-col gap-2 md:flex-row md:justify-between md:items-center pt-4">
                 <LikeButton
                   missionId={mission.id}
                   initialLiked={mission.isLikedByCurrentUser || false}
                   initialCount={mission.likesCount}
                 />
-                <Link href={`/user-missions/${mission.id}`}>
-                  <Button variant="ghost" size="sm">
+                <Link
+                  href={`/user-missions/${mission.id}`}
+                  className="w-full md:w-auto"
+                >
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full md:w-auto"
+                  >
                     詳細
                   </Button>
                 </Link>

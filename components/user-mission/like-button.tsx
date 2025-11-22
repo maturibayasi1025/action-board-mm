@@ -23,8 +23,12 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error("Supabase environment variables are required");
 }
 
+// Supabaseクライアントを作成
+// ブラウザクライアントを作成するためにcreateBrowserClientを使用
 const supabase = createBrowserClient<Database>(supabaseUrl, supabaseAnonKey);
 
+// LikeButtonコンポーネントを定義
+// いいねボタンの表示とクリック処理を行うß
 export function LikeButton({
   missionId,
   initialLiked,
@@ -98,7 +102,7 @@ export function LikeButton({
       onClick={handleClick}
       disabled={isLoading}
       className={cn(
-        "flex items-center gap-2 transition-colors",
+        "flex items-center gap-2 transition-colors w-full md:w-auto",
         isLiked && "text-red-500 hover:text-red-600",
       )}
     >
