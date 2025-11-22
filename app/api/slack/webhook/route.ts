@@ -592,8 +592,11 @@ export async function POST(request: NextRequest) {
         const mentionedUserIds = extractMentions(messageText);
 
         // 画像ファイルIDを取得
+        const eventWithFiles = event as {
+          files?: Array<{ id: string; mimetype?: string }>;
+        };
         const fileIds =
-          event.files
+          eventWithFiles.files
             ?.filter((file) => file.mimetype?.startsWith("image/"))
             .map((file) => file.id) || [];
 

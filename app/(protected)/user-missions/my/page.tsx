@@ -78,7 +78,8 @@ async function getUserMissionsServer(userId: string) {
     createdBy: mission.created_by,
     title: mission.title,
     content: mission.content,
-    imagePaths: (mission.image_paths as string[]) || [],
+    imagePaths: ((mission as unknown as { image_paths?: string[] })
+      .image_paths || []) as string[],
     praisedUsers:
       mission.user_mission_praised_users
         ?.map((p: unknown) => (p as unknown as PraisedUser).private_users?.name)

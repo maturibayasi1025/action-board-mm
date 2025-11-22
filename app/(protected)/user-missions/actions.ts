@@ -1128,8 +1128,9 @@ export async function publishDraftUserMissionAction(draftId: string) {
     // Slack通知を送信（Webhook URLが設定されている場合）
     if (process.env.SLACK_WEBHOOK_URL) {
       try {
-        // 画像パスを取得
-        const imagePaths = (mission.image_paths as string[]) || [];
+        // 画像パスを取得（draftから取得）
+        const imagePaths = ((draft as unknown as { image_paths?: string[] })
+          .image_paths || []) as string[];
         await sendSlackNotificationForMissionCreation(
           mission.id,
           mission.title,
