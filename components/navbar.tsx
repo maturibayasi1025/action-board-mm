@@ -35,32 +35,71 @@ export default async function Navbar() {
           </Link>
         </div>
         {user ? (
-          <div className="flex gap-6 items-center">
-            <div className="font-semibold hidden sm:flex">
-              <Link href="/">ホーム</Link>
+          <>
+            <div className="flex gap-6 items-center">
+              <div className="font-semibold hidden sm:flex">
+                <Link href="/">ホーム</Link>
+              </div>
+              <div className="font-semibold hidden sm:flex">
+                <Link href="/user-missions/praised">自分宛のグッジョブ</Link>
+              </div>
+              <div className="font-semibold hidden sm:flex">
+                <Link href="/user-missions">みんなの投稿</Link>
+              </div>
+              <div className="font-semibold hidden sm:flex">
+                <Link href="/user-missions/my">自分の投稿</Link>
+              </div>
+              <div className="hidden sm:flex">
+                <Button asChild size="sm" variant="default">
+                  <Link
+                    href="/user-missions/new"
+                    className="flex items-center gap-1"
+                  >
+                    <Plus className="h-4 w-4" />
+                    グッジョブを作成
+                  </Link>
+                </Button>
+              </div>
+              <HeaderAuth />
             </div>
-            <div className="font-semibold hidden sm:flex">
-              <Link href="/user-missions/praised">自分宛のグッジョブ</Link>
-            </div>
-            <div className="font-semibold hidden sm:flex">
-              <Link href="/user-missions">みんなの投稿</Link>
-            </div>
-            <div className="font-semibold hidden sm:flex">
-              <Link href="/user-missions/my">自分の投稿</Link>
-            </div>
-            <div className="hidden sm:flex">
-              <Button asChild size="sm" variant="default">
-                <Link
-                  href="/user-missions/new"
-                  className="flex items-center gap-1"
+            <div className="flex gap-6 items-center font-semibold sm:hidden">
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  aria-label="ナビゲーションメニューを開く"
+                  data-testid="navmenubutton"
                 >
-                  <Plus className="h-4 w-4" />
-                  グッジョブを作成
-                </Link>
-              </Button>
+                  <Menu />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
+                  side="bottom"
+                  align="end"
+                  sideOffset={4}
+                >
+                  <DropdownMenuGroup>
+                    <DropdownMenuItem asChild>
+                      <Link href="/">ホーム</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/user-missions/praised">
+                        自分宛のグッジョブ
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/user-missions">みんなの投稿</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/user-missions/my">自分の投稿</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/user-missions/new">グッジョブ作成</Link>
+                    </DropdownMenuItem>
+                  </DropdownMenuGroup>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <HeaderAuth />
             </div>
-            <HeaderAuth />
-          </div>
+          </>
         ) : (
           <>
             <div className="gap-6 items-center font-semibold hidden sm:flex">
