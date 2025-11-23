@@ -189,6 +189,17 @@ export async function POST(request: NextRequest) {
     if (type === "user_mission_created") {
       const { title, content, creatorName, praisedNames, imageUrls } = data;
 
+      console.log("[Slack通知] 受信したデータ:", {
+        type,
+        title,
+        creatorName,
+        praisedNames,
+        imageUrls,
+        imageUrlsType: typeof imageUrls,
+        imageUrlsIsArray: Array.isArray(imageUrls),
+        imageUrlsLength: imageUrls?.length,
+      });
+
       // Slackユーザーリストを取得してメンション形式に変換
       const slackUsers = await getSlackUsersList();
       const praisedNamesWithMentions = formatPraisedNamesWithMentions(
@@ -231,7 +242,20 @@ export async function POST(request: NextRequest) {
       ];
 
       // 画像がある場合は画像ブロックを追加
+      console.log("[Slack通知] 画像URLチェック:", {
+        imageUrls,
+        hasImageUrls: !!imageUrls,
+        isArray: Array.isArray(imageUrls),
+        length: imageUrls?.length,
+        condition:
+          imageUrls && Array.isArray(imageUrls) && imageUrls.length > 0,
+      });
+
       if (imageUrls && Array.isArray(imageUrls) && imageUrls.length > 0) {
+        console.log("[Slack通知] 画像ブロックを追加します:", {
+          imageUrlsCount: imageUrls.length,
+          imageUrlsToAdd: imageUrls.slice(0, 3),
+        });
         // 最大3枚まで表示
         for (const imageUrl of imageUrls.slice(0, 3)) {
           blocks.push({
@@ -240,6 +264,8 @@ export async function POST(request: NextRequest) {
             alt_text: title,
           });
         }
+      } else {
+        console.log("[Slack通知] 画像ブロックは追加されませんでした");
       }
 
       slackMessage = {

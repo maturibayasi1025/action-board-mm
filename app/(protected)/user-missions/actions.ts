@@ -211,8 +211,35 @@ export async function createUserMissionAction(input: CreateUserMissionInput) {
     if (process.env.SLACK_WEBHOOK_URL) {
       try {
         // 画像パスを取得（データベースから取得したmissionから取得）
-        const imagePaths = ((mission as unknown as { image_paths?: string[] })
-          .image_paths || []) as string[];
+        const rawImagePaths = (
+          mission as unknown as {
+            image_paths?: string[] | unknown;
+          }
+        ).image_paths;
+        console.log("[Slack通知] mission.image_paths取得:", {
+          rawImagePaths,
+          rawImagePathsType: typeof rawImagePaths,
+          rawImagePathsIsArray: Array.isArray(rawImagePaths),
+        });
+
+        // JSONB型のデータを正しく配列として処理
+        let imagePaths: string[] = [];
+        if (Array.isArray(rawImagePaths)) {
+          imagePaths = rawImagePaths.filter(
+            (path): path is string => typeof path === "string",
+          );
+        } else if (rawImagePaths) {
+          console.warn(
+            "[Slack通知] image_pathsが配列ではありません:",
+            rawImagePaths,
+          );
+        }
+
+        console.log("[Slack通知] 処理後のimagePaths:", {
+          imagePaths,
+          imagePathsLength: imagePaths.length,
+        });
+
         await sendSlackNotificationForMissionCreation(
           mission.id,
           input.title,
@@ -587,19 +614,39 @@ async function sendSlackNotificationForMissionCreation(
     console.log("[Slack通知] 通知APIを呼び出します:", notificationUrl);
 
     // 画像URLを取得
+    console.log("[Slack通知] imagePaths受信:", {
+      imagePaths,
+      imagePathsType: typeof imagePaths,
+      imagePathsIsArray: Array.isArray(imagePaths),
+      imagePathsLength: imagePaths?.length,
+    });
+
     const imageUrls: string[] = [];
-    if (imagePaths && imagePaths.length > 0) {
+    if (imagePaths && Array.isArray(imagePaths) && imagePaths.length > 0) {
       const { createServiceClient } = await import("@/lib/supabase/server");
       const serviceSupabase = await createServiceClient();
       for (const path of imagePaths) {
+        if (typeof path !== "string") {
+          console.warn("[Slack通知] 無効なパス形式:", path);
+          continue;
+        }
         const { data } = serviceSupabase.storage
           .from("user_mission_images")
           .getPublicUrl(path);
+        console.log("[Slack通知] getPublicUrl結果:", {
+          path,
+          publicUrl: data?.publicUrl,
+        });
         if (data?.publicUrl) {
           imageUrls.push(data.publicUrl);
         }
       }
     }
+
+    console.log("[Slack通知] 生成されたimageUrls:", {
+      imageUrls,
+      imageUrlsLength: imageUrls.length,
+    });
 
     const response = await fetch(notificationUrl, {
       method: "POST",
@@ -612,7 +659,7 @@ async function sendSlackNotificationForMissionCreation(
           content,
           creatorName: creator?.name || "不明",
           praisedNames: allPraisedNames,
-          imageUrls: imageUrls.length > 0 ? imageUrls : undefined,
+          imageUrls: imageUrls, // undefinedではなく空配列でも送信
         },
       }),
     });
@@ -1132,8 +1179,35 @@ export async function publishDraftUserMissionAction(draftId: string) {
     if (process.env.SLACK_WEBHOOK_URL) {
       try {
         // 画像パスを取得（draftから取得）
-        const imagePaths = ((draft as unknown as { image_paths?: string[] })
-          .image_paths || []) as string[];
+        const rawImagePaths = (
+          draft as unknown as {
+            image_paths?: string[] | unknown;
+          }
+        ).image_paths;
+        console.log("[Slack通知] draft.image_paths取得:", {
+          rawImagePaths,
+          rawImagePathsType: typeof rawImagePaths,
+          rawImagePathsIsArray: Array.isArray(rawImagePaths),
+        });
+
+        // JSONB型のデータを正しく配列として処理
+        let imagePaths: string[] = [];
+        if (Array.isArray(rawImagePaths)) {
+          imagePaths = rawImagePaths.filter(
+            (path): path is string => typeof path === "string",
+          );
+        } else if (rawImagePaths) {
+          console.warn(
+            "[Slack通知] image_pathsが配列ではありません:",
+            rawImagePaths,
+          );
+        }
+
+        console.log("[Slack通知] 処理後のimagePaths:", {
+          imagePaths,
+          imagePathsLength: imagePaths.length,
+        });
+
         await sendSlackNotificationForMissionCreation(
           mission.id,
           mission.title,
