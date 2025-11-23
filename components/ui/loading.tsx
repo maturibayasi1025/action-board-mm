@@ -21,15 +21,23 @@ export function Loading({
   const imageSize = sizeMap[size];
 
   const content = (
-    <div className={cn("flex flex-col items-center justify-center", className)}>
-      <Image
-        src="/img/MMHD_symbol.png"
-        alt="Loading"
-        width={imageSize.width}
-        height={imageSize.height}
-        className="animate-spin"
-        priority
-      />
+    <div
+      className={cn(
+        "flex flex-col items-center justify-center",
+        "[perspective:1000px]",
+        className,
+      )}
+    >
+      <div className="[transform-style:preserve-3d]">
+        <Image
+          src="/img/MMHD_symbol.png"
+          alt="Loading"
+          width={imageSize.width}
+          height={imageSize.height}
+          className="animate-rotate-y-3d"
+          priority
+        />
+      </div>
     </div>
   );
 
