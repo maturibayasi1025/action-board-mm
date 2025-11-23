@@ -33,7 +33,8 @@ async function getUserMissionsServer() {
         approved_at,
         approved_by,
         public_mission_id,
-        likes_count
+        likes_count,
+        image_paths
       `)
       .eq("status", "approved")
       .order("created_at", { ascending: false })
@@ -133,6 +134,8 @@ async function getUserMissionsServer() {
           createdByName: creatorMap.get(mission.created_by) || "不明なユーザー",
           title: mission.title,
           content: mission.content,
+          imagePaths: ((mission as unknown as { image_paths?: string[] })
+            .image_paths || []) as string[],
           praisedUsers:
             praisedUsers
               ?.map((p) => {
@@ -189,6 +192,8 @@ async function getUserMissionsServer() {
           createdByName: creatorMap.get(mission.created_by) || "不明なユーザー",
           title: mission.title,
           content: mission.content,
+          imagePaths: ((mission as unknown as { image_paths?: string[] })
+            .image_paths || []) as string[],
           praisedUsers: [],
           praisedExternalUsers: [],
           status: mission.status,
@@ -219,6 +224,7 @@ async function getUserMissionsServer() {
 async function UserMissionsList() {
   try {
     const featuredMissions = await getUserMissionsServer(); // ホームページでは6件まで表示
+    const supabase = await createClient();
 
     if (featuredMissions.length === 0) {
       return (
@@ -264,6 +270,24 @@ async function UserMissionsList() {
                 </div>
               </CardHeader>
               <CardContent className="flex-1">
+                {/* 画像表示 */}
+                {mission.imagePaths && mission.imagePaths.length > 0 && (
+                  <div className="mb-4 grid grid-cols-3 gap-2">
+                    {mission.imagePaths.slice(0, 3).map((path) => {
+                      const { data } = supabase.storage
+                        .from("user_mission_images")
+                        .getPublicUrl(path);
+                      return (
+                        <img
+                          key={path}
+                          src={data.publicUrl}
+                          alt={`${mission.title}`}
+                          className="w-full h-24 object-cover rounded border"
+                        />
+                      );
+                    })}
+                  </div>
+                )}
                 <p className="text-sm text-muted-foreground line-clamp-3">
                   {mission.content}
                 </p>
