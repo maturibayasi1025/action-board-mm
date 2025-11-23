@@ -200,7 +200,7 @@ async function PraisedMissionsList() {
         {mission.imagePaths && mission.imagePaths.length > 0 && (
           <div className="mb-4 grid grid-cols-3 gap-2">
             {mission.imagePaths.slice(0, 3).map((path) => {
-              const { data } = supabaseForImages.storage
+              const { data } = supabase.storage
                 .from("user_mission_images")
                 .getPublicUrl(path);
               return (
