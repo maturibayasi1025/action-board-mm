@@ -196,6 +196,94 @@ function isGoodJobMessage(text: string): boolean {
 }
 
 /**
+ * Slackファイルを取得してSupabase Storageに保存
+ */
+async function downloadAndSaveSlackImage(
+  fileId: string,
+  userId: string,
+  supabase: Awaited<ReturnType<typeof createServiceClient>>,
+): Promise<string | null> {
+  const botToken = process.env.SLACK_BOT_TOKEN;
+  if (!botToken) {
+    console.warn("SLACK_BOT_TOKENが設定されていません");
+    return null;
+  }
+
+  try {
+    // ファイル情報を取得
+    const fileInfoResponse = await fetch(
+      `https://slack.com/api/files.info?file=${fileId}`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${botToken}`,
+          "Content-Type": "application/json",
+        },
+      },
+    );
+
+    if (!fileInfoResponse.ok) {
+      console.error("Slackファイル情報取得エラー:", fileInfoResponse.status);
+      return null;
+    }
+
+    const fileInfoData = await fileInfoResponse.json();
+    if (!fileInfoData.ok || !fileInfoData.file) {
+      console.error("Slackファイル情報取得エラー:", fileInfoData.error);
+      return null;
+    }
+
+    const file = fileInfoData.file;
+    // 画像ファイルのみ処理
+    if (!file.mimetype?.startsWith("image/")) {
+      console.log("画像ファイルではないためスキップ:", file.mimetype);
+      return null;
+    }
+
+    // ファイルをダウンロード
+    const downloadUrl = file.url_private;
+    if (!downloadUrl) {
+      console.error("ファイルのダウンロードURLがありません");
+      return null;
+    }
+
+    const imageResponse = await fetch(downloadUrl, {
+      headers: {
+        Authorization: `Bearer ${botToken}`,
+      },
+    });
+
+    if (!imageResponse.ok) {
+      console.error("画像ダウンロードエラー:", imageResponse.status);
+      return null;
+    }
+
+    const imageBlob = await imageResponse.blob();
+
+    // ファイル名を生成
+    const fileExtension = file.name?.split(".").pop() || "jpg";
+    const fileName = `${userId}/${Date.now()}_slack_${fileId}.${fileExtension}`;
+
+    // Supabase Storageにアップロード（Edge RuntimeではBlobを使用）
+    const { data, error } = await supabase.storage
+      .from("user_mission_images")
+      .upload(fileName, imageBlob, {
+        contentType: file.mimetype,
+      });
+
+    if (error) {
+      console.error("画像アップロードエラー:", error);
+      return null;
+    }
+
+    return data.path;
+  } catch (error) {
+    console.error("Slack画像処理エラー:", error);
+    return null;
+  }
+}
+
+/**
  * グッジョブを作成
  */
 async function createGoodJobFromSlack(
@@ -203,6 +291,7 @@ async function createGoodJobFromSlack(
   slackUserName: string,
   messageText: string,
   mentionedUserIds: string[],
+  fileIds: string[],
   supabase: Awaited<ReturnType<typeof createServiceClient>>,
 ): Promise<{ success: boolean; missionId?: string; error?: string }> {
   try {
@@ -249,6 +338,22 @@ async function createGoodJobFromSlack(
     // タイトルと内容を抽出
     const { title, content } = parseMessage(cleanText);
 
+    // 画像をダウンロードして保存
+    const imagePaths: string[] = [];
+    if (fileIds && fileIds.length > 0) {
+      for (const fileId of fileIds.slice(0, 3)) {
+        // 最大3枚まで
+        const imagePath = await downloadAndSaveSlackImage(
+          fileId,
+          creatorId,
+          supabase,
+        );
+        if (imagePath) {
+          imagePaths.push(imagePath);
+        }
+      }
+    }
+
     // グッジョブを作成
     const { data: mission, error: missionError } = await supabase
       .from("user_missions")
@@ -256,6 +361,7 @@ async function createGoodJobFromSlack(
         created_by: creatorId,
         title,
         content,
+        image_paths: imagePaths.length > 0 ? (imagePaths as unknown) : [],
         status: "approved",
         approved_at: new Date().toISOString(),
         approved_by: creatorId,
@@ -485,6 +591,15 @@ export async function POST(request: NextRequest) {
         const supabase = await createServiceClient();
         const mentionedUserIds = extractMentions(messageText);
 
+        // 画像ファイルIDを取得
+        const eventWithFiles = event as {
+          files?: Array<{ id: string; mimetype?: string }>;
+        };
+        const fileIds =
+          eventWithFiles.files
+            ?.filter((file) => file.mimetype?.startsWith("image/"))
+            .map((file) => file.id) || [];
+
         // 投稿者の情報を取得
         const userInfo = await getSlackUserInfo(event.user);
         const slackUserName =
@@ -498,6 +613,7 @@ export async function POST(request: NextRequest) {
           slackUserName,
           messageText,
           mentionedUserIds,
+          fileIds,
           supabase,
         ).then((result) => {
           if (result.success) {

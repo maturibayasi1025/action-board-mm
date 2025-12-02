@@ -21,20 +21,7 @@ async function getUserMissionsServer() {
   try {
     const { data, error } = await supabase
       .from("user_missions")
-      .select(`
-        id,
-        created_by,
-        title,
-        content,
-        status,
-        rejection_reason,
-        created_at,
-        updated_at,
-        approved_at,
-        approved_by,
-        public_mission_id,
-        likes_count
-      `)
+      .select("*")
       .eq("status", "approved")
       .order("created_at", { ascending: false })
       .limit(6);
@@ -51,7 +38,9 @@ async function getUserMissionsServer() {
     } = await supabase.auth.getUser();
 
     // 作成者名を一括取得
-    const creatorIds = Array.from(new Set(data.map((m) => m.created_by)));
+    const creatorIds = Array.from(
+      new Set(data.map((m) => (m as { created_by: string }).created_by)),
+    );
     const { data: creators } = await supabase
       .from("private_users")
       .select("id, name")
@@ -64,13 +53,14 @@ async function getUserMissionsServer() {
     for (const mission of data) {
       try {
         // MVV項目を個別に取得
+        const missionId = (mission as { id: string }).id;
         const { data: mvvItems, error: mvvError } = await supabase
           .from("user_mission_mvv_items")
           .select("mvv_type")
-          .eq("user_mission_id", mission.id);
+          .eq("user_mission_id", missionId);
 
         if (mvvError) {
-          console.error(`MVV error for mission ${mission.id}:`, mvvError);
+          console.error(`MVV error for mission ${missionId}:`, mvvError);
         }
 
         // ログインしている場合のみ賞賛対象ユーザーを取得
@@ -87,11 +77,11 @@ async function getUserMissionsServer() {
                 name
               )
             `)
-            .eq("user_mission_id", mission.id);
+            .eq("user_mission_id", missionId);
 
           if (praisedError) {
             console.error(
-              `Praised users error for mission ${mission.id}:`,
+              `Praised users error for mission ${missionId}:`,
               praisedError,
             );
           }
@@ -105,11 +95,11 @@ async function getUserMissionsServer() {
           } = await supabase
             .from("user_mission_praised_external_users")
             .select("praised_person_name")
-            .eq("user_mission_id", mission.id);
+            .eq("user_mission_id", missionId);
 
           if (praisedExternalError) {
             console.error(
-              `Praised external users error for mission ${mission.id}:`,
+              `Praised external users error for mission ${missionId}:`,
               praisedExternalError,
             );
           }
@@ -124,15 +114,33 @@ async function getUserMissionsServer() {
           .eq("user_mission_id", mission.id);
 
         if (likesError) {
-          console.error(`Likes error for mission ${mission.id}:`, likesError);
+          console.error(`Likes error for mission ${missionId}:`, likesError);
         }
 
+        const missionTyped = mission as {
+          id: string;
+          created_by: string;
+          title: string;
+          content: string;
+          status: string;
+          rejection_reason: string | null;
+          created_at: string;
+          updated_at: string;
+          approved_at: string | null;
+          approved_by: string | null;
+          public_mission_id: string | null;
+          likes_count: number;
+          image_paths?: string[] | null;
+        };
         const missionResult = {
-          id: mission.id,
-          createdBy: mission.created_by,
-          createdByName: creatorMap.get(mission.created_by) || "不明なユーザー",
-          title: mission.title,
-          content: mission.content,
+          id: missionTyped.id,
+          createdBy: missionTyped.created_by,
+          createdByName:
+            creatorMap.get(missionTyped.created_by) || "不明なユーザー",
+          title: missionTyped.title,
+          content: missionTyped.content,
+          imagePaths: ((missionTyped.image_paths as string[]) ||
+            []) as string[],
           praisedUsers:
             praisedUsers
               ?.map((p) => {
@@ -152,14 +160,14 @@ async function getUserMissionsServer() {
             praisedExternalUsers?.map(
               (p: { praised_person_name: string }) => p.praised_person_name,
             ) || [],
-          status: mission.status,
-          rejectionReason: mission.rejection_reason,
-          createdAt: mission.created_at,
-          updatedAt: mission.updated_at,
-          approvedAt: mission.approved_at,
-          approvedBy: mission.approved_by,
-          publicMissionId: mission.public_mission_id,
-          likesCount: mission.likes_count,
+          status: missionTyped.status,
+          rejectionReason: missionTyped.rejection_reason,
+          createdAt: missionTyped.created_at,
+          updatedAt: missionTyped.updated_at,
+          approvedAt: missionTyped.approved_at,
+          approvedBy: missionTyped.approved_by,
+          publicMissionId: missionTyped.public_mission_id,
+          likesCount: missionTyped.likes_count,
           mvvItems: {
             passionateExecution:
               mvvItems?.some(
@@ -181,24 +189,45 @@ async function getUserMissionsServer() {
 
         results.push(missionResult);
       } catch (itemError) {
-        console.error(`Error processing mission ${mission.id}:`, itemError);
+        const missionTyped = mission as {
+          id: string;
+          created_by: string;
+          title: string;
+          content: string;
+          status: string;
+          rejection_reason: string | null;
+          created_at: string;
+          updated_at: string;
+          approved_at: string | null;
+          approved_by: string | null;
+          public_mission_id: string | null;
+          likes_count: number;
+          image_paths?: string[] | null;
+        };
+        console.error(
+          `Error processing mission ${missionTyped.id}:`,
+          itemError,
+        );
         // エラーが発生した場合は基本情報のみで続行
         results.push({
-          id: mission.id,
-          createdBy: mission.created_by,
-          createdByName: creatorMap.get(mission.created_by) || "不明なユーザー",
-          title: mission.title,
-          content: mission.content,
+          id: missionTyped.id,
+          createdBy: missionTyped.created_by,
+          createdByName:
+            creatorMap.get(missionTyped.created_by) || "不明なユーザー",
+          title: missionTyped.title,
+          content: missionTyped.content,
+          imagePaths: ((missionTyped.image_paths as string[]) ||
+            []) as string[],
           praisedUsers: [],
           praisedExternalUsers: [],
-          status: mission.status,
-          rejectionReason: mission.rejection_reason,
-          createdAt: mission.created_at,
-          updatedAt: mission.updated_at,
-          approvedAt: mission.approved_at,
-          approvedBy: mission.approved_by,
-          publicMissionId: mission.public_mission_id,
-          likesCount: mission.likes_count || 0,
+          status: missionTyped.status,
+          rejectionReason: missionTyped.rejection_reason,
+          createdAt: missionTyped.created_at,
+          updatedAt: missionTyped.updated_at,
+          approvedAt: missionTyped.approved_at,
+          approvedBy: missionTyped.approved_by,
+          publicMissionId: missionTyped.public_mission_id,
+          likesCount: missionTyped.likes_count || 0,
           mvvItems: {
             passionateExecution: false,
             supremeRelationships: false,
@@ -219,6 +248,7 @@ async function getUserMissionsServer() {
 async function UserMissionsList() {
   try {
     const featuredMissions = await getUserMissionsServer(); // ホームページでは6件まで表示
+    const supabase = await createClient();
 
     if (featuredMissions.length === 0) {
       return (
@@ -264,6 +294,24 @@ async function UserMissionsList() {
                 </div>
               </CardHeader>
               <CardContent className="flex-1">
+                {/* 画像表示 */}
+                {mission.imagePaths && mission.imagePaths.length > 0 && (
+                  <div className="mb-4 grid grid-cols-3 gap-2">
+                    {mission.imagePaths.slice(0, 3).map((path) => {
+                      const { data } = supabase.storage
+                        .from("user_mission_images")
+                        .getPublicUrl(path);
+                      return (
+                        <img
+                          key={path}
+                          src={data.publicUrl}
+                          alt={`${mission.title}`}
+                          className="w-full h-24 object-cover rounded border"
+                        />
+                      );
+                    })}
+                  </div>
+                )}
                 <p className="text-sm text-muted-foreground line-clamp-3">
                   {mission.content}
                 </p>

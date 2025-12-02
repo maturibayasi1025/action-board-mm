@@ -79,10 +79,19 @@ const config = {
             height: "0",
           },
         },
+        "rotate-y-3d": {
+          "0%": {
+            transform: "rotateY(0deg)",
+          },
+          "100%": {
+            transform: "rotateY(360deg)",
+          },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "rotate-y-3d": "rotate-y-3d 2s linear infinite",
       },
     },
   },

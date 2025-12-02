@@ -72,6 +72,8 @@ async function getUserMissionById(id: string) {
     createdByName: userProfile?.name || "不明なユーザー",
     title: data.title,
     content: data.content,
+    imagePaths: ((data as unknown as { image_paths?: string[] }).image_paths ||
+      []) as string[],
     praisedUsers:
       data.user_mission_praised_users
         ?.map((p: unknown) => (p as unknown as PraisedUser).private_users?.name)
@@ -117,6 +119,7 @@ export default async function UserMissionDetailPage({
 }) {
   const { id } = await params;
   const mission = await getUserMissionById(id);
+  const supabase = await createClient();
 
   if (!mission) {
     notFound();
@@ -169,6 +172,28 @@ export default async function UserMissionDetailPage({
         </CardHeader>
         <CardContent>
           <div className="space-y-6">
+            {/* 画像表示 */}
+            {mission.imagePaths && mission.imagePaths.length > 0 && (
+              <div>
+                <h3 className="font-semibold mb-2">画像</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {mission.imagePaths.map((path) => {
+                    const { data } = supabase.storage
+                      .from("user_mission_images")
+                      .getPublicUrl(path);
+                    return (
+                      <img
+                        key={path}
+                        src={data.publicUrl}
+                        alt={`${mission.title}`}
+                        className="w-full h-auto object-cover rounded-lg border"
+                      />
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             <div>
               <h3 className="font-semibold mb-2">詳細内容</h3>
               <p className="whitespace-pre-wrap text-muted-foreground">

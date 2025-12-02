@@ -78,6 +78,8 @@ async function getUserMissionsServer(userId: string) {
     createdBy: mission.created_by,
     title: mission.title,
     content: mission.content,
+    imagePaths: ((mission as unknown as { image_paths?: string[] })
+      .image_paths || []) as string[],
     praisedUsers:
       mission.user_mission_praised_users
         ?.map((p: unknown) => (p as unknown as PraisedUser).private_users?.name)
@@ -193,6 +195,24 @@ async function MyMissionsList() {
         </CardDescription>
       </CardHeader>
       <CardContent className="flex-1">
+        {/* 画像表示 */}
+        {mission.imagePaths && mission.imagePaths.length > 0 && (
+          <div className="mb-4 grid grid-cols-3 gap-2">
+            {mission.imagePaths.slice(0, 3).map((path) => {
+              const { data } = supabase.storage
+                .from("user_mission_images")
+                .getPublicUrl(path);
+              return (
+                <img
+                  key={path}
+                  src={data.publicUrl}
+                  alt={`${mission.title}`}
+                  className="w-full h-24 object-cover rounded border"
+                />
+              );
+            })}
+          </div>
+        )}
         <p className="text-sm text-muted-foreground line-clamp-3">
           {mission.content || "（内容未入力）"}
         </p>

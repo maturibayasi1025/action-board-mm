@@ -20,12 +20,14 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { createClient } from "@/lib/supabase/client";
 import { zodResolver } from "@hookform/resolvers/zod";
+import type { User } from "@supabase/supabase-js";
 import { Save, Search, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import * as z from "zod";
+import { UserMissionImageUploader } from "./image-uploader";
 
 const formSchema = z
   .object({
@@ -39,6 +41,7 @@ const formSchema = z
       .max(1000, "内容は1000文字以内で入力してください"),
     praisedUserIds: z.array(z.string()),
     praisedExternalUserNames: z.array(z.string()),
+    imagePaths: z.array(z.string()).optional(),
     mvvItems: z
       .object({
         passionateExecution: z.boolean(),
@@ -66,7 +69,7 @@ const formSchema = z
 
 type FormData = z.infer<typeof formSchema>;
 
-interface User {
+interface UserData {
   id: string;
   name: string;
   x_username: string | null;
@@ -79,6 +82,7 @@ interface CreateMissionFormProps {
     content: string;
     praisedUserIds: string[];
     praisedExternalUserNames?: string[];
+    imagePaths?: string[];
     mvvItems: {
       passionateExecution: boolean;
       supremeRelationships: boolean;
@@ -95,7 +99,7 @@ export function CreateMissionForm(
 ) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [availableUsers, setAvailableUsers] = useState<User[]>([]);
+  const [availableUsers, setAvailableUsers] = useState<UserData[]>([]);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [externalUserNames, setExternalUserNames] = useState<string[]>([]);
   const [externalUserNameInput, setExternalUserNameInput] = useState("");
@@ -104,6 +108,10 @@ export function CreateMissionForm(
   const [saveStatus, setSaveStatus] = useState<
     "idle" | "saving" | "saved" | "error"
   >("idle");
+  const [imagePaths, setImagePaths] = useState<string[]>(
+    initialData?.imagePaths || [],
+  );
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const supabase = createClient();
 
@@ -114,6 +122,7 @@ export function CreateMissionForm(
       content: initialData?.content || "",
       praisedUserIds: initialData?.praisedUserIds || [],
       praisedExternalUserNames: initialData?.praisedExternalUserNames || [],
+      imagePaths: initialData?.imagePaths || [],
       mvvItems: initialData?.mvvItems || {
         passionateExecution: false,
         supremeRelationships: false,
@@ -121,6 +130,17 @@ export function CreateMissionForm(
       },
     },
   });
+
+  // 現在のユーザーを取得
+  useEffect(() => {
+    async function fetchCurrentUser() {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      setCurrentUser(user);
+    }
+    fetchCurrentUser();
+  }, [supabase]);
 
   // 初期データがある場合はselectedUsersとexternalUserNamesも設定
   useEffect(() => {
@@ -204,6 +224,7 @@ export function CreateMissionForm(
         content: values.content,
         praisedUserIds: values.praisedUserIds,
         praisedExternalUserNames: values.praisedExternalUserNames,
+        imagePaths: imagePaths,
         mvvItems: values.mvvItems,
       };
 
@@ -223,7 +244,7 @@ export function CreateMissionForm(
       console.error("自動保存エラー:", error);
       setSaveStatus("error");
     }
-  }, [form, draftIdState]);
+  }, [form, draftIdState, imagePaths]);
 
   // フォームの値を監視して自動保存（debounce）
   useEffect(() => {
@@ -271,6 +292,7 @@ export function CreateMissionForm(
           content: values.content,
           praisedUserIds: values.praisedUserIds,
           praisedExternalUserNames: values.praisedExternalUserNames,
+          imagePaths: imagePaths,
           mvvItems: values.mvvItems,
         });
 
@@ -517,6 +539,27 @@ export function CreateMissionForm(
                   </Button>
                 </div>
               </div>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="imagePaths"
+          render={() => (
+            <FormItem>
+              <FormControl>
+                <UserMissionImageUploader
+                  authUser={currentUser}
+                  disabled={isSubmitting}
+                  onImagePathsChange={(paths) => {
+                    setImagePaths(paths);
+                    form.setValue("imagePaths", paths);
+                  }}
+                  initialPaths={imagePaths}
+                />
+              </FormControl>
               <FormMessage />
             </FormItem>
           )}

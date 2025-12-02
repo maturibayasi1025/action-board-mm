@@ -90,6 +90,8 @@ async function getUserMissionsServer() {
     createdByName: creatorMap.get(mission.created_by) || "不明なユーザー",
     title: mission.title,
     content: mission.content,
+    imagePaths: ((mission as unknown as { image_paths?: string[] })
+      .image_paths || []) as string[],
     praisedUsers:
       mission.user_mission_praised_users
         ?.map((p: PraisedUser) => p.private_users?.name)

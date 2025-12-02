@@ -187,7 +187,18 @@ export async function POST(request: NextRequest) {
 
     // ユーザーグッジョブ用のメッセージ構築
     if (type === "user_mission_created") {
-      const { title, content, creatorName, praisedNames } = data;
+      const { title, content, creatorName, praisedNames, imageUrls } = data;
+
+      console.log("[Slack通知] 受信したデータ:", {
+        type,
+        title,
+        creatorName,
+        praisedNames,
+        imageUrls,
+        imageUrlsType: typeof imageUrls,
+        imageUrlsIsArray: Array.isArray(imageUrls),
+        imageUrlsLength: imageUrls?.length,
+      });
 
       // Slackユーザーリストを取得してメンション形式に変換
       const slackUsers = await getSlackUsersList();
@@ -196,41 +207,70 @@ export async function POST(request: NextRequest) {
         slackUsers,
       );
 
+      const blocks: unknown[] = [
+        {
+          type: "section",
+          text: {
+            type: "mrkdwn",
+            text: ":tada: *新しいグッジョブが作成されました！*",
+          },
+        },
+        {
+          type: "section",
+          fields: [
+            {
+              type: "mrkdwn",
+              text: `*タイトル:*\n${title}`,
+            },
+            {
+              type: "mrkdwn",
+              text: `*作成者:*\n${creatorName}`,
+            },
+            {
+              type: "mrkdwn",
+              text: `*賞賛対象:*\n${praisedNamesWithMentions || praisedNames || "なし"}`,
+            },
+          ],
+        },
+        {
+          type: "section",
+          text: {
+            type: "mrkdwn",
+            text: `*内容:*\n${content}`,
+          },
+        },
+      ];
+
+      // 画像がある場合は画像ブロックを追加
+      console.log("[Slack通知] 画像URLチェック:", {
+        imageUrls,
+        hasImageUrls: !!imageUrls,
+        isArray: Array.isArray(imageUrls),
+        length: imageUrls?.length,
+        condition:
+          imageUrls && Array.isArray(imageUrls) && imageUrls.length > 0,
+      });
+
+      if (imageUrls && Array.isArray(imageUrls) && imageUrls.length > 0) {
+        console.log("[Slack通知] 画像ブロックを追加します:", {
+          imageUrlsCount: imageUrls.length,
+          imageUrlsToAdd: imageUrls.slice(0, 3),
+        });
+        // 最大3枚まで表示
+        for (const imageUrl of imageUrls.slice(0, 3)) {
+          blocks.push({
+            type: "image",
+            image_url: imageUrl,
+            alt_text: title,
+          });
+        }
+      } else {
+        console.log("[Slack通知] 画像ブロックは追加されませんでした");
+      }
+
       slackMessage = {
         text: ":tada: 新しいグッジョブが作成されました！",
-        blocks: [
-          {
-            type: "section",
-            text: {
-              type: "mrkdwn",
-              text: ":tada: *新しいグッジョブが作成されました！*",
-            },
-          },
-          {
-            type: "section",
-            fields: [
-              {
-                type: "mrkdwn",
-                text: `*タイトル:*\n${title}`,
-              },
-              {
-                type: "mrkdwn",
-                text: `*作成者:*\n${creatorName}`,
-              },
-              {
-                type: "mrkdwn",
-                text: `*賞賛対象:*\n${praisedNamesWithMentions || praisedNames || "なし"}`,
-              },
-            ],
-          },
-          {
-            type: "section",
-            text: {
-              type: "mrkdwn",
-              text: `*内容:*\n${content}`,
-            },
-          },
-        ],
+        blocks,
       };
     } else if (type === "user_mission_liked") {
       const { title, likerName, creatorName } = data;
