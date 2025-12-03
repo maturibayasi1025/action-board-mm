@@ -1,4 +1,4 @@
-import Activities from "@/components/activities";
+// import Activities from "@/components/activities";
 import Hero from "@/components/hero";
 import dynamic from "next/dynamic";
 
@@ -20,12 +20,12 @@ import MetricsWithSuspense from "@/components/metrics/MetricsWithSuspense";
 import FeaturedMissions from "@/components/mission/FeaturedMissions";
 import ImportantMissions from "@/components/mission/ImportantMissions";
 import MissionsByCategory from "@/components/mission/MissionsByCategory";
-import Missions from "@/components/mission/missions";
-import RankingTop from "@/components/ranking/ranking-top";
-import RankingSection from "@/components/top/ranking-section";
+// import Missions from "@/components/mission/missions";
+// import RankingTop from "@/components/ranking/ranking-top";
+// import RankingSection from "@/components/top/ranking-section";
 import UserMissionsSection from "@/components/top/user-missions-section";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+// import { Button } from "@/components/ui/button";
+// import { Card } from "@/components/ui/card";
 import { generateRootMetadata } from "@/lib/metadata";
 import { checkBadgeNotifications } from "@/lib/services/badgeNotification";
 import { checkLevelUpNotification } from "@/lib/services/levelUpNotification";
@@ -34,8 +34,8 @@ import {
   hasImportantMissions,
 } from "@/lib/services/missions";
 import { createClient } from "@/lib/supabase/server";
-import { Edit3, MessageCircle } from "lucide-react";
-import Link from "next/link";
+// import { Edit3, MessageCircle } from "lucide-react";
+// import Link from "next/link";
 import { redirect } from "next/navigation";
 
 // メタデータ生成を外部関数に委譲
@@ -83,7 +83,7 @@ export default async function Home({
   }
 
   //フューチャードグッジョブの存在確認
-  const showFeatured = await hasFeaturedMissions();
+  // const showFeatured = await hasFeaturedMissions();
   //重要グッジョブの存在確認
   const showImportant = await hasImportantMissions();
 
@@ -105,7 +105,7 @@ export default async function Home({
       </section>
 
       {/* メトリクスセクション */}
-      <MetricsWithSuspense />
+      {/* <MetricsWithSuspense /> */}
 
       {/* ランキングセクション - 一時的に非表示 */}
       {/* <section className="py-12 md:py-16 bg-white">
