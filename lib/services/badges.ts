@@ -5,6 +5,8 @@ import {
   BadgeType,
   type BadgeUpdateParams,
   type UserBadge,
+  getCurrentQuarter,
+  getQuarterPeriod,
 } from "@/lib/types/badge";
 
 /**
@@ -243,5 +245,206 @@ export async function markBadgesAsNotified(
   } catch (error) {
     console.error("Unexpected error in markBadgesAsNotified:", error);
     return { success: false, error: "予期しないエラーが発生しました" };
+  }
+}
+
+/**
+ * MVVバッジを手動で付与する
+ * @param user_id ユーザーID
+ * @param badge_type MVVバッジタイプ
+ * @param quarter_period 四半期（省略時は現在の四半期を自動設定）
+ * @param rank ランク（デフォルトは1）
+ * @returns 成功/失敗の結果
+ */
+export async function awardMvvBadge({
+  user_id,
+  badge_type,
+  quarter_period,
+  rank = 1,
+}: {
+  user_id: string;
+  badge_type:
+    | "MVV_PASSIONATE_EXECUTION"
+    | "MVV_SUPREME_RELATIONSHIPS"
+    | "MVV_HAPPINESS_CIRCULATION";
+  quarter_period?: string;
+  rank?: number;
+}): Promise<{ success: boolean; error?: string; badgeId?: string }> {
+  const supabase = await createServiceClient();
+
+  try {
+    // 四半期が指定されていない場合は現在の四半期を使用
+    const finalQuarterPeriod = quarter_period || getCurrentQuarter();
+
+    // 既存バッジを確認（同じユーザー、同じバッジタイプ、同じ四半期）
+    const { data: existing, error: fetchError } = await supabase
+      .from("user_badges")
+      .select("*")
+      .eq("user_id", user_id)
+      .eq("badge_type", badge_type)
+      .eq("quarter_period", finalQuarterPeriod)
+      .maybeSingle();
+
+    if (fetchError && fetchError.code !== "PGRST116") {
+      // PGRST116 = no rows returned
+      console.error("Error fetching existing MVV badge:", fetchError);
+      return {
+        success: false,
+        error: `既存バッジの確認に失敗しました: ${fetchError.message}`,
+      };
+    }
+
+    if (existing) {
+      // 既に存在する場合は更新
+      const { data: updated, error: updateError } = await supabase
+        .from("user_badges")
+        .update({
+          rank,
+          achieved_at: new Date().toISOString(),
+          is_notified: false,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", existing.id)
+        .select()
+        .single();
+
+      if (updateError) {
+        console.error("Error updating MVV badge:", updateError);
+        return {
+          success: false,
+          error: `バッジの更新に失敗しました: ${updateError.message}`,
+        };
+      }
+
+      return { success: true, badgeId: updated.id };
+    }
+
+    // 新規作成
+    const { data: newBadge, error: insertError } = await supabase
+      .from("user_badges")
+      .insert({
+        user_id,
+        badge_type,
+        sub_type: null,
+        rank,
+        quarter_period: finalQuarterPeriod,
+        achieved_at: new Date().toISOString(),
+        is_notified: false,
+      })
+      .select()
+      .single();
+
+    if (insertError) {
+      console.error("Error inserting MVV badge:", insertError);
+      return {
+        success: false,
+        error: `バッジの作成に失敗しました: ${insertError.message}`,
+      };
+    }
+
+    return { success: true, badgeId: newBadge.id };
+  } catch (error) {
+    console.error("Unexpected error in awardMvvBadge:", error);
+    return {
+      success: false,
+      error: "予期しないエラーが発生しました",
+    };
+  }
+}
+
+/**
+ * 指定された四半期のMVVバッジ一覧を取得
+ * @param quarter_period 四半期（YYYY-QN形式）
+ * @returns MVVバッジの配列
+ */
+export async function getMvvBadgesByQuarter(
+  quarter_period: string,
+): Promise<UserBadge[]> {
+  const supabase = await createServiceClient();
+
+  const { data, error } = await supabase
+    .from("user_badges")
+    .select("*")
+    .in("badge_type", [
+      "MVV_PASSIONATE_EXECUTION",
+      "MVV_SUPREME_RELATIONSHIPS",
+      "MVV_HAPPINESS_CIRCULATION",
+    ])
+    .eq("quarter_period", quarter_period)
+    .order("badge_type")
+    .order("achieved_at", { ascending: false });
+
+  if (error) {
+    console.error("Error fetching MVV badges by quarter:", error);
+    return [];
+  }
+
+  return (data || []) as UserBadge[];
+}
+
+/**
+ * ユーザーのMVVバッジ一覧を取得
+ * @param userId ユーザーID
+ * @returns MVVバッジの配列
+ */
+export async function getUserMvvBadges(userId: string): Promise<UserBadge[]> {
+  const supabase = await createServiceClient();
+
+  const { data, error } = await supabase
+    .from("user_badges")
+    .select("*")
+    .eq("user_id", userId)
+    .in("badge_type", [
+      "MVV_PASSIONATE_EXECUTION",
+      "MVV_SUPREME_RELATIONSHIPS",
+      "MVV_HAPPINESS_CIRCULATION",
+    ])
+    .order("quarter_period", { ascending: false })
+    .order("badge_type");
+
+  if (error) {
+    console.error("Error fetching user MVV badges:", error);
+    return [];
+  }
+
+  return (data || []) as UserBadge[];
+}
+
+/**
+ * MVVバッジを削除する
+ * @param badgeId バッジID
+ * @returns 成功/失敗の結果
+ */
+export async function removeMvvBadge(
+  badgeId: string,
+): Promise<{ success: boolean; error?: string }> {
+  const supabase = await createServiceClient();
+
+  try {
+    const { error } = await supabase
+      .from("user_badges")
+      .delete()
+      .eq("id", badgeId)
+      .in("badge_type", [
+        "MVV_PASSIONATE_EXECUTION",
+        "MVV_SUPREME_RELATIONSHIPS",
+        "MVV_HAPPINESS_CIRCULATION",
+      ]);
+
+    if (error) {
+      console.error("Error removing MVV badge:", error);
+      return {
+        success: false,
+        error: `バッジの削除に失敗しました: ${error.message}`,
+      };
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error("Unexpected error in removeMvvBadge:", error);
+    return {
+      success: false,
+      error: "予期しないエラーが発生しました",
+    };
   }
 }

@@ -112,26 +112,54 @@ export function UserBadges({ userId }: UserBadgesProps) {
           </div>
         </div>
       )}
+
+      {/* MVVバッジ */}
+      {(groupedBadges.MVV_PASSIONATE_EXECUTION ||
+        groupedBadges.MVV_SUPREME_RELATIONSHIPS ||
+        groupedBadges.MVV_HAPPINESS_CIRCULATION) && (
+        <div>
+          <h4 className="text-sm font-medium mb-2">MVVバッジ</h4>
+          <div className="flex flex-wrap gap-2">
+            {groupedBadges.MVV_PASSIONATE_EXECUTION?.map((badge) => (
+              <BadgeItem key={badge.id} badge={badge} />
+            ))}
+            {groupedBadges.MVV_SUPREME_RELATIONSHIPS?.map((badge) => (
+              <BadgeItem key={badge.id} badge={badge} />
+            ))}
+            {groupedBadges.MVV_HAPPINESS_CIRCULATION?.map((badge) => (
+              <BadgeItem key={badge.id} badge={badge} />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
 function BadgeItem({ badge }: { badge: UserBadge }) {
-  const emoji = getBadgeEmoji(badge.rank);
+  const isMvvBadge =
+    badge.badge_type === "MVV_PASSIONATE_EXECUTION" ||
+    badge.badge_type === "MVV_SUPREME_RELATIONSHIPS" ||
+    badge.badge_type === "MVV_HAPPINESS_CIRCULATION";
+
+  // MVVバッジの場合は絵文字なし、ランキングバッジの場合はランクに応じた絵文字
+  const emoji = isMvvBadge ? null : getBadgeEmoji(badge.rank);
   const title = getBadgeTitle(badge);
 
   return (
     <Badge
       variant={
-        badge.rank <= 10
+        isMvvBadge
           ? "default"
-          : badge.rank <= 50
-            ? "secondary"
-            : "outline"
+          : badge.rank <= 10
+            ? "default"
+            : badge.rank <= 50
+              ? "secondary"
+              : "outline"
       }
       className="flex items-center gap-1"
     >
-      <span className="text-base">{emoji}</span>
+      {emoji && <span className="text-base">{emoji}</span>}
       <span>{title}</span>
     </Badge>
   );
