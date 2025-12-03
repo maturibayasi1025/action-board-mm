@@ -156,3 +156,30 @@ export function getQuarterPeriod(date?: Date): string {
 export function getCurrentQuarter(): string {
   return getQuarterPeriod();
 }
+
+/**
+ * 利用可能な四半期のリストを生成（過去2年分）
+ * @returns 四半期文字列の配列（YYYY-QN形式）
+ */
+export function getAvailableQuarters(): string[] {
+  const quarters: string[] = [];
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth() + 1;
+
+  // 現在の年度を計算（3月が決算月）
+  let fiscalYear = currentYear;
+  if (currentMonth < 3) {
+    fiscalYear = currentYear - 1;
+  }
+
+  // 過去2年分の四半期を生成
+  for (let yearOffset = 1; yearOffset >= -1; yearOffset--) {
+    const targetYear = fiscalYear + yearOffset;
+    for (let quarter = 1; quarter <= 4; quarter++) {
+      quarters.push(`${targetYear}-Q${quarter}`);
+    }
+  }
+
+  return quarters.reverse(); // 最新の四半期が最後に来るように
+}

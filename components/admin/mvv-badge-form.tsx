@@ -3,7 +3,6 @@
 import {
   type SearchUserResult,
   awardMvvBadgeAction,
-  getAvailableQuarters,
   getCurrentQuarterAction,
   getMvvBadgesByQuarterAction,
   getUserMvvBadgesAction,
@@ -19,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { getBadgeTitle } from "@/lib/types/badge";
+import { getAvailableQuarters, getBadgeTitle } from "@/lib/types/badge";
 import type { UserBadge } from "@/lib/types/badge";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
