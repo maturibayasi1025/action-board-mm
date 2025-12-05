@@ -187,7 +187,14 @@ export async function POST(request: NextRequest) {
 
     // ユーザーグッジョブ用のメッセージ構築
     if (type === "user_mission_created") {
-      const { title, content, creatorName, praisedNames, imageUrls } = data;
+      const {
+        title,
+        content,
+        creatorName,
+        praisedNames,
+        imageUrls,
+        missionId,
+      } = data;
 
       console.log("[Slack通知] 受信したデータ:", {
         type,
@@ -195,6 +202,7 @@ export async function POST(request: NextRequest) {
         creatorName,
         praisedNames,
         imageUrls,
+        missionId,
         imageUrlsType: typeof imageUrls,
         imageUrlsIsArray: Array.isArray(imageUrls),
         imageUrlsLength: imageUrls?.length,
@@ -206,6 +214,13 @@ export async function POST(request: NextRequest) {
         praisedNames || "",
         slackUsers,
       );
+
+      // 詳細画面のURLを生成
+      const apiUrl =
+        process.env.NEXT_PUBLIC_APP_ORIGIN || "http://localhost:3000";
+      const detailUrl = missionId
+        ? `${apiUrl}/user-missions/${missionId}`
+        : null;
 
       const blocks: unknown[] = [
         {
@@ -268,40 +283,88 @@ export async function POST(request: NextRequest) {
         console.log("[Slack通知] 画像ブロックは追加されませんでした");
       }
 
+      // 詳細画面へのボタンを追加
+      if (detailUrl) {
+        blocks.push({
+          type: "actions",
+          elements: [
+            {
+              type: "button",
+              text: {
+                type: "plain_text",
+                text: "詳細を見る",
+                emoji: true,
+              },
+              url: detailUrl,
+              action_id: "view_detail",
+            },
+          ],
+        });
+      }
+
       slackMessage = {
         text: ":tada: 新しいグッジョブが作成されました！",
         blocks,
       };
     } else if (type === "user_mission_liked") {
-      const { title, likerName, creatorName } = data;
+      const { title, likerName, creatorName, missionId } = data;
+
+      // 詳細画面のURLを生成
+      const apiUrl =
+        process.env.NEXT_PUBLIC_APP_ORIGIN || "http://localhost:3000";
+      const detailUrl = missionId
+        ? `${apiUrl}/user-missions/${missionId}`
+        : null;
+
+      const blocks: unknown[] = [
+        {
+          type: "section",
+          text: {
+            type: "mrkdwn",
+            text: ":heart: *グッジョブにいいねがつきました！*",
+          },
+        },
+        {
+          type: "section",
+          fields: [
+            {
+              type: "mrkdwn",
+              text: `*タイトル:*\n${title}`,
+            },
+            {
+              type: "mrkdwn",
+              text: `*いいねした人:*\n${likerName}`,
+            },
+            {
+              type: "mrkdwn",
+              text: `*作成者:*\n${creatorName}`,
+            },
+          ],
+        },
+      ];
+
+      // 詳細画面へのボタンを追加
+      if (detailUrl) {
+        blocks.push({
+          type: "actions",
+          elements: [
+            {
+              type: "button",
+              text: {
+                type: "plain_text",
+                text: "詳細を見る",
+                emoji: true,
+              },
+              url: detailUrl,
+              action_id: "view_detail",
+            },
+          ],
+        });
+      }
+
       slackMessage = {
         text: ":heart: グッジョブにいいねがつきました！",
-        blocks: [
-          {
-            type: "section",
-            text: {
-              type: "mrkdwn",
-              text: ":heart: *グッジョブにいいねがつきました！*",
-            },
-          },
-          {
-            type: "section",
-            fields: [
-              {
-                type: "mrkdwn",
-                text: `*タイトル:*\n${title}`,
-              },
-              {
-                type: "mrkdwn",
-                text: `*いいねした人:*\n${likerName}`,
-              },
-              {
-                type: "mrkdwn",
-                text: `*作成者:*\n${creatorName}`,
-              },
-            ],
-          },
-        ],
+        blocks,
       };
     }
 
