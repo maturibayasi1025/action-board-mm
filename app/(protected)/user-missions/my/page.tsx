@@ -100,7 +100,7 @@ async function getUserMissionsServer(userId: string): Promise<UserMission[]> {
     praisedUsers:
       mission.user_mission_praised_users
         ?.map((p: unknown) => (p as unknown as PraisedUser).private_users?.name)
-        .filter(Boolean) || [],
+        .filter((name): name is string => Boolean(name)) || [],
     praisedExternalUsers: externalUsersMap.get(mission.id) || [],
     status: mission.status as "pending" | "approved" | "rejected",
     rejectionReason: mission.rejection_reason || undefined,
