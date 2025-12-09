@@ -57,6 +57,9 @@ export function UserMissionsList({ missions }: { missions: UserMission[] }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedYear, setSelectedYear] = useState<string>("all");
   const [selectedMonth, setSelectedMonth] = useState<string>("all");
+  const [selectedMvvItems, setSelectedMvvItems] = useState<Set<string>>(
+    new Set(),
+  );
 
   // 年の選択肢を生成（現在から過去5年）
   const currentYear = new Date().getFullYear();
@@ -126,8 +129,23 @@ export function UserMissionsList({ missions }: { missions: UserMission[] }) {
       });
     }
 
+    // MVV項目フィルタリング
+    if (selectedMvvItems.size > 0) {
+      filtered = filtered.filter((mission) => {
+        // 選択されたMVV項目のいずれかを含むグッジョブを表示（OR条件）
+        return (
+          (selectedMvvItems.has("passionateExecution") &&
+            mission.mvvItems.passionateExecution) ||
+          (selectedMvvItems.has("supremeRelationships") &&
+            mission.mvvItems.supremeRelationships) ||
+          (selectedMvvItems.has("happinessCirculation") &&
+            mission.mvvItems.happinessCirculation)
+        );
+      });
+    }
+
     return filtered;
-  }, [missions, searchQuery, selectedYear, selectedMonth]);
+  }, [missions, searchQuery, selectedYear, selectedMonth, selectedMvvItems]);
 
   if (missions.length === 0) {
     return (
@@ -213,8 +231,87 @@ export function UserMissionsList({ missions }: { missions: UserMission[] }) {
           )}
         </div>
 
+        {/* MVV項目フィルタリング */}
+        <div className="flex flex-col gap-2">
+          <span className="text-sm font-medium text-muted-foreground">
+            MVV項目で絞り込み
+          </span>
+          <div className="flex flex-wrap gap-2">
+            <Badge
+              variant={
+                selectedMvvItems.has("passionateExecution")
+                  ? "default"
+                  : "outline"
+              }
+              className="cursor-pointer"
+              onClick={() => {
+                const newSet = new Set(selectedMvvItems);
+                if (newSet.has("passionateExecution")) {
+                  newSet.delete("passionateExecution");
+                } else {
+                  newSet.add("passionateExecution");
+                }
+                setSelectedMvvItems(newSet);
+              }}
+            >
+              夢中になってやりきる
+            </Badge>
+            <Badge
+              variant={
+                selectedMvvItems.has("supremeRelationships")
+                  ? "default"
+                  : "outline"
+              }
+              className="cursor-pointer"
+              onClick={() => {
+                const newSet = new Set(selectedMvvItems);
+                if (newSet.has("supremeRelationships")) {
+                  newSet.delete("supremeRelationships");
+                } else {
+                  newSet.add("supremeRelationships");
+                }
+                setSelectedMvvItems(newSet);
+              }}
+            >
+              至高な人間関係
+            </Badge>
+            <Badge
+              variant={
+                selectedMvvItems.has("happinessCirculation")
+                  ? "default"
+                  : "outline"
+              }
+              className="cursor-pointer"
+              onClick={() => {
+                const newSet = new Set(selectedMvvItems);
+                if (newSet.has("happinessCirculation")) {
+                  newSet.delete("happinessCirculation");
+                } else {
+                  newSet.add("happinessCirculation");
+                }
+                setSelectedMvvItems(newSet);
+              }}
+            >
+              幸せの循環
+            </Badge>
+            {selectedMvvItems.size > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setSelectedMvvItems(new Set())}
+                className="h-6 text-xs"
+              >
+                クリア
+              </Button>
+            )}
+          </div>
+        </div>
+
         {/* 検索結果件数表示 */}
-        {(searchQuery || selectedYear !== "all" || selectedMonth !== "all") && (
+        {(searchQuery ||
+          selectedYear !== "all" ||
+          selectedMonth !== "all" ||
+          selectedMvvItems.size > 0) && (
           <p className="text-sm text-muted-foreground">
             {filteredMissions.length}件のグッジョブが見つかりました（全
             {missions.length}件）
@@ -224,7 +321,10 @@ export function UserMissionsList({ missions }: { missions: UserMission[] }) {
 
       {/* 検索結果がない場合 */}
       {filteredMissions.length === 0 &&
-      (searchQuery || selectedYear !== "all" || selectedMonth !== "all") ? (
+      (searchQuery ||
+        selectedYear !== "all" ||
+        selectedMonth !== "all" ||
+        selectedMvvItems.size > 0) ? (
         <div className="text-center py-12">
           <p className="text-muted-foreground mb-4">
             検索条件に一致するグッジョブが見つかりませんでした
@@ -235,6 +335,7 @@ export function UserMissionsList({ missions }: { missions: UserMission[] }) {
               setSearchQuery("");
               setSelectedYear("all");
               setSelectedMonth("all");
+              setSelectedMvvItems(new Set());
             }}
           >
             検索をクリア
