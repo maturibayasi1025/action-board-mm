@@ -63,6 +63,14 @@ export function RankingItem({
               {(userWithMission?.total_points ?? 0).toLocaleString()}pt
             </span>
           </>
+        ) : user.likes_count !== undefined && user.likes_count !== null ? (
+          <>
+            <div className="text-right">
+              <div className="font-bold text-lg">
+                👍 {(user.likes_count ?? 0).toLocaleString()}いいね
+              </div>
+            </div>
+          </>
         ) : (
           <>
             <Badge

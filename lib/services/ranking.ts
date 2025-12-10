@@ -11,6 +11,7 @@ export interface UserRanking {
   rank: number | null;
   updated_at: string | null;
   xp: number | null;
+  likes_count?: number | null;
 }
 
 export async function getRanking(
