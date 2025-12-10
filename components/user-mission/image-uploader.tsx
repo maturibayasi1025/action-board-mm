@@ -29,11 +29,31 @@ export function UserMissionImageUploader({
 }: ImageUploaderProps) {
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
-  const [imagePaths, setImagePaths] = useState<string[]>(initialPaths);
+  const [imagePaths, setImagePaths] = useState<string[]>(
+    Array.isArray(initialPaths)
+      ? initialPaths.filter(
+          (path): path is string => typeof path === "string" && path.length > 0,
+        )
+      : [],
+  );
   const [previewUrls, setPreviewUrls] = useState<Map<string, string>>(
     new Map(),
   );
   const supabaseBrowserClient = createClient();
+
+  // 有効な配列を親コンポーネントに渡すヘルパー関数
+  const notifyImagePathsChange = useCallback(
+    (paths: string[]) => {
+      const validPaths = Array.isArray(paths)
+        ? paths.filter(
+            (path): path is string =>
+              typeof path === "string" && path.length > 0,
+          )
+        : [];
+      onImagePathsChange(validPaths);
+    },
+    [onImagePathsChange],
+  );
 
   // 画像URLを取得してプレビュー用に保存
   const loadPreviewUrl = useCallback(
@@ -57,6 +77,11 @@ export function UserMissionImageUploader({
       loadPreviewUrl(path);
     }
   }, [initialPaths, loadPreviewUrl]);
+
+  // 初期化時に親コンポーネントに有効な配列を通知
+  useEffect(() => {
+    notifyImagePathsChange(initialPaths);
+  }, [initialPaths, notifyImagePathsChange]);
 
   const handleImageUpload = async (
     event: React.ChangeEvent<HTMLInputElement>,
@@ -118,10 +143,14 @@ export function UserMissionImageUploader({
     if (error) {
       console.error("Upload error:", error);
       setUploadError(`アップロードに失敗しました: ${error.message}`);
-    } else if (data) {
-      const newPaths = [...imagePaths, data.path];
+      // エラー時も現在のimagePathsを確実に親に通知
+      notifyImagePathsChange(imagePaths);
+    } else if (data?.path) {
+      const newPaths = [...imagePaths, data.path].filter(
+        (path): path is string => typeof path === "string" && path.length > 0,
+      );
       setImagePaths(newPaths);
-      onImagePathsChange(newPaths);
+      notifyImagePathsChange(newPaths);
       setUploadError(null);
 
       // プレビューURLを読み込む
@@ -134,9 +163,13 @@ export function UserMissionImageUploader({
 
   const handleRemoveImage = async (index: number) => {
     const pathToRemove = imagePaths[index];
-    const newPaths = imagePaths.filter((_, i) => i !== index);
+    const newPaths = imagePaths
+      .filter((_, i) => i !== index)
+      .filter(
+        (path): path is string => typeof path === "string" && path.length > 0,
+      );
     setImagePaths(newPaths);
-    onImagePathsChange(newPaths);
+    notifyImagePathsChange(newPaths);
 
     // プレビューURLを削除
     setPreviewUrls((prev) => {

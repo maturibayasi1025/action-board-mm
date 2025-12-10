@@ -57,6 +57,26 @@ export async function createUserMissionAction(input: CreateUserMissionInput) {
 
     console.log("認証済みユーザー:", user.id);
 
+    // 入力値を正規化（undefined/nullを空配列に、空文字列をフィルタリング）
+    const normalizedImagePaths = Array.isArray(input.imagePaths)
+      ? input.imagePaths.filter(
+          (path): path is string => typeof path === "string" && path.length > 0,
+        )
+      : [];
+    const normalizedPraisedUserIds = Array.isArray(input.praisedUserIds)
+      ? input.praisedUserIds.filter(
+          (id): id is string => typeof id === "string" && id.length > 0,
+        )
+      : [];
+    const normalizedPraisedExternalUserNames = Array.isArray(
+      input.praisedExternalUserNames,
+    )
+      ? input.praisedExternalUserNames.filter(
+          (name): name is string =>
+            typeof name === "string" && name.trim().length > 0,
+        )
+      : [];
+
     // グッジョブ作成（即時承認）
     const { data: mission, error: missionError } = await supabase
       .from("user_missions")
@@ -65,8 +85,8 @@ export async function createUserMissionAction(input: CreateUserMissionInput) {
         title: input.title,
         content: input.content,
         image_paths:
-          input.imagePaths && input.imagePaths.length > 0
-            ? (input.imagePaths as unknown)
+          normalizedImagePaths.length > 0
+            ? (normalizedImagePaths as unknown)
             : [],
         status: "approved", // 自動承認で即時表示
         approved_at: new Date().toISOString(),
@@ -127,8 +147,8 @@ export async function createUserMissionAction(input: CreateUserMissionInput) {
     }
 
     // 賞賛対象ユーザーを挿入
-    if (input.praisedUserIds.length > 0) {
-      const praisedUsers = input.praisedUserIds.map((userId) => ({
+    if (normalizedPraisedUserIds.length > 0) {
+      const praisedUsers = normalizedPraisedUserIds.map((userId) => ({
         user_mission_id: mission.id,
         praised_user_id: userId,
       }));
@@ -148,17 +168,11 @@ export async function createUserMissionAction(input: CreateUserMissionInput) {
     }
 
     // 外部ユーザーを挿入
-    if (
-      input.praisedExternalUserNames &&
-      input.praisedExternalUserNames.length > 0
-    ) {
-      const externalUsers = input.praisedExternalUserNames
-        .map((name) => name.trim())
-        .filter((name) => name.length > 0)
-        .map((name) => ({
-          user_mission_id: mission.id,
-          praised_person_name: name,
-        }));
+    if (normalizedPraisedExternalUserNames.length > 0) {
+      const externalUsers = normalizedPraisedExternalUserNames.map((name) => ({
+        user_mission_id: mission.id,
+        praised_person_name: name,
+      }));
 
       if (externalUsers.length > 0) {
         const { error: externalError } = await supabase
@@ -202,8 +216,8 @@ export async function createUserMissionAction(input: CreateUserMissionInput) {
     await awardPointsForMissionCreation(
       mission.id,
       user.id,
-      input.praisedUserIds,
-      input.praisedExternalUserNames || [],
+      normalizedPraisedUserIds,
+      normalizedPraisedExternalUserNames,
       supabase,
     );
 
@@ -245,8 +259,8 @@ export async function createUserMissionAction(input: CreateUserMissionInput) {
           input.title,
           input.content,
           user.id,
-          input.praisedUserIds,
-          input.praisedExternalUserNames || [],
+          normalizedPraisedUserIds,
+          normalizedPraisedExternalUserNames,
           imagePaths,
           supabase,
         );
@@ -580,6 +594,26 @@ async function sendSlackNotificationForMissionCreation(
   supabase: Awaited<ReturnType<typeof createClient>>,
 ) {
   try {
+    // 入力値をバリデーション・正規化
+    const validatedPraisedUserIds = Array.isArray(praisedUserIds)
+      ? praisedUserIds.filter(
+          (id): id is string => typeof id === "string" && id.length > 0,
+        )
+      : [];
+    const validatedPraisedExternalUserNames = Array.isArray(
+      praisedExternalUserNames,
+    )
+      ? praisedExternalUserNames.filter(
+          (name): name is string =>
+            typeof name === "string" && name.trim().length > 0,
+        )
+      : [];
+    const validatedImagePaths = Array.isArray(imagePaths)
+      ? imagePaths.filter(
+          (path): path is string => typeof path === "string" && path.length > 0,
+        )
+      : [];
+
     // 作成者情報を取得
     const { data: creator } = await supabase
       .from("private_users")
@@ -588,13 +622,16 @@ async function sendSlackNotificationForMissionCreation(
       .single();
 
     // 賞賛対象者情報を取得
-    const { data: praisedUsers } = await supabase
-      .from("private_users")
-      .select("name")
-      .in("id", praisedUserIds);
+    const { data: praisedUsers } =
+      validatedPraisedUserIds.length > 0
+        ? await supabase
+            .from("private_users")
+            .select("name")
+            .in("id", validatedPraisedUserIds)
+        : { data: null };
 
     const praisedNames = praisedUsers?.map((u) => u.name).join(", ") || "";
-    const externalNames = praisedExternalUserNames?.join(", ") || "";
+    const externalNames = validatedPraisedExternalUserNames.join(", ") || "";
     const allPraisedNames = [praisedNames, externalNames]
       .filter((name) => name.length > 0)
       .join(", ");
@@ -622,14 +659,10 @@ async function sendSlackNotificationForMissionCreation(
     });
 
     const imageUrls: string[] = [];
-    if (imagePaths && Array.isArray(imagePaths) && imagePaths.length > 0) {
+    if (validatedImagePaths.length > 0) {
       const { createServiceClient } = await import("@/lib/supabase/server");
       const serviceSupabase = await createServiceClient();
-      for (const path of imagePaths) {
-        if (typeof path !== "string") {
-          console.warn("[Slack通知] 無効なパス形式:", path);
-          continue;
-        }
+      for (const path of validatedImagePaths) {
         const { data } = serviceSupabase.storage
           .from("user_mission_images")
           .getPublicUrl(path);

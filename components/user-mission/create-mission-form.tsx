@@ -287,12 +287,33 @@ export function CreateMissionForm(
           throw new Error("公開に失敗しました");
         }
       } else {
+        // 入力値を正規化（undefined/nullを空配列に、空文字列をフィルタリング）
+        const normalizedImagePaths = Array.isArray(imagePaths)
+          ? imagePaths.filter(
+              (path): path is string =>
+                typeof path === "string" && path.length > 0,
+            )
+          : [];
+        const normalizedPraisedUserIds = Array.isArray(values.praisedUserIds)
+          ? values.praisedUserIds.filter(
+              (id): id is string => typeof id === "string" && id.length > 0,
+            )
+          : [];
+        const normalizedPraisedExternalUserNames = Array.isArray(
+          values.praisedExternalUserNames,
+        )
+          ? values.praisedExternalUserNames.filter(
+              (name): name is string =>
+                typeof name === "string" && name.trim().length > 0,
+            )
+          : [];
+
         const result = await createUserMissionAction({
           title: values.title,
           content: values.content,
-          praisedUserIds: values.praisedUserIds,
-          praisedExternalUserNames: values.praisedExternalUserNames,
-          imagePaths: imagePaths,
+          praisedUserIds: normalizedPraisedUserIds,
+          praisedExternalUserNames: normalizedPraisedExternalUserNames,
+          imagePaths: normalizedImagePaths,
           mvvItems: values.mvvItems,
         });
 
