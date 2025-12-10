@@ -2,6 +2,7 @@ import "server-only";
 
 import type { RankingPeriod } from "@/components/ranking/period-toggle";
 import { createClient } from "@/lib/supabase/server";
+import { getTodayStartJST } from "@/lib/utils/date-timezone";
 
 export interface UserLikesRanking {
   user_id: string | null;
@@ -20,19 +21,11 @@ export async function getLikesRanking(
 
     // 期間に応じた日付フィルタを設定
     let dateFilter: Date | null = null;
-    const now = new Date();
 
     switch (period) {
       case "daily":
-        // 本日の0時0分を基準にする
-        dateFilter = new Date(
-          now.getFullYear(),
-          now.getMonth(),
-          now.getDate(),
-          0,
-          0,
-          0,
-        );
+        // 日本時間の今日の0時0分を基準にする
+        dateFilter = getTodayStartJST();
         break;
       default:
         dateFilter = null;
@@ -88,19 +81,11 @@ export async function getUserLikesRanking(
 
     // 期間に応じた日付フィルタを設定
     let dateFilter: Date | null = null;
-    const now = new Date();
 
     switch (period) {
       case "daily":
-        // 本日の0時0分を基準にする
-        dateFilter = new Date(
-          now.getFullYear(),
-          now.getMonth(),
-          now.getDate(),
-          0,
-          0,
-          0,
-        );
+        // 日本時間の今日の0時0分を基準にする
+        dateFilter = getTodayStartJST();
         break;
       default:
         dateFilter = null;
