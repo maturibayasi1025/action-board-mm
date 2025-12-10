@@ -193,26 +193,30 @@ export function MyMissionsListClient({
     const supabase = createClient();
     return (
       <Card key={mission.id} className="flex flex-col">
-        <CardHeader>
-          <div className="flex justify-between items-start mb-2">
-            <CardTitle className="line-clamp-2 flex-1">
+        <CardHeader className="p-4 md:p-6">
+          <div className="flex justify-between items-start mb-2 gap-2">
+            <CardTitle className="line-clamp-2 flex-1 break-words">
               {mission.title}
             </CardTitle>
-            {getStatusBadge(mission.status)}
+            <div className="flex-shrink-0">
+              {getStatusBadge(mission.status)}
+            </div>
           </div>
           <CardDescription className="flex items-center gap-2">
-            <User className="h-4 w-4" />
-            {mission.praisedUsers.length > 0 ||
-            (mission.praisedExternalUsers &&
-              mission.praisedExternalUsers.length > 0)
-              ? [
-                  ...mission.praisedUsers,
-                  ...(mission.praisedExternalUsers || []),
-                ].join(", ")
-              : "（未選択）"}
+            <User className="h-4 w-4 flex-shrink-0" />
+            <span className="break-words">
+              {mission.praisedUsers.length > 0 ||
+              (mission.praisedExternalUsers &&
+                mission.praisedExternalUsers.length > 0)
+                ? [
+                    ...mission.praisedUsers,
+                    ...(mission.praisedExternalUsers || []),
+                  ].join(", ")
+                : "（未選択）"}
+            </span>
           </CardDescription>
         </CardHeader>
-        <CardContent className="flex-1">
+        <CardContent className="flex-1 p-4 pt-0 md:p-6 md:pt-0">
           {/* 画像表示 */}
           {mission.imagePaths && mission.imagePaths.length > 0 && (
             <div className="mb-4 grid grid-cols-3 gap-2">
@@ -231,7 +235,7 @@ export function MyMissionsListClient({
               })}
             </div>
           )}
-          <p className="text-sm text-muted-foreground line-clamp-3">
+          <p className="text-sm text-muted-foreground line-clamp-3 break-words">
             {mission.content || "（内容未入力）"}
           </p>
           <div className="mt-4 flex flex-wrap gap-2">
@@ -253,7 +257,7 @@ export function MyMissionsListClient({
               )}
           </div>
         </CardContent>
-        <CardFooter className="flex justify-between items-center">
+        <CardFooter className="flex justify-between items-center p-4 pt-0 md:p-6 md:pt-0">
           {mission.status === "approved" && (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               {mission.likesCount > 10 && (
@@ -542,7 +546,7 @@ export function MyMissionsListClient({
           {drafts.length > 0 && (
             <div>
               <h2 className="text-2xl font-semibold mb-4">下書き</h2>
-              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              <div className="grid gap-4 px-4 md:gap-6 md:px-0 md:grid-cols-2 lg:grid-cols-3">
                 {drafts.map(renderMissionCard)}
               </div>
             </div>
@@ -552,7 +556,7 @@ export function MyMissionsListClient({
           {published.length > 0 && (
             <div>
               <h2 className="text-2xl font-semibold mb-4">公開済み</h2>
-              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              <div className="grid gap-4 px-4 md:gap-6 md:px-0 md:grid-cols-2 lg:grid-cols-3">
                 {published.map(renderMissionCard)}
               </div>
             </div>

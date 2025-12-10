@@ -28,9 +28,9 @@ export function RankingTabs({ children }: RankingTabsProps) {
         <TabsTrigger value="overall" asChild>
           <Link href="/ranking">全体</Link>
         </TabsTrigger>
-        <TabsTrigger value="prefecture" asChild>
+        {/* <TabsTrigger value="prefecture" asChild>
           <Link href="/ranking/ranking-prefecture">都道府県別</Link>
-        </TabsTrigger>
+        </TabsTrigger> */}
         <TabsTrigger value="mission" asChild>
           <Link href="/ranking/ranking-mission">グッジョブ別</Link>
         </TabsTrigger>

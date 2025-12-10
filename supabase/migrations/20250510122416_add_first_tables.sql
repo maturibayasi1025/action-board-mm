@@ -70,15 +70,11 @@ CREATE POLICY update_trigger_only_public_user_profiles
   USING (current_setting('my.is_trigger', true)::boolean = true);
 
 -- プロフィール画像用のストレージバケットを作成
-INSERT INTO storage.buckets (id, name, public, avif_autodetection, file_size_limit, allowed_mime_types)
+INSERT INTO storage.buckets (id, name)
 VALUES (
   'avatars',
-  'avatars',
-  true, -- パブリックアクセス可能に変更
-  false, -- avif自動検出無効
-  5242880, -- ファイルサイズ制限 5MB
-  ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif'] -- 許可するMIMEタイプ
-);
+  'avatars'
+) ON CONFLICT (id) DO NOTHING;
 
 -- プロフィール画像用のRLSポリシーを設定
 -- 認証ユーザーのみアップロード可能、かつ自分のIDをパスに含むものだけ
@@ -450,14 +446,10 @@ CREATE POLICY select_all_weekly_event_count_by_prefecture_summary
   USING (true);
 
 -- グッジョブ成果物ファイル用のストレージバケットを作成 (新規追加)
-INSERT INTO storage.buckets (id, name, public, avif_autodetection, file_size_limit, allowed_mime_types)
+INSERT INTO storage.buckets (id, name)
 VALUES (
-  'mission_artifact_files', -- 変更
-  'mission_artifact_files', -- 変更
-  false, -- 非公開バケットとして作成 (RLSで制御)
-  false,
-  10485760, -- ファイルサイズ制限 10MB (例)
-  NULL -- 全てのMIMEタイプを許可 (または必要に応じて指定)
+  'mission_artifact_files',
+  'mission_artifact_files'
 ) ON CONFLICT (id) DO NOTHING; -- 既に存在する場合は何もしない
 
 -- mission_artifact_files バケットのRLSポリシー (新規追加)

@@ -17,14 +17,10 @@ ADD CONSTRAINT check_image_paths_is_array
 CHECK (jsonb_typeof(image_paths) = 'array');
 
 -- グッジョブ画像用のストレージバケットを作成
-INSERT INTO storage.buckets (id, name, public, avif_autodetection, file_size_limit, allowed_mime_types)
+INSERT INTO storage.buckets (id, name)
 VALUES (
   'user_mission_images',
-  'user_mission_images',
-  true, -- パブリックアクセス可能（承認済みグッジョブの画像を誰でも閲覧可能）
-  false,
-  10485760, -- ファイルサイズ制限 10MB
-  ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif'] -- 許可するMIMEタイプ
+  'user_mission_images'
 ) ON CONFLICT (id) DO NOTHING;
 
 -- user_mission_images バケットのRLSポリシー

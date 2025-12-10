@@ -273,32 +273,36 @@ async function UserMissionsList() {
 
     return (
       <div className="space-y-6">
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 px-4 md:gap-6 md:px-0 md:grid-cols-2 lg:grid-cols-3">
           {featuredMissions.map((mission) => (
             <Card key={mission.id} className="flex flex-col h-full">
-              <CardHeader>
-                <CardTitle className="line-clamp-2 text-lg">
+              <CardHeader className="p-4 md:p-6">
+                <CardTitle className="line-clamp-2 text-lg break-words">
                   {mission.title}
                 </CardTitle>
                 <div className="space-y-1">
                   <CardDescription className="flex items-center gap-2">
-                    <PenTool className="h-4 w-4" />
-                    {mission.createdByName}さんがグッジョブしました
+                    <PenTool className="h-4 w-4 flex-shrink-0" />
+                    <span className="break-words">
+                      {mission.createdByName}さんがグッジョブしました
+                    </span>
                   </CardDescription>
                   {(mission.praisedUsers.length > 0 ||
                     (mission.praisedExternalUsers &&
                       mission.praisedExternalUsers.length > 0)) && (
                     <CardDescription className="flex items-center gap-2">
-                      <User className="h-4 w-4" />
-                      {[
-                        ...mission.praisedUsers,
-                        ...(mission.praisedExternalUsers || []),
-                      ].join(", ")}
+                      <User className="h-4 w-4 flex-shrink-0" />
+                      <span className="break-words">
+                        {[
+                          ...mission.praisedUsers,
+                          ...(mission.praisedExternalUsers || []),
+                        ].join(", ")}
+                      </span>
                     </CardDescription>
                   )}
                 </div>
               </CardHeader>
-              <CardContent className="flex-1">
+              <CardContent className="flex-1 p-4 pt-0 md:p-6 md:pt-0">
                 {/* 画像表示 */}
                 {mission.imagePaths && mission.imagePaths.length > 0 && (
                   <div className="mb-4 grid grid-cols-3 gap-2">
@@ -317,7 +321,7 @@ async function UserMissionsList() {
                     })}
                   </div>
                 )}
-                <p className="text-sm text-muted-foreground line-clamp-3">
+                <p className="text-sm text-muted-foreground line-clamp-3 break-words">
                   {mission.content}
                 </p>
                 <div className="mt-4 flex flex-wrap gap-2">
@@ -338,7 +342,7 @@ async function UserMissionsList() {
                   )}
                 </div>
               </CardContent>
-              <CardFooter className="flex flex-col gap-2 md:flex-row md:justify-between md:items-center pt-4">
+              <CardFooter className="flex flex-col gap-2 p-4 pt-0 md:flex-row md:justify-between md:items-center md:p-6 md:pt-0">
                 <LikeButton
                   missionId={mission.id}
                   initialLiked={mission.isLikedByCurrentUser || false}
