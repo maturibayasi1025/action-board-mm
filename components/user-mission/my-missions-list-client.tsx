@@ -271,14 +271,14 @@ export function MyMissionsListClient({
                       x2="100%"
                       y2="0%"
                     >
-                      <stop offset="0%" stopColor="#ffb3ba" />
-                      <stop offset="14.28%" stopColor="#ffd4a3" />
-                      <stop offset="28.57%" stopColor="#ffffcc" />
-                      <stop offset="42.85%" stopColor="#b3ffb3" />
-                      <stop offset="57.14%" stopColor="#b3d9ff" />
-                      <stop offset="71.42%" stopColor="#d4b3ff" />
-                      <stop offset="85.71%" stopColor="#e6ccff" />
-                      <stop offset="100%" stopColor="#ffb3ba" />
+                      <stop offset="0%" stopColor="#FFD700" />
+                      <stop offset="14.28%" stopColor="#FFA500" />
+                      <stop offset="28.57%" stopColor="#FFD4A3" />
+                      <stop offset="42.85%" stopColor="#FFB347" />
+                      <stop offset="57.14%" stopColor="#FFE4B5" />
+                      <stop offset="71.42%" stopColor="#F0E68C" />
+                      <stop offset="85.71%" stopColor="#FF8C00" />
+                      <stop offset="100%" stopColor="#FFD700" />
                     </linearGradient>
                   </defs>
                 </svg>
@@ -293,7 +293,7 @@ export function MyMissionsListClient({
                     ? {
                         fill: `url(#rainbow-gradient-my-${mission.id})`,
                         filter:
-                          "drop-shadow(0 0 4px rgba(255, 179, 186, 0.4)) drop-shadow(0 0 8px rgba(255, 212, 163, 0.3)) drop-shadow(0 0 12px rgba(255, 255, 204, 0.2))",
+                          "drop-shadow(0 0 4px rgba(255, 215, 0, 0.4)) drop-shadow(0 0 8px rgba(255, 165, 0, 0.3)) drop-shadow(0 0 12px rgba(255, 212, 163, 0.2))",
                       }
                     : undefined
                 }
