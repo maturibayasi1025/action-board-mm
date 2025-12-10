@@ -298,11 +298,7 @@ export function MyMissionsListClient({
                     : undefined
                 }
               />
-              <span
-                className={cn(
-                  mission.likesCount > 10 && "text-rainbow font-semibold",
-                )}
-              >
+              <span className={cn(mission.likesCount > 10 && "font-semibold")}>
                 {mission.likesCount}
               </span>
             </div>

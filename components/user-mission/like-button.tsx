@@ -151,7 +151,7 @@ export function LikeButton({
               : undefined
           }
         />
-        <span className={cn(isRainbow && "text-rainbow")}>{likesCount}</span>
+        <span>{likesCount}</span>
       </Button>
     </>
   );
