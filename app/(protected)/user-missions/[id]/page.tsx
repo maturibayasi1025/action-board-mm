@@ -125,6 +125,12 @@ export default async function UserMissionDetailPage({
     notFound();
   }
 
+  // 現在のユーザーIDを取得してisOwnMissionを計算
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const isOwnMission = user?.id === mission.createdBy;
+
   return (
     <div className="container mx-auto py-8 max-w-4xl">
       <Card>
@@ -166,6 +172,7 @@ export default async function UserMissionDetailPage({
                 missionId={mission.id}
                 initialLiked={mission.isLikedByCurrentUser}
                 initialCount={mission.likesCount}
+                isOwnMission={isOwnMission}
               />
             </div>
           </div>

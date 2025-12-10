@@ -22,7 +22,7 @@ import { LikeButton } from "@/components/user-mission/like-button";
 import { createClient } from "@/lib/supabase/client";
 import { Calendar, PenTool, Plus, Search, User, X } from "lucide-react";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 type UserMission = {
   id: string;
@@ -60,6 +60,15 @@ export function UserMissionsList({ missions }: { missions: UserMission[] }) {
   const [selectedMvvItems, setSelectedMvvItems] = useState<Set<string>>(
     new Set(),
   );
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
+  // 現在のユーザーIDを取得
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setCurrentUserId(user?.id || null);
+    });
+  }, []);
 
   // 年の選択肢を生成（現在から過去5年）
   const currentYear = new Date().getFullYear();
@@ -413,6 +422,7 @@ export function UserMissionsList({ missions }: { missions: UserMission[] }) {
                   missionId={mission.id}
                   initialLiked={mission.isLikedByCurrentUser || false}
                   initialCount={mission.likesCount}
+                  isOwnMission={currentUserId === mission.createdBy}
                 />
                 <Link
                   href={`/user-missions/${mission.id}`}

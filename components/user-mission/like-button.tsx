@@ -14,6 +14,7 @@ interface LikeButtonProps {
   initialLiked: boolean;
   initialCount: number;
   onLikeChange?: (liked: boolean, count: number) => void;
+  isOwnMission?: boolean;
 }
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -34,12 +35,18 @@ export function LikeButton({
   initialLiked,
   initialCount,
   onLikeChange,
+  isOwnMission = false,
 }: LikeButtonProps) {
   const [isLiked, setIsLiked] = useState(initialLiked);
   const [likesCount, setLikesCount] = useState(initialCount);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleClick = async () => {
+    // 自分のグッジョブの場合は処理をスキップ
+    if (isOwnMission) {
+      return;
+    }
+
     setIsLoading(true);
     try {
       // 現在のセッションを取得
@@ -100,10 +107,11 @@ export function LikeButton({
       variant="outline"
       size="sm"
       onClick={handleClick}
-      disabled={isLoading}
+      disabled={isLoading || isOwnMission}
       className={cn(
         "flex items-center gap-2 transition-colors w-full md:w-auto",
         isLiked && "text-red-500 hover:text-red-600",
+        isOwnMission && "opacity-50 cursor-not-allowed",
       )}
     >
       <Heart className={cn("h-4 w-4", isLiked && "fill-current")} />

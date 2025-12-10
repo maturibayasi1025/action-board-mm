@@ -250,6 +250,11 @@ async function UserMissionsList() {
     const featuredMissions = await getUserMissionsServer(); // ホームページでは6件まで表示
     const supabase = await createClient();
 
+    // 現在のユーザーIDを取得
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
     if (featuredMissions.length === 0) {
       return (
         <div className="text-center py-12">
@@ -338,6 +343,7 @@ async function UserMissionsList() {
                   missionId={mission.id}
                   initialLiked={mission.isLikedByCurrentUser || false}
                   initialCount={mission.likesCount}
+                  isOwnMission={user?.id === mission.createdBy}
                 />
                 <Link
                   href={`/user-missions/${mission.id}`}
