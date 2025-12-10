@@ -142,9 +142,9 @@ export function PraisedMissionsListClient({
     const supabase = createClient();
     return (
       <Card key={mission.id} className="flex flex-col">
-        <CardHeader>
+        <CardHeader className="p-4 md:p-6">
           <div className="flex justify-between items-start mb-2">
-            <CardTitle className="line-clamp-2 flex-1">
+            <CardTitle className="line-clamp-2 flex-1 break-words">
               {mission.title}
             </CardTitle>
           </div>
@@ -153,8 +153,8 @@ export function PraisedMissionsListClient({
               (mission.praisedExternalUsers &&
                 mission.praisedExternalUsers.length > 0)) && (
               <div className="flex items-center gap-2">
-                <User className="h-4 w-4" />
-                <span>
+                <User className="h-4 w-4 flex-shrink-0" />
+                <span className="break-words">
                   賞賛対象:{" "}
                   {[
                     ...mission.praisedUsers,
@@ -163,12 +163,12 @@ export function PraisedMissionsListClient({
                 </span>
               </div>
             )}
-            <div className="text-sm text-muted-foreground">
+            <div className="text-sm text-muted-foreground break-words">
               作成者: {mission.createdByName}
             </div>
           </CardDescription>
         </CardHeader>
-        <CardContent className="flex-1">
+        <CardContent className="flex-1 p-4 pt-0 md:p-6 md:pt-0">
           {/* 画像表示 */}
           {mission.imagePaths && mission.imagePaths.length > 0 && (
             <div className="mb-4 grid grid-cols-3 gap-2">
@@ -187,7 +187,7 @@ export function PraisedMissionsListClient({
               })}
             </div>
           )}
-          <p className="text-sm text-muted-foreground line-clamp-3">
+          <p className="text-sm text-muted-foreground line-clamp-3 break-words">
             {mission.content || "（内容未入力）"}
           </p>
           <div className="mt-4 flex flex-wrap gap-2">
@@ -209,7 +209,7 @@ export function PraisedMissionsListClient({
               )}
           </div>
         </CardContent>
-        <CardFooter className="flex justify-between items-center">
+        <CardFooter className="flex flex-col gap-2 p-4 pt-0 md:flex-row md:justify-between md:items-center md:p-6 md:pt-0">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             {mission.likesCount > 10 && (
               <svg width="0" height="0" className="absolute" aria-hidden="true">
@@ -252,8 +252,11 @@ export function PraisedMissionsListClient({
               {mission.likesCount}
             </span>
           </div>
-          <Link href={`/user-missions/${mission.id}`} className="ml-auto">
-            <Button variant="ghost" size="sm">
+          <Link
+            href={`/user-missions/${mission.id}`}
+            className="w-full md:w-auto md:ml-auto"
+          >
+            <Button variant="ghost" size="sm" className="w-full md:w-auto">
               詳細を見る
             </Button>
           </Link>
@@ -454,7 +457,7 @@ export function PraisedMissionsListClient({
           </Button>
         </div>
       ) : (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 px-4 md:gap-6 md:px-0 md:grid-cols-2 lg:grid-cols-3">
           {filteredMissions.map(renderMissionCard)}
         </div>
       )}

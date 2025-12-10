@@ -139,8 +139,8 @@ async function getUserMissionsServer() {
 
 export default function UserMissionsPage() {
   return (
-    <div className="container mx-auto py-8">
-      <div className="flex justify-between items-center mb-8">
+    <div className="container mx-auto py-8 px-4 md:px-0">
+      <div className="flex flex-col gap-4 md:flex-row md:justify-between md:items-center mb-8">
         <div>
           <h1 className="text-3xl font-bold">ユーザーグッジョブ</h1>
           <p className="text-muted-foreground mt-2">
@@ -148,7 +148,7 @@ export default function UserMissionsPage() {
           </p>
         </div>
         <Link href="/user-missions/new">
-          <Button>
+          <Button className="w-full md:w-auto">
             <Plus className="mr-2 h-4 w-4" />
             グッジョブを作成
           </Button>
