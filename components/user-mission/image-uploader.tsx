@@ -78,11 +78,6 @@ export function UserMissionImageUploader({
     }
   }, [initialPaths, loadPreviewUrl]);
 
-  // 初期化時に親コンポーネントに有効な配列を通知
-  useEffect(() => {
-    notifyImagePathsChange(initialPaths);
-  }, [initialPaths, notifyImagePathsChange]);
-
   const handleImageUpload = async (
     event: React.ChangeEvent<HTMLInputElement>,
   ) => {
