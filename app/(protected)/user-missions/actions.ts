@@ -282,7 +282,29 @@ export async function createUserMissionAction(input: CreateUserMissionInput) {
       }
     }
 
-    return { success: true, missionId: mission.id };
+    // その日初めてのグッジョブ投稿かチェック
+    const isFirstToday = await checkIsFirstGoodJobToday(user.id, supabase);
+    let availableSharedMissions: Array<{
+      id: string;
+      title: string;
+      icon_url: string | null;
+      difficulty: number;
+      content: string | null;
+    }> = [];
+
+    if (isFirstToday) {
+      // 今日まだ達成していない共有グッジョブを取得
+      availableSharedMissions = await getAvailableSharedMissions(
+        user.id,
+        supabase,
+      );
+    }
+
+    return {
+      success: true,
+      missionId: mission.id,
+      availableSharedMissions,
+    };
   } catch (error) {
     console.error("createUserMissionAction総合エラー:", error);
     throw error;
@@ -1273,5 +1295,276 @@ export async function publishDraftUserMissionAction(draftId: string) {
   } catch (error) {
     console.error("publishDraftUserMissionAction総合エラー:", error);
     throw error;
+  }
+}
+
+/**
+ * その日（JST）初めてのグッジョブ投稿かどうかをチェック
+ */
+async function checkIsFirstGoodJobToday(
+  userId: string,
+  supabase: Awaited<ReturnType<typeof createClient>>,
+): Promise<boolean> {
+  try {
+    // JST（UTC+9）で今日の開始時刻と終了時刻を計算
+    const now = new Date();
+
+    // JSTの今日の開始時刻（00:00:00）をUTCに変換
+    // UTC 15:00（前日）= JST 00:00（当日）
+    const jstTodayStartUTC = new Date(now);
+    jstTodayStartUTC.setUTCHours(15, 0, 0, 0);
+    if (jstTodayStartUTC > now) {
+      // まだ日本時間の0時になっていない場合は前日にする
+      jstTodayStartUTC.setUTCDate(jstTodayStartUTC.getUTCDate() - 1);
+    }
+
+    // JSTの今日の終了時刻（23:59:59.999）をUTCに変換
+    const jstTodayEndUTC = new Date(jstTodayStartUTC);
+    jstTodayEndUTC.setUTCDate(jstTodayEndUTC.getUTCDate() + 1);
+    jstTodayEndUTC.setUTCHours(14, 59, 59, 999);
+
+    // 今日作成されたグッジョブをカウント
+    const { count, error } = await supabase
+      .from("user_missions")
+      .select("id", { count: "exact", head: true })
+      .eq("created_by", userId)
+      .gte("created_at", jstTodayStartUTC.toISOString())
+      .lte("created_at", jstTodayEndUTC.toISOString());
+
+    if (error) {
+      console.error("今日のグッジョブ投稿チェックエラー:", error);
+      return false;
+    }
+
+    // カウントが0または1（今作成したもの）の場合、初めての投稿
+    return (count ?? 0) <= 1;
+  } catch (error) {
+    console.error("checkIsFirstGoodJobTodayエラー:", error);
+    return false;
+  }
+}
+
+/**
+ * 今日まだ達成していない共有グッジョブを取得
+ */
+async function getAvailableSharedMissions(
+  userId: string,
+  supabase: Awaited<ReturnType<typeof createClient>>,
+) {
+  try {
+    // JST（UTC+9）で今日の開始時刻と終了時刻を計算
+    const now = new Date();
+
+    // JSTの今日の開始時刻（00:00:00）をUTCに変換
+    const jstTodayStartUTC = new Date(now);
+    jstTodayStartUTC.setUTCHours(15, 0, 0, 0);
+    if (jstTodayStartUTC > now) {
+      jstTodayStartUTC.setUTCDate(jstTodayStartUTC.getUTCDate() - 1);
+    }
+
+    // JSTの今日の終了時刻（23:59:59.999）をUTCに変換
+    const jstTodayEndUTC = new Date(jstTodayStartUTC);
+    jstTodayEndUTC.setUTCDate(jstTodayEndUTC.getUTCDate() + 1);
+    jstTodayEndUTC.setUTCHours(14, 59, 59, 999);
+
+    // 共有グッジョブを取得
+    const { data: importantMissions, error: missionsError } = await supabase
+      .from("missions")
+      .select(
+        "id, title, icon_url, difficulty, content, important_display_start_date, important_display_end_date",
+      )
+      .eq("is_important", true)
+      .eq("is_hidden", false)
+      .order("difficulty", { ascending: true })
+      .order("created_at", { ascending: false });
+
+    if (missionsError || !importantMissions) {
+      console.error("共有グッジョブ取得エラー:", missionsError);
+      return [];
+    }
+
+    // 期間設定を考慮してフィルタリング
+    const nowDate = new Date(now);
+    const validMissions = importantMissions.filter((mission) => {
+      const startDate = mission.important_display_start_date
+        ? new Date(mission.important_display_start_date)
+        : null;
+      const endDate = mission.important_display_end_date
+        ? new Date(mission.important_display_end_date)
+        : null;
+
+      // 開始日が設定されている場合、現在日時が開始日以降である必要がある
+      if (startDate && nowDate < startDate) {
+        return false;
+      }
+
+      // 終了日が設定されている場合、現在日時が終了日以前である必要がある
+      if (endDate && nowDate > endDate) {
+        return false;
+      }
+
+      return true;
+    });
+
+    if (validMissions.length === 0) {
+      return [];
+    }
+
+    // 今日達成した共有グッジョブのIDを取得
+    const { data: todayAchievements, error: achievementsError } = await supabase
+      .from("achievements")
+      .select("mission_id")
+      .eq("user_id", userId)
+      .in(
+        "mission_id",
+        validMissions.map((m) => m.id),
+      )
+      .gte("created_at", jstTodayStartUTC.toISOString())
+      .lte("created_at", jstTodayEndUTC.toISOString());
+
+    if (achievementsError) {
+      console.error("今日の達成記録取得エラー:", achievementsError);
+      return validMissions; // エラー時はすべて返す
+    }
+
+    const achievedMissionIds = new Set(
+      todayAchievements?.map((a) => a.mission_id).filter(Boolean) || [],
+    );
+
+    // 今日まだ達成していない共有グッジョブのみを返す
+    return validMissions.filter(
+      (mission) => !achievedMissionIds.has(mission.id),
+    );
+  } catch (error) {
+    console.error("getAvailableSharedMissionsエラー:", error);
+    return [];
+  }
+}
+
+/**
+ * 成果物なしで共有グッジョブを完了する
+ */
+export async function completeSharedMissionAction(missionId: string) {
+  const supabase = await createClient();
+
+  try {
+    // 認証チェック
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return {
+        success: false,
+        error: "認証に失敗しました。再ログインしてください。",
+      };
+    }
+
+    // グッジョブ情報を取得して、is_importantを確認
+    const { data: missionData, error: missionFetchError } = await supabase
+      .from("missions")
+      .select("is_important, max_achievement_count")
+      .eq("id", missionId)
+      .single();
+
+    if (missionFetchError || !missionData) {
+      return {
+        success: false,
+        error: "グッジョブ情報の取得に失敗しました。",
+      };
+    }
+
+    if (!missionData.is_important) {
+      return {
+        success: false,
+        error: "このグッジョブは共有グッジョブではありません。",
+      };
+    }
+
+    // 1日1回制限チェック（JSTで判定）
+    const now = new Date();
+    const jstTodayStartUTC = new Date(now);
+    jstTodayStartUTC.setUTCHours(15, 0, 0, 0);
+    if (jstTodayStartUTC > now) {
+      jstTodayStartUTC.setUTCDate(jstTodayStartUTC.getUTCDate() - 1);
+    }
+
+    const jstTodayEndUTC = new Date(jstTodayStartUTC);
+    jstTodayEndUTC.setUTCDate(jstTodayEndUTC.getUTCDate() + 1);
+    jstTodayEndUTC.setUTCHours(14, 59, 59, 999);
+
+    // 今日既に達成しているかチェック
+    const { data: todayAchievements, error: todayAchievementError } =
+      await supabase
+        .from("achievements")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("mission_id", missionId)
+        .gte("created_at", jstTodayStartUTC.toISOString())
+        .lte("created_at", jstTodayEndUTC.toISOString());
+
+    if (todayAchievementError) {
+      return {
+        success: false,
+        error: "今日の達成記録の確認に失敗しました。",
+      };
+    }
+
+    if (todayAchievements && todayAchievements.length > 0) {
+      return {
+        success: false,
+        error: "共有グッジョブは1日1回までしか達成できません。",
+      };
+    }
+
+    // 成果物なしでグッジョブ達成を記録
+    const { data: achievement, error: achievementError } = await supabase
+      .from("achievements")
+      .insert({
+        user_id: user.id,
+        mission_id: missionId,
+      })
+      .select()
+      .single();
+
+    if (achievementError || !achievement) {
+      console.error("グッジョブ達成記録エラー:", achievementError);
+      return {
+        success: false,
+        error: `グッジョブ達成の記録に失敗しました: ${achievementError?.message}`,
+      };
+    }
+
+    // XPを付与
+    const { grantMissionCompletionXp } = await import(
+      "@/lib/services/userLevel"
+    );
+    const xpResult = await grantMissionCompletionXp(
+      user.id,
+      missionId,
+      achievement.id,
+    );
+
+    if (!xpResult.success) {
+      console.error("XP付与に失敗しました:", xpResult.error);
+      // XP付与の失敗はグッジョブ達成の成功を妨げない
+    }
+
+    return {
+      success: true,
+      message: "共有グッジョブを完了しました！",
+      xpGranted: xpResult.xpGranted ?? 0,
+      userLevel: xpResult.userLevel,
+    };
+  } catch (error) {
+    console.error("completeSharedMissionActionエラー:", error);
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "予期しないエラーが発生しました",
+    };
   }
 }

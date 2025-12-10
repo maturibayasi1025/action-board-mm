@@ -28,6 +28,7 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import * as z from "zod";
 import { UserMissionImageUploader } from "./image-uploader";
+import { SharedMissionCompletionModal } from "./shared-mission-completion-modal";
 
 const formSchema = z
   .object({
@@ -112,6 +113,17 @@ export function CreateMissionForm(
     initialData?.imagePaths || [],
   );
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [availableSharedMissions, setAvailableSharedMissions] = useState<
+    Array<{
+      id: string;
+      title: string;
+      icon_url: string | null;
+      difficulty: number;
+      content: string | null;
+    }>
+  >([]);
+  const [isSharedMissionModalOpen, setIsSharedMissionModalOpen] =
+    useState(false);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const supabase = createClient();
 
@@ -317,11 +329,25 @@ export function CreateMissionForm(
           mvvItems: values.mvvItems,
         });
 
+        if (!result.success) {
+          throw new Error("グッジョブの作成に失敗しました");
+        }
+
         toast.success("グッジョブを作成しました", {
           description: "すぐにユーザーグッジョブ一覧に表示されます。",
         });
 
-        router.push("/user-missions/my");
+        // 共有グッジョブが利用可能な場合、モーダルを表示
+        if (
+          result.availableSharedMissions &&
+          result.availableSharedMissions.length > 0
+        ) {
+          setAvailableSharedMissions(result.availableSharedMissions);
+          setIsSharedMissionModalOpen(true);
+          // モーダルを閉じた後にリダイレクト
+        } else {
+          router.push("/user-missions/my");
+        }
       }
     } catch (error: unknown) {
       console.error("グッジョブ作成エラー詳細:", {
@@ -669,6 +695,15 @@ export function CreateMissionForm(
           </Button>
         </div>
       </form>
+
+      <SharedMissionCompletionModal
+        isOpen={isSharedMissionModalOpen}
+        onClose={() => {
+          setIsSharedMissionModalOpen(false);
+          router.push("/user-missions/my");
+        }}
+        missions={availableSharedMissions}
+      />
     </Form>
   );
 }
