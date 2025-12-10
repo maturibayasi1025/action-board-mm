@@ -66,7 +66,7 @@ export default async function Navbar() {
                 </Button>
               </div>
             </div>
-            <div className="flex gap-6 items-center font-semibold sm:hidden">
+            {/* <div className="flex gap-6 items-center font-semibold sm:hidden">
               <DropdownMenu>
                 <DropdownMenuTrigger
                   aria-label="ナビゲーションメニューを開く"
@@ -106,7 +106,7 @@ export default async function Navbar() {
                   </DropdownMenuGroup>
                 </DropdownMenuContent>
               </DropdownMenu>
-            </div>
+            </div> */}
             <HeaderAuth />
           </>
         ) : (

@@ -19,6 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { createClient } from "@/lib/supabase/client";
+import { cn } from "@/lib/utils/utils";
 import {
   Calendar,
   CheckCircle,
@@ -255,8 +256,55 @@ export function MyMissionsListClient({
         <CardFooter className="flex justify-between items-center">
           {mission.status === "approved" && (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Heart className="h-4 w-4" />
-              {mission.likesCount}
+              {mission.likesCount > 10 && (
+                <svg
+                  width="0"
+                  height="0"
+                  className="absolute"
+                  aria-hidden="true"
+                >
+                  <defs>
+                    <linearGradient
+                      id={`rainbow-gradient-my-${mission.id}`}
+                      x1="0%"
+                      y1="0%"
+                      x2="100%"
+                      y2="0%"
+                    >
+                      <stop offset="0%" stopColor="#ff0000" />
+                      <stop offset="14.28%" stopColor="#ff7f00" />
+                      <stop offset="28.57%" stopColor="#ffff00" />
+                      <stop offset="42.85%" stopColor="#00ff00" />
+                      <stop offset="57.14%" stopColor="#0000ff" />
+                      <stop offset="71.42%" stopColor="#4b0082" />
+                      <stop offset="85.71%" stopColor="#9400d3" />
+                      <stop offset="100%" stopColor="#ff0000" />
+                    </linearGradient>
+                  </defs>
+                </svg>
+              )}
+              <Heart
+                className={cn(
+                  "h-4 w-4 transition-all",
+                  mission.likesCount > 10 && "animate-rainbow-glow",
+                )}
+                style={
+                  mission.likesCount > 10
+                    ? {
+                        fill: `url(#rainbow-gradient-my-${mission.id})`,
+                        filter:
+                          "drop-shadow(0 0 4px rgba(255, 0, 0, 0.6)) drop-shadow(0 0 8px rgba(255, 127, 0, 0.4)) drop-shadow(0 0 12px rgba(255, 255, 0, 0.3))",
+                      }
+                    : undefined
+                }
+              />
+              <span
+                className={cn(
+                  mission.likesCount > 10 && "text-rainbow font-semibold",
+                )}
+              >
+                {mission.likesCount}
+              </span>
             </div>
           )}
           {mission.status === "pending" ? (
