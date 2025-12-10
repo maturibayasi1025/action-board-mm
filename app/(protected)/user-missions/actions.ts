@@ -1367,12 +1367,14 @@ async function getAvailableSharedMissions(
     jstTodayEndUTC.setUTCDate(jstTodayEndUTC.getUTCDate() + 1);
     jstTodayEndUTC.setUTCHours(14, 59, 59, 999);
 
-    // 共有グッジョブを取得
+    // 特定の共有グッジョブのみを取得
+    const TARGET_MISSION_ID = "e1f1d556-df31-4f79-b96d-6a1badeb5a0b";
     const { data: importantMissions, error: missionsError } = await supabase
       .from("missions")
       .select(
         "id, title, icon_url, difficulty, content, important_display_start_date, important_display_end_date",
       )
+      .eq("id", TARGET_MISSION_ID)
       .eq("is_important", true)
       .eq("is_hidden", false)
       .order("difficulty", { ascending: true })

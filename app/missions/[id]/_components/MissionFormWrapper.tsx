@@ -305,7 +305,7 @@ export function MissionFormWrapper({
             このグッジョブは達成済みです。
           </p>
           <div className="flex flex-col gap-2 mt-2">
-            <Button
+            {/* <Button
               onClick={(e) => {
                 e.preventDefault();
                 setIsDialogOpen(true);
@@ -314,7 +314,7 @@ export function MissionFormWrapper({
               className="w-full"
             >
               シェアする
-            </Button>
+            </Button> */}
             <Link href="/#featured-missions">
               <Button variant="outline" className="w-full">
                 グッジョブ一覧へ
