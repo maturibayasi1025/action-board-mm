@@ -1818,6 +1818,52 @@ export type Database = {
           user_id: string;
         }[];
       };
+      get_likes_ranking: {
+        Args: { limit_count?: number };
+        Returns: {
+          user_id: string;
+          user_name: string;
+          address_prefecture: string;
+          rank: number;
+          likes_count: number;
+        }[];
+      };
+      get_user_likes_ranking: {
+        Args: { target_user_id: string };
+        Returns: {
+          user_id: string;
+          user_name: string;
+          address_prefecture: string;
+          rank: number;
+          likes_count: number;
+        }[];
+      };
+      get_period_likes_ranking: {
+        Args: {
+          p_limit?: number;
+          p_start_date?: string;
+        };
+        Returns: {
+          user_id: string;
+          user_name: string;
+          address_prefecture: string;
+          rank: number;
+          likes_count: number;
+        }[];
+      };
+      get_user_period_likes_ranking: {
+        Args: {
+          p_user_id: string;
+          p_start_date?: string;
+        };
+        Returns: {
+          user_id: string;
+          user_name: string;
+          address_prefecture: string;
+          rank: number;
+          likes_count: number;
+        }[];
+      };
       total_xp_for_level: {
         Args: { level: number };
         Returns: number;
