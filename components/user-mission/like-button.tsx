@@ -112,14 +112,14 @@ export function LikeButton({
         <svg width="0" height="0" className="absolute" aria-hidden="true">
           <defs>
             <linearGradient id={uniqueId} x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#ff0000" />
-              <stop offset="14.28%" stopColor="#ff7f00" />
-              <stop offset="28.57%" stopColor="#ffff00" />
-              <stop offset="42.85%" stopColor="#00ff00" />
-              <stop offset="57.14%" stopColor="#0000ff" />
-              <stop offset="71.42%" stopColor="#4b0082" />
-              <stop offset="85.71%" stopColor="#9400d3" />
-              <stop offset="100%" stopColor="#ff0000" />
+              <stop offset="0%" stopColor="#ffb3ba" />
+              <stop offset="14.28%" stopColor="#ffd4a3" />
+              <stop offset="28.57%" stopColor="#ffffcc" />
+              <stop offset="42.85%" stopColor="#b3ffb3" />
+              <stop offset="57.14%" stopColor="#b3d9ff" />
+              <stop offset="71.42%" stopColor="#d4b3ff" />
+              <stop offset="85.71%" stopColor="#e6ccff" />
+              <stop offset="100%" stopColor="#ffb3ba" />
             </linearGradient>
           </defs>
         </svg>
@@ -146,7 +146,7 @@ export function LikeButton({
               ? {
                   fill: `url(#${uniqueId})`,
                   filter:
-                    "drop-shadow(0 0 4px rgba(255, 0, 0, 0.6)) drop-shadow(0 0 8px rgba(255, 127, 0, 0.4)) drop-shadow(0 0 12px rgba(255, 255, 0, 0.3))",
+                    "drop-shadow(0 0 4px rgba(255, 179, 186, 0.4)) drop-shadow(0 0 8px rgba(255, 212, 163, 0.3)) drop-shadow(0 0 12px rgba(255, 255, 204, 0.2))",
                 }
               : undefined
           }

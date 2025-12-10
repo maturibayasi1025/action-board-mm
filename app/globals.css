@@ -130,14 +130,14 @@
     @apply text-transparent bg-clip-text;
     background-image: linear-gradient(
       90deg,
-      #ff0000,
-      #ff7f00,
-      #ffff00,
-      #00ff00,
-      #0000ff,
-      #4b0082,
-      #9400d3,
-      #ff0000
+      #ffb3ba,
+      #ffd4a3,
+      #ffffcc,
+      #b3ffb3,
+      #b3d9ff,
+      #d4b3ff,
+      #e6ccff,
+      #ffb3ba
     );
     background-size: 200% 100%;
     animation: rainbow-glow 3s ease infinite;

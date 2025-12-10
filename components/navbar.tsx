@@ -65,6 +65,7 @@ export default async function Navbar() {
                   </Link>
                 </Button>
               </div>
+              <HeaderAuth />
             </div>
             {/* <div className="flex gap-6 items-center font-semibold sm:hidden">
               <DropdownMenu>
@@ -107,7 +108,6 @@ export default async function Navbar() {
                 </DropdownMenuContent>
               </DropdownMenu>
             </div> */}
-            <HeaderAuth />
           </>
         ) : (
           <>
