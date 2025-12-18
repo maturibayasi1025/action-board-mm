@@ -38,6 +38,11 @@ export interface BadgeNotification {
   badgeDescription: string;
 }
 
+export interface MvvBadgeWithUser extends UserBadge {
+  user_name: string;
+  user_avatar_url: string | null;
+}
+
 export const getBadgeTitle = (badge: UserBadge): string => {
   switch (badge.badge_type) {
     case "DAILY":
@@ -108,11 +113,11 @@ export function getBadgeRankingUrl(badge: UserBadge): string | null {
 }
 
 /**
- * 決算月（3月）を基準とした四半期を計算する
- * Q1: 3月〜5月
- * Q2: 6月〜8月
+ * 四半期を計算する
+ * Q1: 4月〜6月
+ * Q2: 7月〜8月
  * Q3: 9月〜11月
- * Q4: 12月〜2月
+ * Q4: 12月〜2月（次の年度）
  * @param date 日付（省略時は現在日時）
  * @returns 四半期文字列（YYYY-QN形式、例：2024-Q1）
  */
@@ -128,12 +133,12 @@ export function getQuarterPeriod(date?: Date): string {
   let quarter: number;
   let fiscalYear: number;
 
-  if (month >= 3 && month <= 5) {
-    // Q1: 3月〜5月
+  if (month >= 4 && month <= 6) {
+    // Q1: 4月〜6月
     quarter = 1;
     fiscalYear = year;
-  } else if (month >= 6 && month <= 8) {
-    // Q2: 6月〜8月
+  } else if (month >= 7 && month <= 8) {
+    // Q2: 7月〜8月
     quarter = 2;
     fiscalYear = year;
   } else if (month >= 9 && month <= 11) {
@@ -158,6 +163,54 @@ export function getCurrentQuarter(): string {
 }
 
 /**
+ * 表彰すべき四半期を取得
+ * 各四半期の終了月にその四半期を表彰する
+ * - 6月に表彰されるのはQ1（4月〜6月）
+ * - 9月に表彰されるのはQ2（7月〜8月）
+ * - 12月に表彰されるのはQ3（9月〜11月）
+ * - 3月に表彰されるのはQ4（12月〜2月）
+ * その他の月（四半期の途中）の場合は、現在の四半期を返す
+ * @param date 日付（省略時は現在日時）
+ * @returns 四半期文字列（YYYY-QN形式、例：2024-Q1）
+ */
+export function getAwardQuarter(date?: Date): string {
+  const targetDate = date || new Date();
+  // 日本時間（JST）で計算
+  const jstDate = new Date(
+    targetDate.toLocaleString("en-US", { timeZone: "Asia/Tokyo" }),
+  );
+  const year = jstDate.getFullYear();
+  const month = jstDate.getMonth() + 1; // 0-indexedなので+1
+
+  let quarter: number;
+  let fiscalYear: number;
+
+  // 表彰月の判定
+  if (month === 6) {
+    // 6月に表彰されるのはQ1（4月〜6月）
+    quarter = 1;
+    fiscalYear = year;
+  } else if (month === 9) {
+    // 9月に表彰されるのはQ2（7月〜8月）
+    quarter = 2;
+    fiscalYear = year;
+  } else if (month === 12) {
+    // 12月に表彰されるのはQ3（9月〜11月）
+    quarter = 3;
+    fiscalYear = year;
+  } else if (month === 3) {
+    // 3月に表彰されるのはQ4（12月〜2月）
+    quarter = 4;
+    fiscalYear = year - 1;
+  } else {
+    // その他の月（四半期の途中）の場合は、現在の四半期を返す
+    return getQuarterPeriod(date);
+  }
+
+  return `${fiscalYear}-Q${quarter}`;
+}
+
+/**
  * 利用可能な四半期のリストを生成（過去2年分）
  * @returns 四半期文字列の配列（YYYY-QN形式）
  */
@@ -167,9 +220,9 @@ export function getAvailableQuarters(): string[] {
   const currentYear = now.getFullYear();
   const currentMonth = now.getMonth() + 1;
 
-  // 現在の年度を計算（3月が決算月）
+  // 現在の年度を計算（4月が年度開始月）
   let fiscalYear = currentYear;
-  if (currentMonth < 3) {
+  if (currentMonth < 4) {
     fiscalYear = currentYear - 1;
   }
 

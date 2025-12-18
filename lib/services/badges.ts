@@ -4,10 +4,36 @@ import { createServiceClient } from "@/lib/supabase/server";
 import {
   BadgeType,
   type BadgeUpdateParams,
+  type MvvBadgeWithUser,
   type UserBadge,
   getCurrentQuarter,
   getQuarterPeriod,
 } from "@/lib/types/badge";
+
+/**
+ * MVVバッジタイプの並び順を定義
+ * 1. 夢中になってやり切る
+ * 2. 至高な人間関係
+ * 3. 幸せの循環
+ */
+const MVV_BADGE_TYPE_ORDER: Record<string, number> = {
+  MVV_PASSIONATE_EXECUTION: 1,
+  MVV_SUPREME_RELATIONSHIPS: 2,
+  MVV_HAPPINESS_CIRCULATION: 3,
+};
+
+/**
+ * MVVバッジを希望の順序でソートする
+ */
+function sortMvvBadgesByType<T extends { badge_type: string }>(
+  badges: T[],
+): T[] {
+  return [...badges].sort((a, b) => {
+    const orderA = MVV_BADGE_TYPE_ORDER[a.badge_type] ?? 999;
+    const orderB = MVV_BADGE_TYPE_ORDER[b.badge_type] ?? 999;
+    return orderA - orderB;
+  });
+}
 
 /**
  * グッジョブバッジにタイトル情報を追加する
@@ -165,7 +191,39 @@ export async function getUserBadges(userId: string): Promise<UserBadge[]> {
   const badges = (data || []) as UserBadge[];
 
   // グッジョブバッジのタイトルを取得
-  return enrichMissionBadges(badges);
+  const enrichedBadges = await enrichMissionBadges(badges);
+
+  // MVVバッジを希望の順序でソート
+  // バッジタイプごとにグループ化
+  const groupedByType = enrichedBadges.reduce(
+    (acc, badge) => {
+      const key = badge.badge_type;
+      if (!acc[key]) {
+        acc[key] = [];
+      }
+      acc[key].push(badge);
+      return acc;
+    },
+    {} as Record<string, UserBadge[]>,
+  );
+
+  // MVVバッジタイプの順序でソート
+  const mvvBadges = [
+    ...(groupedByType.MVV_PASSIONATE_EXECUTION || []),
+    ...(groupedByType.MVV_SUPREME_RELATIONSHIPS || []),
+    ...(groupedByType.MVV_HAPPINESS_CIRCULATION || []),
+  ];
+
+  // その他のバッジタイプ（MVV以外）を取得
+  const otherBadges = enrichedBadges.filter(
+    (badge) =>
+      badge.badge_type !== "MVV_PASSIONATE_EXECUTION" &&
+      badge.badge_type !== "MVV_SUPREME_RELATIONSHIPS" &&
+      badge.badge_type !== "MVV_HAPPINESS_CIRCULATION",
+  );
+
+  // MVVバッジとその他のバッジを結合（MVVバッジを先に）
+  return [...mvvBadges, ...otherBadges];
 }
 
 /**
@@ -371,7 +429,6 @@ export async function getMvvBadgesByQuarter(
       "MVV_HAPPINESS_CIRCULATION",
     ])
     .eq("quarter_period", quarter_period)
-    .order("badge_type")
     .order("achieved_at", { ascending: false });
 
   if (error) {
@@ -379,7 +436,8 @@ export async function getMvvBadgesByQuarter(
     return [];
   }
 
-  return (data || []) as UserBadge[];
+  // MVVバッジタイプの順序でソート
+  return sortMvvBadgesByType((data || []) as UserBadge[]);
 }
 
 /**
@@ -399,15 +457,31 @@ export async function getUserMvvBadges(userId: string): Promise<UserBadge[]> {
       "MVV_SUPREME_RELATIONSHIPS",
       "MVV_HAPPINESS_CIRCULATION",
     ])
-    .order("quarter_period", { ascending: false })
-    .order("badge_type");
+    .order("quarter_period", { ascending: false });
 
   if (error) {
     console.error("Error fetching user MVV badges:", error);
     return [];
   }
 
-  return (data || []) as UserBadge[];
+  // 四半期ごとにグループ化し、各グループ内でMVVバッジタイプの順序でソート
+  const badges = (data || []) as UserBadge[];
+  const groupedByQuarter = badges.reduce(
+    (acc, badge) => {
+      const quarter = badge.quarter_period || "";
+      if (!acc[quarter]) {
+        acc[quarter] = [];
+      }
+      acc[quarter].push(badge);
+      return acc;
+    },
+    {} as Record<string, UserBadge[]>,
+  );
+
+  // 四半期の降順でソートし、各グループ内でMVVバッジタイプの順序でソート
+  return Object.keys(groupedByQuarter)
+    .sort((a, b) => b.localeCompare(a)) // 四半期の降順
+    .flatMap((quarter) => sortMvvBadgesByType(groupedByQuarter[quarter]));
 }
 
 /**
@@ -446,5 +520,68 @@ export async function removeMvvBadge(
       success: false,
       error: "予期しないエラーが発生しました",
     };
+  }
+}
+
+/**
+ * 指定された四半期のMVVバッジとユーザー情報を取得
+ * @param quarter_period 四半期（YYYY-QN形式）
+ * @returns MVVバッジとユーザー情報を結合した配列
+ */
+export async function getMvvBadgesWithUsers(
+  quarter_period: string,
+): Promise<MvvBadgeWithUser[]> {
+  const supabase = await createServiceClient();
+
+  try {
+    // バッジを取得
+    const badges = await getMvvBadgesByQuarter(quarter_period);
+
+    if (badges.length === 0) {
+      return [];
+    }
+
+    // ユーザーIDのリストを抽出（重複を除去）
+    const userIds = Array.from(new Set(badges.map((badge) => badge.user_id)));
+
+    // ユーザー情報を一括取得
+    const { data: users, error: usersError } = await supabase
+      .from("public_user_profiles")
+      .select("id, name, avatar_url")
+      .in("id", userIds);
+
+    if (usersError) {
+      console.error("Error fetching user profiles:", usersError);
+      return [];
+    }
+
+    // ユーザー情報のマップを作成
+    const userMap = new Map(
+      (users || []).map((user) => [
+        user.id,
+        {
+          name: user.name || "",
+          avatar_url: user.avatar_url,
+        },
+      ]),
+    );
+
+    // バッジとユーザー情報を結合
+    return badges
+      .map((badge) => {
+        const userInfo = userMap.get(badge.user_id);
+        if (!userInfo) {
+          return null;
+        }
+        return {
+          ...badge,
+          user_name: userInfo.name,
+          user_avatar_url: userInfo.avatar_url,
+        } as MvvBadgeWithUser;
+      })
+      .filter((badge): badge is MvvBadgeWithUser => badge !== null);
+  } catch (error) {
+    console.error("Unexpected error in getMvvBadgesWithUsers:", error);
+    return [];
   }
 }

@@ -41,16 +41,16 @@ export default async function AuthButton() {
             <DropdownMenuItem asChild>
               <Link href="/">ホーム</Link>
             </DropdownMenuItem>
-            <DropdownMenuItem asChild>
+            <DropdownMenuItem asChild className="block md:hidden">
               <Link href="/user-missions/praised">自分宛のグッジョブ</Link>
             </DropdownMenuItem>
-            <DropdownMenuItem asChild>
+            <DropdownMenuItem asChild className="block md:hidden">
               <Link href="/user-missions">みんなの投稿</Link>
             </DropdownMenuItem>
-            <DropdownMenuItem asChild>
+            <DropdownMenuItem asChild className="block md:hidden">
               <Link href="/user-missions/my">自分の投稿</Link>
             </DropdownMenuItem>
-            <DropdownMenuItem asChild>
+            <DropdownMenuItem asChild className="block md:hidden">
               <Link href="/user-missions/new">グッジョブ作成</Link>
             </DropdownMenuItem>
           </DropdownMenuGroup>
@@ -62,6 +62,9 @@ export default async function AuthButton() {
                   <Link href="/admin/important-missions">
                     共有グッジョブを登録する
                   </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/admin/mvv-badges">MVVバッジを登録する</Link>
                 </DropdownMenuItem>
               </DropdownMenuGroup>
             </>

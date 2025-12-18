@@ -20,6 +20,7 @@ import MetricsWithSuspense from "@/components/metrics/MetricsWithSuspense";
 import FeaturedMissions from "@/components/mission/FeaturedMissions";
 import ImportantMissions from "@/components/mission/ImportantMissions";
 import MissionsByCategory from "@/components/mission/MissionsByCategory";
+import MvvBadgeHonorSection from "@/components/mvv-badge-honor-section";
 // import Missions from "@/components/mission/missions";
 // import RankingTop from "@/components/ranking/ranking-top";
 // import RankingSection from "@/components/top/ranking-section";
@@ -103,6 +104,9 @@ export default async function Home({
       <section>
         <Hero />
       </section>
+
+      {/* MVVバッジ表彰セクション */}
+      <MvvBadgeHonorSection />
 
       {/* メトリクスセクション */}
       {/* <MetricsWithSuspense /> */}
