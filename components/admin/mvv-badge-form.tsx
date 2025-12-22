@@ -8,6 +8,7 @@ import {
   getUserMvvBadgesAction,
   removeMvvBadgeAction,
   searchUsers,
+  updateMvvBadgeImageAction,
   uploadMvvBadgeImageAction,
 } from "@/app/(protected)/admin/mvv-badges/actions";
 import { Button } from "@/components/ui/button";
@@ -208,6 +209,37 @@ export function MvvBadgeForm() {
           },
         }));
         toast.success("画像をアップロードしました");
+
+        // 既存のバッジがある場合はDBを更新
+        if (selectedUser && selectedQuarter) {
+          const existingBadge = userBadges.find(
+            (badge) =>
+              badge.badge_type === badgeType &&
+              badge.quarter_period === selectedQuarter,
+          );
+
+          if (existingBadge) {
+            const updateResult = await updateMvvBadgeImageAction({
+              userId: selectedUser.id,
+              badgeType: badgeType as
+                | "MVV_PASSIONATE_EXECUTION"
+                | "MVV_SUPREME_RELATIONSHIPS"
+                | "MVV_HAPPINESS_CIRCULATION",
+              quarterPeriod: selectedQuarter,
+              imageType,
+              imagePath: result.data.path,
+            });
+
+            if (updateResult.success) {
+              // バッジ一覧を更新
+              await loadUserBadges();
+            } else {
+              toast.error(
+                updateResult.error || "DBへの画像パス保存に失敗しました",
+              );
+            }
+          }
+        }
       } else {
         toast.error(result.error || "画像のアップロードに失敗しました");
       }

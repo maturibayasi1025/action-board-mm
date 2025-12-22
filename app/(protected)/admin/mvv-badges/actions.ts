@@ -375,3 +375,97 @@ export async function uploadMvvBadgeImageAction(
     };
   }
 }
+
+/**
+ * MVVバッジの画像パスを更新する
+ */
+export async function updateMvvBadgeImageAction({
+  userId,
+  badgeType,
+  quarterPeriod,
+  imageType,
+  imagePath,
+}: {
+  userId: string;
+  badgeType:
+    | "MVV_PASSIONATE_EXECUTION"
+    | "MVV_SUPREME_RELATIONSHIPS"
+    | "MVV_HAPPINESS_CIRCULATION";
+  quarterPeriod: string;
+  imageType: "badge" | "icon";
+  imagePath: string;
+}): Promise<{ success: true } | { success: false; error: string }> {
+  try {
+    await requireOwner();
+
+    const supabase = await createServiceClient();
+
+    // 既存のバッジを検索
+    const { data: existing, error: fetchError } = await supabase
+      .from("user_badges")
+      .select("*")
+      .eq("user_id", userId)
+      .eq("badge_type", badgeType)
+      .eq("quarter_period", quarterPeriod)
+      .maybeSingle();
+
+    if (fetchError && fetchError.code !== "PGRST116") {
+      // PGRST116 = no rows returned
+      console.error("Error fetching existing MVV badge:", fetchError);
+      return {
+        success: false,
+        error: `既存バッジの確認に失敗しました: ${fetchError.message}`,
+      };
+    }
+
+    // バッジが存在しない場合は成功を返す（エラーにしない）
+    if (!existing) {
+      return { success: true };
+    }
+
+    // 画像パスを更新
+    const updateData: {
+      badge_image_path?: string;
+      icon_image_path?: string;
+      updated_at: string;
+    } = {
+      updated_at: new Date().toISOString(),
+    };
+
+    if (imageType === "badge") {
+      updateData.badge_image_path = imagePath;
+    } else {
+      updateData.icon_image_path = imagePath;
+    }
+
+    const { error: updateError } = await supabase
+      .from("user_badges")
+      .update(updateData)
+      .eq("id", existing.id);
+
+    if (updateError) {
+      console.error("Error updating MVV badge image:", updateError);
+      return {
+        success: false,
+        error: `バッジの画像パス更新に失敗しました: ${updateError.message}`,
+      };
+    }
+
+    revalidatePath("/admin/mvv-badges");
+    revalidatePath(`/users/${userId}`);
+
+    return { success: true };
+  } catch (error) {
+    if (error instanceof Error && error.message === "経営者権限が必要です") {
+      return {
+        success: false,
+        error: "経営者権限が必要です",
+      };
+    }
+    console.error("予期しないエラー:", error);
+    return {
+      success: false,
+      error: "予期しないエラーが発生しました",
+    };
+  }
+}
