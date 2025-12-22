@@ -14,6 +14,7 @@ const MVV_BADGE_TYPE_LABELS: Record<MvvBadgeType, string> = {
   MVV_PASSIONATE_EXECUTION: "夢中になってやり切る",
   MVV_SUPREME_RELATIONSHIPS: "至高な人間関係",
   MVV_HAPPINESS_CIRCULATION: "幸せの循環",
+  MVV_START_DASH: "スタートダッシュ",
 } as const;
 
 export default async function MvvBadgeHonorSection() {
@@ -44,6 +45,7 @@ export default async function MvvBadgeHonorSection() {
           MVV_PASSIONATE_EXECUTION: "/img/MVV/2025-3Q/badge-夢中.png",
           MVV_SUPREME_RELATIONSHIPS: "/img/MVV/2025-3Q/badge-人間関係.png",
           MVV_HAPPINESS_CIRCULATION: "/img/MVV/2025-3Q/badge-幸せ.png",
+          MVV_START_DASH: "/img/MVV/2025-3Q/badge-スタートダッシュ.png",
         };
         badgeImagePath = badgeImageMap[badge.badge_type] || null;
       }
@@ -59,6 +61,7 @@ export default async function MvvBadgeHonorSection() {
           MVV_PASSIONATE_EXECUTION: "/img/MVV/2025-3Q/11th3q-夢中.png",
           MVV_SUPREME_RELATIONSHIPS: "/img/MVV/2025-3Q/11th3q-至高な.png",
           MVV_HAPPINESS_CIRCULATION: "/img/MVV/2025-3Q/11th3q-幸せ.png",
+          MVV_START_DASH: "/img/MVV/2025-3Q/11th3q-スタートダッシュ.png",
         };
         iconImagePath = iconImageMap[badge.badge_type] || null;
       }

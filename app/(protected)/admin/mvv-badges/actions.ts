@@ -129,7 +129,8 @@ export async function awardMvvBadgeAction({
   badgeType:
     | "MVV_PASSIONATE_EXECUTION"
     | "MVV_SUPREME_RELATIONSHIPS"
-    | "MVV_HAPPINESS_CIRCULATION";
+    | "MVV_HAPPINESS_CIRCULATION"
+    | "MVV_START_DASH";
   quarterPeriod?: string;
   badgeImagePath?: string | null;
   iconImagePath?: string | null;
@@ -390,7 +391,8 @@ export async function updateMvvBadgeImageAction({
   badgeType:
     | "MVV_PASSIONATE_EXECUTION"
     | "MVV_SUPREME_RELATIONSHIPS"
-    | "MVV_HAPPINESS_CIRCULATION";
+    | "MVV_HAPPINESS_CIRCULATION"
+    | "MVV_START_DASH";
   quarterPeriod: string;
   imageType: "badge" | "icon";
   imagePath: string;

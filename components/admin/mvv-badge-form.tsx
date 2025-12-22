@@ -40,6 +40,10 @@ const MVV_BADGE_TYPES = [
     value: "MVV_HAPPINESS_CIRCULATION",
     label: "幸せの循環",
   },
+  {
+    value: "MVV_START_DASH",
+    label: "スタートダッシュ",
+  },
 ] as const;
 
 export function MvvBadgeForm() {
@@ -224,7 +228,8 @@ export function MvvBadgeForm() {
               badgeType: badgeType as
                 | "MVV_PASSIONATE_EXECUTION"
                 | "MVV_SUPREME_RELATIONSHIPS"
-                | "MVV_HAPPINESS_CIRCULATION",
+                | "MVV_HAPPINESS_CIRCULATION"
+                | "MVV_START_DASH",
               quarterPeriod: selectedQuarter,
               imageType,
               imagePath: result.data.path,
@@ -267,7 +272,8 @@ export function MvvBadgeForm() {
     badgeType:
       | "MVV_PASSIONATE_EXECUTION"
       | "MVV_SUPREME_RELATIONSHIPS"
-      | "MVV_HAPPINESS_CIRCULATION",
+      | "MVV_HAPPINESS_CIRCULATION"
+      | "MVV_START_DASH",
   ) {
     if (!selectedUser) {
       toast.error("ユーザーを選択してください");

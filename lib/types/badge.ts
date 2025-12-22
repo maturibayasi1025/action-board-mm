@@ -5,12 +5,14 @@ export type BadgeType =
   | "MISSION"
   | "MVV_PASSIONATE_EXECUTION"
   | "MVV_SUPREME_RELATIONSHIPS"
-  | "MVV_HAPPINESS_CIRCULATION";
+  | "MVV_HAPPINESS_CIRCULATION"
+  | "MVV_START_DASH";
 
 export type MvvBadgeType =
   | "MVV_PASSIONATE_EXECUTION"
   | "MVV_SUPREME_RELATIONSHIPS"
-  | "MVV_HAPPINESS_CIRCULATION";
+  | "MVV_HAPPINESS_CIRCULATION"
+  | "MVV_START_DASH";
 
 export interface UserBadge {
   id: string;
@@ -68,6 +70,8 @@ export const getBadgeTitle = (badge: UserBadge): string => {
       return `至高な人間関係${badge.quarter_period ? ` (${badge.quarter_period})` : ""}`;
     case "MVV_HAPPINESS_CIRCULATION":
       return `幸せの循環${badge.quarter_period ? ` (${badge.quarter_period})` : ""}`;
+    case "MVV_START_DASH":
+      return `スタートダッシュ${badge.quarter_period ? ` (${badge.quarter_period})` : ""}`;
     default:
       return `ランキング ${badge.rank}位`;
   }
@@ -87,6 +91,7 @@ export const BadgeType = {
   MVV_PASSIONATE_EXECUTION: "MVV_PASSIONATE_EXECUTION",
   MVV_SUPREME_RELATIONSHIPS: "MVV_SUPREME_RELATIONSHIPS",
   MVV_HAPPINESS_CIRCULATION: "MVV_HAPPINESS_CIRCULATION",
+  MVV_START_DASH: "MVV_START_DASH",
 } as const;
 
 /**
@@ -114,6 +119,7 @@ export function getBadgeRankingUrl(badge: UserBadge): string | null {
     case BadgeType.MVV_PASSIONATE_EXECUTION:
     case BadgeType.MVV_SUPREME_RELATIONSHIPS:
     case BadgeType.MVV_HAPPINESS_CIRCULATION:
+    case BadgeType.MVV_START_DASH:
       // MVVバッジはランキングページへのリンクなし
       return null;
     default:

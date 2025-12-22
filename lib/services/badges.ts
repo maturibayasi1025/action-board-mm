@@ -15,11 +15,13 @@ import {
  * 1. 夢中になってやり切る
  * 2. 至高な人間関係
  * 3. 幸せの循環
+ * 4. スタートダッシュ
  */
 const MVV_BADGE_TYPE_ORDER: Record<string, number> = {
   MVV_PASSIONATE_EXECUTION: 1,
   MVV_SUPREME_RELATIONSHIPS: 2,
   MVV_HAPPINESS_CIRCULATION: 3,
+  MVV_START_DASH: 4,
 };
 
 /**
@@ -212,6 +214,7 @@ export async function getUserBadges(userId: string): Promise<UserBadge[]> {
     ...(groupedByType.MVV_PASSIONATE_EXECUTION || []),
     ...(groupedByType.MVV_SUPREME_RELATIONSHIPS || []),
     ...(groupedByType.MVV_HAPPINESS_CIRCULATION || []),
+    ...(groupedByType.MVV_START_DASH || []),
   ];
 
   // その他のバッジタイプ（MVV以外）を取得
@@ -219,7 +222,8 @@ export async function getUserBadges(userId: string): Promise<UserBadge[]> {
     (badge) =>
       badge.badge_type !== "MVV_PASSIONATE_EXECUTION" &&
       badge.badge_type !== "MVV_SUPREME_RELATIONSHIPS" &&
-      badge.badge_type !== "MVV_HAPPINESS_CIRCULATION",
+      badge.badge_type !== "MVV_HAPPINESS_CIRCULATION" &&
+      badge.badge_type !== "MVV_START_DASH",
   );
 
   // MVVバッジとその他のバッジを結合（MVVバッジを先に）
@@ -326,7 +330,8 @@ export async function awardMvvBadge({
   badge_type:
     | "MVV_PASSIONATE_EXECUTION"
     | "MVV_SUPREME_RELATIONSHIPS"
-    | "MVV_HAPPINESS_CIRCULATION";
+    | "MVV_HAPPINESS_CIRCULATION"
+    | "MVV_START_DASH";
   quarter_period?: string;
   rank?: number;
   badge_image_path?: string | null;
@@ -468,6 +473,7 @@ export async function getMvvBadgesByQuarter(
       "MVV_PASSIONATE_EXECUTION",
       "MVV_SUPREME_RELATIONSHIPS",
       "MVV_HAPPINESS_CIRCULATION",
+      "MVV_START_DASH",
     ])
     .eq("quarter_period", quarter_period)
     .order("achieved_at", { ascending: false });
@@ -497,6 +503,7 @@ export async function getUserMvvBadges(userId: string): Promise<UserBadge[]> {
       "MVV_PASSIONATE_EXECUTION",
       "MVV_SUPREME_RELATIONSHIPS",
       "MVV_HAPPINESS_CIRCULATION",
+      "MVV_START_DASH",
     ])
     .order("quarter_period", { ascending: false });
 
@@ -544,6 +551,7 @@ export async function removeMvvBadge(
         "MVV_PASSIONATE_EXECUTION",
         "MVV_SUPREME_RELATIONSHIPS",
         "MVV_HAPPINESS_CIRCULATION",
+        "MVV_START_DASH",
       ]);
 
     if (error) {
