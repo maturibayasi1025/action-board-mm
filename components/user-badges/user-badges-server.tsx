@@ -20,9 +20,13 @@ export async function UserBadges({ userId }: UserBadgesProps) {
 
   return (
     <div className="flex flex-wrap gap-2">
-      {badges.map((badge) => (
-        <BadgeDisplay key={badge.id} badge={badge} />
-      ))}
+      {
+        await Promise.all(
+          badges.map(async (badge) => (
+            <BadgeDisplay key={badge.id} badge={badge} />
+          )),
+        )
+      }
     </div>
   );
 }
