@@ -1,15 +1,16 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import UserAvatar from "@/components/user-avatar";
 import { getMvvBadgesWithUsers } from "@/lib/services/badges";
+import { createClient } from "@/lib/supabase/server";
 import {
+  type MvvBadgeType,
   type MvvBadgeWithUser,
   getAwardQuarter,
-  getBadgeTitle,
 } from "@/lib/types/badge";
+import Image from "next/image";
 import Link from "next/link";
 
-const MVV_BADGE_TYPE_LABELS = {
+const MVV_BADGE_TYPE_LABELS: Record<MvvBadgeType, string> = {
   MVV_PASSIONATE_EXECUTION: "夢中になってやり切る",
   MVV_SUPREME_RELATIONSHIPS: "至高な人間関係",
   MVV_HAPPINESS_CIRCULATION: "幸せの循環",
@@ -24,20 +25,71 @@ export default async function MvvBadgeHonorSection() {
     return null;
   }
 
+  // すべてのバッジの画像パスを事前に取得
+  const supabase = await createClient();
+  const badgesWithImages = await Promise.all(
+    badgesWithUsers.map(async (badge) => {
+      let badgeImagePath: string | null = null;
+      let iconImagePath: string | null = null;
+
+      // データベースに画像パスが存在する場合はそれを優先
+      if (badge.badge_image_path) {
+        const { data } = supabase.storage
+          .from("mvv_badge_images")
+          .getPublicUrl(badge.badge_image_path);
+        badgeImagePath = data.publicUrl;
+      } else if (badge.quarter_period === "2025-Q3") {
+        // フォールバック: 2025-Q3の場合のみ固定パスを使用
+        const badgeImageMap: Record<string, string> = {
+          MVV_PASSIONATE_EXECUTION: "/img/MVV/2025-3Q/badge-夢中.png",
+          MVV_SUPREME_RELATIONSHIPS: "/img/MVV/2025-3Q/badge-人間関係.png",
+          MVV_HAPPINESS_CIRCULATION: "/img/MVV/2025-3Q/badge-幸せ.png",
+        };
+        badgeImagePath = badgeImageMap[badge.badge_type] || null;
+      }
+
+      if (badge.icon_image_path) {
+        const { data } = supabase.storage
+          .from("mvv_badge_images")
+          .getPublicUrl(badge.icon_image_path);
+        iconImagePath = data.publicUrl;
+      } else if (badge.quarter_period === "2025-Q3") {
+        // フォールバック: 2025-Q3の場合のみ固定パスを使用
+        const iconImageMap: Record<string, string> = {
+          MVV_PASSIONATE_EXECUTION: "/img/MVV/2025-3Q/11th3q-夢中.png",
+          MVV_SUPREME_RELATIONSHIPS: "/img/MVV/2025-3Q/11th3q-至高な.png",
+          MVV_HAPPINESS_CIRCULATION: "/img/MVV/2025-3Q/11th3q-幸せ.png",
+        };
+        iconImagePath = iconImageMap[badge.badge_type] || null;
+      }
+
+      return {
+        ...badge,
+        badgeImagePath,
+        iconImagePath,
+      };
+    }),
+  );
+
   return (
     <section className="py-12 md:py-16 bg-white">
       <div className="container mx-auto px-4">
         <div className="max-w-6xl mx-auto">
           <h2 className="text-3xl font-bold mb-8 text-center">
-            🏆 MVVバッジ表彰
+            🏆 今回の表彰者
           </h2>
           <p className="text-center text-muted-foreground mb-8">
-            {awardQuarter} 四半期のMVVバッジを獲得したメンバーを表彰します
+            11期3Qで表彰されたメンバー
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {badgesWithUsers.map((badge) => (
-              <UserBadgeCard key={badge.id} badge={badge} />
+            {badgesWithImages.map((badge) => (
+              <UserBadgeCard
+                key={badge.id}
+                badge={badge}
+                badgeImagePath={badge.badgeImagePath}
+                iconImagePath={badge.iconImagePath}
+              />
             ))}
           </div>
         </div>
@@ -46,31 +98,56 @@ export default async function MvvBadgeHonorSection() {
   );
 }
 
-function UserBadgeCard({ badge }: { badge: MvvBadgeWithUser }) {
-  const badgeTypeLabel = MVV_BADGE_TYPE_LABELS[badge.badge_type];
+function UserBadgeCard({
+  badge,
+  badgeImagePath,
+  iconImagePath,
+}: {
+  badge: MvvBadgeWithUser;
+  badgeImagePath: string | null;
+  iconImagePath: string | null;
+}) {
+  // getMvvBadgesWithUsers は MVV バッジのみを返すため、型アサーションで安全にアクセス
+  const badgeTypeLabel =
+    MVV_BADGE_TYPE_LABELS[badge.badge_type as MvvBadgeType];
 
   return (
     <Link href={`/users/${badge.user_id}`}>
-      <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
-        <CardContent className="p-4">
-          <div className="flex items-center gap-4 mb-3">
-            <UserAvatar
-              userProfile={{
-                name: badge.user_name,
-                avatar_url: badge.user_avatar_url,
-              }}
-              size="lg"
-            />
-            <div className="flex-1 min-w-0">
-              <div className="font-semibold text-lg truncate">
-                {badge.user_name}
+      <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full sparkle-effect relative border-2 border-yellow-200/50 shadow-md">
+        <CardContent className="p-4 relative z-10">
+          <div className="flex items-center justify-center gap-4 mb-3">
+            {iconImagePath && (
+              <div className="flex-shrink-0">
+                <Image
+                  src={iconImagePath}
+                  alt={badgeTypeLabel}
+                  width={48}
+                  height={48}
+                  className="object-contain rounded-lg"
+                />
               </div>
+            )}
+            <div className="flex items-center gap-2">
+              <div className="font-semibold text-lg">{badge.user_name}</div>
+              {badgeImagePath && (
+                <div className="flex-shrink-0">
+                  <Image
+                    src={badgeImagePath}
+                    alt={badgeTypeLabel}
+                    width={28}
+                    height={28}
+                    className="object-contain rounded-lg"
+                  />
+                </div>
+              )}
             </div>
           </div>
           <div className="space-y-2">
-            <Badge variant="default" className="w-full justify-center py-1.5">
-              {badgeTypeLabel}
-            </Badge>
+            {!iconImagePath && (
+              <Badge variant="default" className="w-full justify-center py-1.5">
+                {badgeTypeLabel}
+              </Badge>
+            )}
             <div className="text-xs text-center text-muted-foreground">
               {badge.quarter_period}
             </div>

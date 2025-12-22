@@ -7,6 +7,11 @@ export type BadgeType =
   | "MVV_SUPREME_RELATIONSHIPS"
   | "MVV_HAPPINESS_CIRCULATION";
 
+export type MvvBadgeType =
+  | "MVV_PASSIONATE_EXECUTION"
+  | "MVV_SUPREME_RELATIONSHIPS"
+  | "MVV_HAPPINESS_CIRCULATION";
+
 export interface UserBadge {
   id: string;
   user_id: string;
@@ -23,6 +28,10 @@ export interface UserBadge {
   mission_id?: string;
   // MVVバッジの場合、四半期情報（YYYY-QN形式、例：2024-Q1）
   quarter_period?: string | null;
+  // MVVバッジの場合、バッジ画像のパス（Supabase Storageのパス）
+  badge_image_path?: string | null;
+  // MVVバッジの場合、アイコン画像のパス（Supabase Storageのパス）
+  icon_image_path?: string | null;
 }
 
 export interface BadgeUpdateParams {

@@ -319,6 +319,8 @@ export async function awardMvvBadge({
   badge_type,
   quarter_period,
   rank = 1,
+  badge_image_path,
+  icon_image_path,
 }: {
   user_id: string;
   badge_type:
@@ -327,6 +329,8 @@ export async function awardMvvBadge({
     | "MVV_HAPPINESS_CIRCULATION";
   quarter_period?: string;
   rank?: number;
+  badge_image_path?: string | null;
+  icon_image_path?: string | null;
 }): Promise<{ success: boolean; error?: string; badgeId?: string }> {
   const supabase = await createServiceClient();
 
@@ -354,14 +358,31 @@ export async function awardMvvBadge({
 
     if (existing) {
       // 既に存在する場合は更新
+      const updateData: {
+        rank: number;
+        achieved_at: string;
+        is_notified: boolean;
+        updated_at: string;
+        badge_image_path?: string | null;
+        icon_image_path?: string | null;
+      } = {
+        rank,
+        achieved_at: new Date().toISOString(),
+        is_notified: false,
+        updated_at: new Date().toISOString(),
+      };
+
+      // 画像パスが指定されている場合のみ更新
+      if (badge_image_path !== undefined) {
+        updateData.badge_image_path = badge_image_path;
+      }
+      if (icon_image_path !== undefined) {
+        updateData.icon_image_path = icon_image_path;
+      }
+
       const { data: updated, error: updateError } = await supabase
         .from("user_badges")
-        .update({
-          rank,
-          achieved_at: new Date().toISOString(),
-          is_notified: false,
-          updated_at: new Date().toISOString(),
-        })
+        .update(updateData)
         .eq("id", existing.id)
         .select()
         .single();
@@ -378,17 +399,37 @@ export async function awardMvvBadge({
     }
 
     // 新規作成
+    const insertData: {
+      user_id: string;
+      badge_type: string;
+      sub_type: null;
+      rank: number;
+      quarter_period: string;
+      achieved_at: string;
+      is_notified: boolean;
+      badge_image_path?: string | null;
+      icon_image_path?: string | null;
+    } = {
+      user_id,
+      badge_type,
+      sub_type: null,
+      rank,
+      quarter_period: finalQuarterPeriod,
+      achieved_at: new Date().toISOString(),
+      is_notified: false,
+    };
+
+    // 画像パスが指定されている場合のみ追加
+    if (badge_image_path !== undefined) {
+      insertData.badge_image_path = badge_image_path;
+    }
+    if (icon_image_path !== undefined) {
+      insertData.icon_image_path = icon_image_path;
+    }
+
     const { data: newBadge, error: insertError } = await supabase
       .from("user_badges")
-      .insert({
-        user_id,
-        badge_type,
-        sub_type: null,
-        rank,
-        quarter_period: finalQuarterPeriod,
-        achieved_at: new Date().toISOString(),
-        is_notified: false,
-      })
+      .insert(insertData)
       .select()
       .single();
 

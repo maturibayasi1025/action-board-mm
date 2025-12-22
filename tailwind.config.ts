@@ -95,12 +95,27 @@ const config = {
             backgroundPosition: "100% 50%",
           },
         },
+        sparkle: {
+          "0%": {
+            backgroundPosition: "0% 50%",
+            opacity: "1",
+          },
+          "50%": {
+            backgroundPosition: "100% 50%",
+            opacity: "0.8",
+          },
+          "100%": {
+            backgroundPosition: "0% 50%",
+            opacity: "1",
+          },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
         "rotate-y-3d": "rotate-y-3d 2s linear infinite",
         "rainbow-glow": "rainbow-glow 3s ease infinite",
+        sparkle: "sparkle 3s ease-in-out infinite",
       },
     },
   },

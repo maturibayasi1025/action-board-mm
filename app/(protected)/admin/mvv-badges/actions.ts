@@ -122,6 +122,8 @@ export async function awardMvvBadgeAction({
   userId,
   badgeType,
   quarterPeriod,
+  badgeImagePath,
+  iconImagePath,
 }: {
   userId: string;
   badgeType:
@@ -129,6 +131,8 @@ export async function awardMvvBadgeAction({
     | "MVV_SUPREME_RELATIONSHIPS"
     | "MVV_HAPPINESS_CIRCULATION";
   quarterPeriod?: string;
+  badgeImagePath?: string | null;
+  iconImagePath?: string | null;
 }): Promise<{ success: true } | { success: false; error: string }> {
   try {
     await requireOwner();
@@ -137,6 +141,8 @@ export async function awardMvvBadgeAction({
       user_id: userId,
       badge_type: badgeType,
       quarter_period: quarterPeriod,
+      badge_image_path: badgeImagePath,
+      icon_image_path: iconImagePath,
     });
 
     if (!result.success) {
@@ -269,4 +275,103 @@ export async function getCurrentQuarterAction(): Promise<{
   data: string;
 }> {
   return { success: true, data: getCurrentQuarter() };
+}
+
+/**
+ * MVVバッジ画像をSupabase Storageにアップロード
+ */
+export async function uploadMvvBadgeImageAction(
+  formData: FormData,
+): Promise<
+  | { success: true; data: { path: string; url: string } }
+  | { success: false; error: string }
+> {
+  try {
+    await requireOwner();
+
+    const file = formData.get("file") as File | null;
+    const quarterPeriod = formData.get("quarterPeriod") as string | null;
+    const badgeType = formData.get("badgeType") as string | null;
+    const imageType = formData.get("imageType") as "badge" | "icon" | null;
+
+    if (!file || !quarterPeriod || !badgeType || !imageType) {
+      return {
+        success: false,
+        error: "必要なパラメータが不足しています",
+      };
+    }
+
+    // ファイルサイズチェック（最大10MB）
+    if (file.size > 10 * 1024 * 1024) {
+      return {
+        success: false,
+        error: "ファイルサイズが大きすぎます。最大10MBまでです。",
+      };
+    }
+
+    // MIMEタイプチェック
+    const allowedMimeTypes = [
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+      "image/gif",
+    ];
+    if (!allowedMimeTypes.includes(file.type)) {
+      return {
+        success: false,
+        error: `対応していないファイル形式です。許可されている形式: ${allowedMimeTypes.join(", ")}`,
+      };
+    }
+
+    const supabase = await createServiceClient();
+
+    // ファイル名を生成: {quarter_period}/{badge_type}/{imageType}_{timestamp}.{ext}
+    const fileExt = file.name.split(".").pop() || "png";
+    const timestamp = Date.now();
+    const fileName = `${quarterPeriod}/${badgeType}/${imageType}_${timestamp}.${fileExt}`;
+
+    // ファイルのバイナリデータを取得
+    const fileBuffer = await file.arrayBuffer();
+
+    // Supabase Storageにアップロード
+    const { data, error } = await supabase.storage
+      .from("mvv_badge_images")
+      .upload(fileName, fileBuffer, {
+        contentType: file.type,
+        upsert: true,
+      });
+
+    if (error) {
+      console.error("画像アップロードエラー:", error);
+      return {
+        success: false,
+        error: `画像のアップロードに失敗しました: ${error.message}`,
+      };
+    }
+
+    // 公開URLを取得
+    const {
+      data: { publicUrl },
+    } = supabase.storage.from("mvv_badge_images").getPublicUrl(fileName);
+
+    return {
+      success: true,
+      data: {
+        path: data.path,
+        url: publicUrl,
+      },
+    };
+  } catch (error) {
+    if (error instanceof Error && error.message === "経営者権限が必要です") {
+      return {
+        success: false,
+        error: "経営者権限が必要です",
+      };
+    }
+    console.error("予期しないエラー:", error);
+    return {
+      success: false,
+      error: "予期しないエラーが発生しました",
+    };
+  }
 }
