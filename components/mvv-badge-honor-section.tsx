@@ -145,13 +145,13 @@ function UserBadgeCard({
               )}
             </div>
           </div>
-          <div className="space-y-2">
+          <div className="space-y-2 text-center">
             {!iconImagePath && (
               <Badge variant="default" className="w-full justify-center py-1.5">
                 {badgeTypeLabel}
               </Badge>
             )}
-            <div className="text-xs text-center text-muted-foreground">
+            <div className="text-xs text-muted-foreground">
               {badge.quarter_period}
             </div>
           </div>

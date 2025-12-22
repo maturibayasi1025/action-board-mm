@@ -2,12 +2,15 @@
 
 import { Badge } from "@/components/ui/badge";
 import { getUserBadges } from "@/lib/services/badges";
+import { createClient } from "@/lib/supabase/client";
 import {
+  type MvvBadgeType,
   type UserBadge,
   getBadgeEmoji,
   getBadgeTitle,
 } from "@/lib/types/badge";
-import { useEffect, useState } from "react";
+import Image from "next/image";
+import { useEffect, useMemo, useState } from "react";
 
 interface UserBadgesProps {
   userId: string;
@@ -116,7 +119,8 @@ export function UserBadges({ userId }: UserBadgesProps) {
       {/* MVVバッジ */}
       {(groupedBadges.MVV_PASSIONATE_EXECUTION ||
         groupedBadges.MVV_SUPREME_RELATIONSHIPS ||
-        groupedBadges.MVV_HAPPINESS_CIRCULATION) && (
+        groupedBadges.MVV_HAPPINESS_CIRCULATION ||
+        groupedBadges.MVV_START_DASH) && (
         <div>
           <h4 className="text-sm font-medium mb-2">MVVバッジ</h4>
           <div className="flex flex-wrap gap-2">
@@ -129,6 +133,9 @@ export function UserBadges({ userId }: UserBadgesProps) {
             {groupedBadges.MVV_HAPPINESS_CIRCULATION?.map((badge) => (
               <BadgeItem key={badge.id} badge={badge} />
             ))}
+            {groupedBadges.MVV_START_DASH?.map((badge) => (
+              <BadgeItem key={badge.id} badge={badge} />
+            ))}
           </div>
         </div>
       )}
@@ -136,16 +143,94 @@ export function UserBadges({ userId }: UserBadgesProps) {
   );
 }
 
+// MVVバッジタイプのラベル定義
+const MVV_BADGE_TYPE_LABELS: Record<MvvBadgeType, string> = {
+  MVV_PASSIONATE_EXECUTION: "夢中になってやり切る",
+  MVV_SUPREME_RELATIONSHIPS: "至高な人間関係",
+  MVV_HAPPINESS_CIRCULATION: "幸せの循環",
+  MVV_START_DASH: "スタートダッシュ",
+} as const;
+
+// MVVバッジの画像URLを取得する関数
+function getMvvBadgeImageUrl(badge: UserBadge): string | null {
+  const supabase = createClient();
+  let badgeImagePath: string | null = null;
+
+  // データベースに画像パスが存在する場合はそれを優先
+  if (badge.badge_image_path) {
+    const { data } = supabase.storage
+      .from("mvv_badge_images")
+      .getPublicUrl(badge.badge_image_path);
+    badgeImagePath = data.publicUrl;
+  } else if (badge.quarter_period === "2025-Q3") {
+    // フォールバック: 2025-Q3の場合のみ固定パスを使用
+    const badgeImageMap: Record<string, string> = {
+      MVV_PASSIONATE_EXECUTION: "/img/MVV/2025-3Q/badge-夢中.png",
+      MVV_SUPREME_RELATIONSHIPS: "/img/MVV/2025-3Q/badge-人間関係.png",
+      MVV_HAPPINESS_CIRCULATION: "/img/MVV/2025-3Q/badge-幸せ.png",
+      MVV_START_DASH: "/img/MVV/2025-3Q/badge-スタートダッシュ.png",
+    };
+    badgeImagePath = badgeImageMap[badge.badge_type] || null;
+  }
+
+  return badgeImagePath;
+}
+
+// MVVバッジのラベルを取得する関数
+function getMvvBadgeLabel(badge: UserBadge): string | null {
+  if (
+    badge.badge_type === "MVV_PASSIONATE_EXECUTION" ||
+    badge.badge_type === "MVV_SUPREME_RELATIONSHIPS" ||
+    badge.badge_type === "MVV_HAPPINESS_CIRCULATION" ||
+    badge.badge_type === "MVV_START_DASH"
+  ) {
+    return MVV_BADGE_TYPE_LABELS[badge.badge_type as MvvBadgeType] || null;
+  }
+  return null;
+}
+
 function BadgeItem({ badge }: { badge: UserBadge }) {
+  const [imageError, setImageError] = useState(false);
   const isMvvBadge =
     badge.badge_type === "MVV_PASSIONATE_EXECUTION" ||
     badge.badge_type === "MVV_SUPREME_RELATIONSHIPS" ||
-    badge.badge_type === "MVV_HAPPINESS_CIRCULATION";
+    badge.badge_type === "MVV_HAPPINESS_CIRCULATION" ||
+    badge.badge_type === "MVV_START_DASH";
+
+  // MVVバッジの画像URLとラベルを取得
+  const badgeImageUrl = useMemo(
+    () => (isMvvBadge ? getMvvBadgeImageUrl(badge) : null),
+    [isMvvBadge, badge],
+  );
+  const mvvBadgeLabel = useMemo(
+    () => (isMvvBadge ? getMvvBadgeLabel(badge) : null),
+    [isMvvBadge, badge],
+  );
 
   // MVVバッジの場合は絵文字なし、ランキングバッジの場合はランクに応じた絵文字
   const emoji = isMvvBadge ? null : getBadgeEmoji(badge.rank);
   const title = getBadgeTitle(badge);
 
+  // MVVバッジで画像がある場合
+  if (isMvvBadge && badgeImageUrl && !imageError) {
+    return (
+      <div className="relative inline-block" title={mvvBadgeLabel || title}>
+        <Image
+          src={badgeImageUrl}
+          alt={mvvBadgeLabel || title}
+          width={28}
+          height={28}
+          className="object-contain rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
+          onError={() => {
+            // 画像読み込みエラー時のフォールバック
+            setImageError(true);
+          }}
+        />
+      </div>
+    );
+  }
+
+  // MVVバッジで画像がない場合、またはランキングバッジの場合
   return (
     <Badge
       variant={
@@ -158,6 +243,7 @@ function BadgeItem({ badge }: { badge: UserBadge }) {
               : "outline"
       }
       className="flex items-center gap-1"
+      title={isMvvBadge ? mvvBadgeLabel || title : undefined}
     >
       {emoji && <span className="text-base">{emoji}</span>}
       <span>{title}</span>
