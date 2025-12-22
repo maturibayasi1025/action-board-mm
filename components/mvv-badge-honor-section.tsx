@@ -32,20 +32,12 @@ export default async function MvvBadgeHonorSection() {
       let badgeImagePath: string | null = null;
       let iconImagePath: string | null = null;
 
-      // データベースに画像パスが存在する場合はそれを優先
+      // データベースに保存された画像パスから公開URLを取得
       if (badge.badge_image_path) {
         const { data } = supabase.storage
           .from("mvv_badge_images")
           .getPublicUrl(badge.badge_image_path);
         badgeImagePath = data.publicUrl;
-      } else if (badge.quarter_period === "2025-Q3") {
-        // フォールバック: 2025-Q3の場合のみ固定パスを使用
-        const badgeImageMap: Record<string, string> = {
-          MVV_PASSIONATE_EXECUTION: "/img/MVV/2025-3Q/badge-夢中.png",
-          MVV_SUPREME_RELATIONSHIPS: "/img/MVV/2025-3Q/badge-人間関係.png",
-          MVV_HAPPINESS_CIRCULATION: "/img/MVV/2025-3Q/badge-幸せ.png",
-        };
-        badgeImagePath = badgeImageMap[badge.badge_type] || null;
       }
 
       if (badge.icon_image_path) {
@@ -53,14 +45,6 @@ export default async function MvvBadgeHonorSection() {
           .from("mvv_badge_images")
           .getPublicUrl(badge.icon_image_path);
         iconImagePath = data.publicUrl;
-      } else if (badge.quarter_period === "2025-Q3") {
-        // フォールバック: 2025-Q3の場合のみ固定パスを使用
-        const iconImageMap: Record<string, string> = {
-          MVV_PASSIONATE_EXECUTION: "/img/MVV/2025-3Q/11th3q-夢中.png",
-          MVV_SUPREME_RELATIONSHIPS: "/img/MVV/2025-3Q/11th3q-至高な.png",
-          MVV_HAPPINESS_CIRCULATION: "/img/MVV/2025-3Q/11th3q-幸せ.png",
-        };
-        iconImagePath = iconImageMap[badge.badge_type] || null;
       }
 
       return {
