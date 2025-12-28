@@ -27,12 +27,15 @@ import {
   Heart,
   Plus,
   Search,
+  Trash2,
   User,
   X,
   XCircle,
 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
+import { toast } from "sonner";
 
 type UserMission = {
   id: string;
@@ -63,6 +66,7 @@ export function MyMissionsListClient({
 }: {
   missions: UserMission[];
 }) {
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedYear, setSelectedYear] = useState<string>("all");
   const [selectedMonth, setSelectedMonth] = useState<string>("all");
@@ -70,6 +74,7 @@ export function MyMissionsListClient({
     new Set(),
   );
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
 
   // 年の選択肢を生成（現在から過去5年）
   const currentYear = new Date().getFullYear();
@@ -189,8 +194,35 @@ export function MyMissionsListClient({
   const drafts = filteredMissions.filter((m) => m.status === "pending");
   const published = filteredMissions.filter((m) => m.status !== "pending");
 
+  const handleDeleteDraft = async (missionId: string) => {
+    if (deletingIds.has(missionId)) return;
+
+    setDeletingIds((prev) => new Set(prev).add(missionId));
+
+    try {
+      const { deleteDraftUserMissionAction } = await import(
+        "@/app/(protected)/user-missions/actions"
+      );
+      await deleteDraftUserMissionAction(missionId);
+      toast.success("下書きを削除しました");
+      router.refresh();
+    } catch (error) {
+      console.error("下書き削除エラー:", error);
+      toast.error(
+        error instanceof Error ? error.message : "下書きの削除に失敗しました",
+      );
+    } finally {
+      setDeletingIds((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(missionId);
+        return newSet;
+      });
+    }
+  };
+
   const renderMissionCard = (mission: UserMission) => {
     const supabase = createClient();
+    const isDeleting = deletingIds.has(mission.id);
     return (
       <Card key={mission.id} className="flex flex-col">
         <CardHeader className="p-4 md:p-6">
@@ -308,14 +340,22 @@ export function MyMissionsListClient({
             </div>
           )}
           {mission.status === "pending" ? (
-            <Link
-              href={`/user-missions/${mission.id}/edit`}
-              className="ml-auto"
-            >
-              <Button variant="default" size="sm">
-                編集する
+            <div className="ml-auto flex gap-2">
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => handleDeleteDraft(mission.id)}
+                disabled={isDeleting}
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                {isDeleting ? "削除中..." : "削除"}
               </Button>
-            </Link>
+              <Link href={`/user-missions/${mission.id}/edit`}>
+                <Button variant="default" size="sm">
+                  編集する
+                </Button>
+              </Link>
+            </div>
           ) : (
             <Link href={`/user-missions/${mission.id}`} className="ml-auto">
               <Button variant="ghost" size="sm">

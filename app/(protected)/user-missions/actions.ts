@@ -1671,3 +1671,100 @@ export async function completeSharedMissionAction(missionId: string) {
     };
   }
 }
+
+// 下書き削除
+export async function deleteDraftUserMissionAction(draftId: string) {
+  const supabase = await createClient();
+
+  try {
+    // 認証チェック
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError) {
+      console.error("認証エラー:", authError);
+      throw new Error("認証に失敗しました。再ログインしてください。");
+    }
+
+    if (!user) {
+      throw new Error(
+        "ログインが必要です。ログインしてから再度お試しください。",
+      );
+    }
+
+    // 下書きを取得
+    const { data: draft, error: fetchError } = await supabase
+      .from("user_missions")
+      .select("id, created_by, status, image_paths")
+      .eq("id", draftId)
+      .single();
+
+    if (fetchError || !draft) {
+      throw new Error("下書きが見つかりません");
+    }
+
+    // 作成者チェック
+    if (draft.created_by !== user.id) {
+      throw new Error("権限がありません");
+    }
+
+    // 下書き（pending）のみ削除可能
+    if (draft.status !== "pending") {
+      throw new Error("下書きのみ削除可能です");
+    }
+
+    // 画像ファイルをストレージから削除
+    const rawImagePaths = draft.image_paths as unknown;
+    if (rawImagePaths && Array.isArray(rawImagePaths)) {
+      const imagePaths = rawImagePaths.filter(
+        (path): path is string => typeof path === "string" && path.length > 0,
+      );
+
+      if (imagePaths.length > 0) {
+        try {
+          const { error: deleteImageError } = await supabase.storage
+            .from("user_mission_images")
+            .remove(imagePaths);
+
+          if (deleteImageError) {
+            console.error("画像削除エラー:", deleteImageError);
+            // 画像削除に失敗しても下書き削除処理は継続
+          }
+        } catch (imageError) {
+          console.error("画像削除エラー:", imageError);
+          // 画像削除に失敗しても下書き削除処理は継続
+        }
+      }
+    }
+
+    // データベースから下書きを削除（CASCADEで関連データも自動削除）
+    const { error: deleteError } = await supabase
+      .from("user_missions")
+      .delete()
+      .eq("id", draftId);
+
+    if (deleteError) {
+      console.error("下書き削除エラー:", deleteError);
+      throw new Error(`下書きの削除に失敗しました: ${deleteError.message}`);
+    }
+
+    // ページを再検証（Cloudflare Pages環境では無効化）
+    if (!process.env.CF_PAGES) {
+      try {
+        revalidatePath("/user-missions");
+        revalidatePath("/user-missions/my");
+        revalidatePath("/");
+      } catch (revalidateError) {
+        console.error("Revalidate エラー（継続）:", revalidateError);
+        // 再検証失敗しても削除処理は継続
+      }
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error("deleteDraftUserMissionAction総合エラー:", error);
+    throw error;
+  }
+}

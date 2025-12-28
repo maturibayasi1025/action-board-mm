@@ -21,7 +21,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { createClient } from "@/lib/supabase/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { User } from "@supabase/supabase-js";
-import { Save, Search, X } from "lucide-react";
+import { Save, Search, Trash2, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -124,6 +124,7 @@ export function CreateMissionForm(
   >([]);
   const [isSharedMissionModalOpen, setIsSharedMissionModalOpen] =
     useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const supabase = createClient();
 
@@ -236,7 +237,7 @@ export function CreateMissionForm(
         content: values.content,
         praisedUserIds: values.praisedUserIds,
         praisedExternalUserNames: values.praisedExternalUserNames,
-        imagePaths: imagePaths,
+        imagePaths: values.imagePaths || [],
         mvvItems: values.mvvItems,
       };
 
@@ -300,8 +301,8 @@ export function CreateMissionForm(
         }
       } else {
         // 入力値を正規化（undefined/nullを空配列に、空文字列をフィルタリング）
-        const normalizedImagePaths = Array.isArray(imagePaths)
-          ? imagePaths.filter(
+        const normalizedImagePaths = Array.isArray(values.imagePaths)
+          ? values.imagePaths.filter(
               (path): path is string =>
                 typeof path === "string" && path.length > 0,
             )
@@ -686,7 +687,38 @@ export function CreateMissionForm(
         </div>
 
         <div className="flex gap-2">
-          <Button type="submit" disabled={isSubmitting}>
+          {draftIdState && (
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={async () => {
+                if (isDeleting) return;
+                setIsDeleting(true);
+                try {
+                  const { deleteDraftUserMissionAction } = await import(
+                    "@/app/(protected)/user-missions/actions"
+                  );
+                  await deleteDraftUserMissionAction(draftIdState);
+                  toast.success("下書きを削除しました");
+                  router.push("/user-missions/my");
+                } catch (error) {
+                  console.error("下書き削除エラー:", error);
+                  toast.error(
+                    error instanceof Error
+                      ? error.message
+                      : "下書きの削除に失敗しました",
+                  );
+                } finally {
+                  setIsDeleting(false);
+                }
+              }}
+              disabled={isDeleting || isSubmitting}
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              {isDeleting ? "削除中..." : "下書きを削除"}
+            </Button>
+          )}
+          <Button type="submit" disabled={isSubmitting || isDeleting}>
             {isSubmitting
               ? "公開中..."
               : draftIdState
