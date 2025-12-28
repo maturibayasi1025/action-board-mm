@@ -1064,7 +1064,7 @@ async function createNewDraft(
       content: input.content || "",
       image_paths:
         input.imagePaths && input.imagePaths.length > 0
-          ? (input.imagePaths as unknown)
+          ? (input.imagePaths as Json)
           : [],
       status: "pending", // 下書きとして保存
     })
