@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import type { Json } from "@/lib/types/supabase";
 import { revalidatePath } from "next/cache";
 
 export interface CreateUserMissionInput {
@@ -90,9 +91,7 @@ export async function createUserMissionAction(input: CreateUserMissionInput) {
         title: input.title,
         content: input.content,
         image_paths:
-          normalizedImagePaths.length > 0
-            ? (normalizedImagePaths as unknown)
-            : [],
+          normalizedImagePaths.length > 0 ? (normalizedImagePaths as Json) : [],
         status: "approved", // 自動承認で即時表示
         approved_at: new Date().toISOString(),
         approved_by: user.id, // 自分自身を承認者として設定
@@ -954,7 +953,7 @@ export async function saveDraftUserMissionAction(
           content: input.content || "",
           image_paths:
             input.imagePaths && input.imagePaths.length > 0
-              ? (input.imagePaths as unknown)
+              ? (input.imagePaths as Json)
               : [],
           updated_at: new Date().toISOString(),
         })
