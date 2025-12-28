@@ -1275,6 +1275,7 @@ export type Database = {
           created_at: string;
           created_by: string;
           id: string;
+          image_paths: Json | null;
           likes_count: number;
           public_mission_id: string | null;
           rejection_reason: string | null;
@@ -1289,6 +1290,7 @@ export type Database = {
           created_at?: string;
           created_by: string;
           id?: string;
+          image_paths?: Json | null;
           likes_count?: number;
           public_mission_id?: string | null;
           rejection_reason?: string | null;
@@ -1303,6 +1305,7 @@ export type Database = {
           created_at?: string;
           created_by?: string;
           id?: string;
+          image_paths?: Json | null;
           likes_count?: number;
           public_mission_id?: string | null;
           rejection_reason?: string | null;
