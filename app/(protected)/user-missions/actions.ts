@@ -1532,7 +1532,14 @@ async function getAvailableSharedMissions(
       })),
     });
 
-    return availableMissions;
+    // 必要なフィールドのみを抽出して返す（型不一致を防ぐため）
+    return availableMissions.map((mission) => ({
+      id: mission.id,
+      title: mission.title,
+      icon_url: mission.icon_url,
+      difficulty: mission.difficulty,
+      content: mission.content,
+    }));
   } catch (error) {
     console.error("[getAvailableSharedMissions] 予期しないエラー:", {
       error: error instanceof Error ? error.message : String(error),
