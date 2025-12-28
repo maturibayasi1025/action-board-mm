@@ -281,7 +281,29 @@ export async function createUserMissionAction(input: CreateUserMissionInput) {
         revalidatePath("/user-missions/my");
         revalidatePath("/");
       } catch (revalidateError) {
-        console.error("Revalidate エラー（継続）:", revalidateError);
+        // エラーの詳細をログに記録（無限ループを防ぐため、詳細は開発環境のみ）
+        const errorMessage =
+          revalidateError instanceof Error
+            ? revalidateError.message
+            : String(revalidateError);
+        const errorStack =
+          revalidateError instanceof Error ? revalidateError.stack : undefined;
+
+        if (process.env.NODE_ENV === "development") {
+          console.error("[createUserMissionAction] Revalidate エラー詳細:", {
+            message: errorMessage,
+            stack: errorStack,
+            errorType:
+              revalidateError instanceof Error
+                ? revalidateError.constructor.name
+                : typeof revalidateError,
+          });
+        } else {
+          console.error(
+            "[createUserMissionAction] Revalidate エラー（継続）:",
+            errorMessage,
+          );
+        }
         // 再検証失敗してもグッジョブ作成処理は継続
       }
     }
@@ -1532,13 +1554,14 @@ async function getAvailableSharedMissions(
       })),
     });
 
-    // 必要なフィールドのみを抽出して返す（型不一致を防ぐため）
+    // 必要なフィールドのみを抽出して返す（型不一致とシリアライズエラーを防ぐため）
+    // undefinedをnullに変換し、すべての値をプリミティブ型に変換
     return availableMissions.map((mission) => ({
-      id: mission.id,
-      title: mission.title,
-      icon_url: mission.icon_url,
-      difficulty: mission.difficulty,
-      content: mission.content,
+      id: String(mission.id),
+      title: String(mission.title),
+      icon_url: mission.icon_url ?? null,
+      difficulty: Number(mission.difficulty),
+      content: mission.content ?? null,
     }));
   } catch (error) {
     console.error("[getAvailableSharedMissions] 予期しないエラー:", {
