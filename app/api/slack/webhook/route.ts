@@ -1,4 +1,5 @@
 import { createServiceClient } from "@/lib/supabase/server";
+import type { Json } from "@/lib/types/supabase";
 import { findBestMatch } from "@/lib/utils/fuzzyMatch";
 import { type NextRequest, NextResponse } from "next/server";
 
@@ -361,7 +362,7 @@ async function createGoodJobFromSlack(
         created_by: creatorId,
         title,
         content,
-        image_paths: imagePaths.length > 0 ? (imagePaths as unknown) : [],
+        image_paths: imagePaths.length > 0 ? (imagePaths as Json) : [],
         status: "approved",
         approved_at: new Date().toISOString(),
         approved_by: creatorId,
