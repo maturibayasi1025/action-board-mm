@@ -126,7 +126,12 @@ export function UserMissionImageUploader({
     };
     reader.readAsDataURL(file);
 
-    const fileName = `${authUser.id}/${Date.now()}_${file.name}`;
+    // ファイル名をサニタイズ（日本語や特殊文字を安全な形式に変換）
+    const fileExtension = file.name.split(".").pop() || "png";
+    const sanitizedFileName = `${Date.now()}_${Math.random()
+      .toString(36)
+      .substring(2, 9)}.${fileExtension}`;
+    const fileName = `${authUser.id}/${sanitizedFileName}`;
     setUploading(true);
     setUploadError(null);
 
