@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
@@ -8,7 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronDown, ChevronUp, Download } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { type MatrixRow, getMatrixData } from "../actions";
@@ -166,6 +167,47 @@ export function MatrixTable() {
     setModalOpen(true);
   };
 
+  // CSVダウンロードハンドラー
+  const handleDownloadCsv = () => {
+    // CSVヘッダー
+    const headers = [
+      "メンバー",
+      "夢中になってやり切る",
+      "至高な人間関係",
+      "幸せの循環",
+      "合計",
+    ];
+
+    // CSVデータ行
+    const rows = sortedData.map((row) => [
+      row.userName,
+      row.passionateExecution,
+      row.supremeRelationships,
+      row.happinessCirculation,
+      row.total,
+    ]);
+
+    // CSV文字列を生成
+    const csvContent = [
+      headers.join(","),
+      ...rows.map((row) => row.join(",")),
+    ].join("\n");
+
+    // BOMを付けてUTF-8でエンコード（Excelでの文字化け対策）
+    const bom = new Uint8Array([0xef, 0xbb, 0xbf]);
+    const blob = new Blob([bom, csvContent], {
+      type: "text/csv;charset=utf-8",
+    });
+
+    // ダウンロード
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `グッジョブマトリクス_${startYear}${startMonth.toString().padStart(2, "0")}-${endYear}${endMonth.toString().padStart(2, "0")}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -245,6 +287,17 @@ export function MatrixTable() {
               </SelectContent>
             </Select>
           </div>
+
+          {/* CSVダウンロードボタン */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleDownloadCsv}
+            disabled={sortedData.length === 0}
+          >
+            <Download className="h-4 w-4 mr-2" />
+            CSV
+          </Button>
         </div>
 
         {/* テーブル */}
@@ -261,10 +314,10 @@ export function MatrixTable() {
             <table className="w-full border-collapse">
               <thead>
                 <tr className="border-b bg-muted/50">
-                  <th className="px-4 py-3 text-left font-semibold sticky left-0 z-20 bg-muted/50 min-w-[150px]">
+                  <th className="px-4 py-3 text-left sticky left-0 z-20 bg-muted/50 min-w-[150px]">
                     <button
                       type="button"
-                      className="flex items-center gap-1 w-full justify-start hover:text-primary transition-colors"
+                      className="flex items-center gap-1 w-full justify-start font-semibold hover:text-primary transition-colors cursor-pointer"
                       onClick={() => handleSort("userName")}
                     >
                       メンバー
@@ -276,10 +329,10 @@ export function MatrixTable() {
                         ))}
                     </button>
                   </th>
-                  <th className="px-4 py-3 text-center font-semibold min-w-[150px]">
+                  <th className="px-4 py-3 text-center min-w-[150px]">
                     <button
                       type="button"
-                      className="flex items-center gap-1 w-full justify-center hover:text-primary transition-colors"
+                      className="flex items-center gap-1 w-full justify-center font-semibold hover:text-primary transition-colors cursor-pointer"
                       onClick={() => handleSort("passionateExecution")}
                     >
                       夢中になってやり切る
@@ -291,10 +344,10 @@ export function MatrixTable() {
                         ))}
                     </button>
                   </th>
-                  <th className="px-4 py-3 text-center font-semibold min-w-[150px]">
+                  <th className="px-4 py-3 text-center min-w-[150px]">
                     <button
                       type="button"
-                      className="flex items-center gap-1 w-full justify-center hover:text-primary transition-colors"
+                      className="flex items-center gap-1 w-full justify-center font-semibold hover:text-primary transition-colors cursor-pointer"
                       onClick={() => handleSort("supremeRelationships")}
                     >
                       至高な人間関係
@@ -306,10 +359,10 @@ export function MatrixTable() {
                         ))}
                     </button>
                   </th>
-                  <th className="px-4 py-3 text-center font-semibold min-w-[150px]">
+                  <th className="px-4 py-3 text-center min-w-[150px]">
                     <button
                       type="button"
-                      className="flex items-center gap-1 w-full justify-center hover:text-primary transition-colors"
+                      className="flex items-center gap-1 w-full justify-center font-semibold hover:text-primary transition-colors cursor-pointer"
                       onClick={() => handleSort("happinessCirculation")}
                     >
                       幸せの循環
@@ -321,10 +374,10 @@ export function MatrixTable() {
                         ))}
                     </button>
                   </th>
-                  <th className="px-4 py-3 text-center font-semibold min-w-[100px]">
+                  <th className="px-4 py-3 text-center min-w-[100px]">
                     <button
                       type="button"
-                      className="flex items-center gap-1 w-full justify-center hover:text-primary transition-colors"
+                      className="flex items-center gap-1 w-full justify-center font-semibold hover:text-primary transition-colors cursor-pointer"
                       onClick={() => handleSort("total")}
                     >
                       合計
