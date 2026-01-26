@@ -257,7 +257,7 @@ export function CreateMissionForm(
       console.error("自動保存エラー:", error);
       setSaveStatus("error");
     }
-  }, [form, draftIdState, imagePaths]);
+  }, [form, draftIdState]);
 
   // フォームの値を監視して自動保存（debounce）
   useEffect(() => {

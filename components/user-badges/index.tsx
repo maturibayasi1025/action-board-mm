@@ -213,7 +213,7 @@ function BadgeItem({ badge }: { badge: UserBadge }) {
   // MVVバッジのラベルを取得
   const mvvBadgeLabel = useMemo(
     () => (isMvvBadge ? getMvvBadgeLabel(badge) : null),
-    [isMvvBadge, badge.badge_type],
+    [isMvvBadge, badge],
   );
 
   // MVVバッジの場合は絵文字なし、ランキングバッジの場合はランクに応じた絵文字

@@ -2,6 +2,8 @@ pre-commit:
   commands:
     biome:
       glob: '*.{js,ts,jsx,tsx}'
-      run: npx @biomejs/biome check --write {staged_files}
+      env:
+        PATH: /opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin
+      run: node_modules/.bin/biome check --write {staged_files}
       stage_fixed: true
 
