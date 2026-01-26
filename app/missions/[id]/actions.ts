@@ -836,8 +836,14 @@ export const achieveMissionAction = async (formData: FormData) => {
   );
 
   if (!xpResult.success) {
-    console.error("XP付与に失敗しました:", xpResult.error);
+    console.error("XP付与に失敗しました:", {
+      error: xpResult.error,
+      userId: authUser.id,
+      missionId: validatedMissionId,
+      achievementId: achievement.id,
+    });
     // XP付与の失敗はグッジョブ達成の成功を妨げない
+    // バックフィル処理で後から補完可能
   }
   totalXpGranted += xpResult?.xpGranted ?? 0;
   return {

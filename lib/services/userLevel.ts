@@ -121,6 +121,13 @@ async function processXpTransaction(
 
     if (transactionError) {
       console.error("Failed to create XP transaction:", transactionError);
+      // ユニーク制約違反の場合は既にXPが付与されている可能性が高い
+      if (isUniqueConstraintError(transactionError)) {
+        return {
+          success: false,
+          error: "既にXPが付与されています",
+        };
+      }
       return { success: false, error: transactionError.message };
     }
 
@@ -247,12 +254,129 @@ export async function getUserRank(userId: string): Promise<number | null> {
 }
 
 /**
- * グッジョブ達成時にXPを付与する
+ * エラーがリトライ可能かどうかを判定する
+ */
+function isRetryableError(error: unknown): boolean {
+  if (typeof error !== "object" || error === null) {
+    return false;
+  }
+
+  // Supabaseエラーの場合
+  if ("code" in error) {
+    const errorCode = String(error.code);
+    // PostgreSQLエラーコードでリトライ可能なもの
+    // 08000系: 接続例外
+    // 40001: シリアライゼーション失敗（デッドロックなど）
+    // 40P01: デッドロック検出
+    // 55P03: ロックが取得できない
+    if (
+      errorCode.startsWith("08") ||
+      errorCode === "40001" ||
+      errorCode === "40P01" ||
+      errorCode === "55P03"
+    ) {
+      return true;
+    }
+  }
+
+  // ネットワークエラーやタイムアウトエラー
+  if (error instanceof Error) {
+    const message = error.message.toLowerCase();
+    if (
+      message.includes("network") ||
+      message.includes("timeout") ||
+      message.includes("connection") ||
+      message.includes("econnreset") ||
+      message.includes("etimedout")
+    ) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
+ * エラーがユニーク制約違反（既にXPが付与されている）かどうかを判定する
+ */
+function isUniqueConstraintError(error: unknown): boolean {
+  if (typeof error !== "object" || error === null) {
+    return false;
+  }
+
+  // PostgreSQLのユニーク制約違反エラーコード: 23505
+  if ("code" in error) {
+    const errorCode = String(error.code);
+    if (errorCode === "23505") {
+      return true;
+    }
+  }
+
+  // エラーメッセージからも判定
+  if (error instanceof Error) {
+    const message = error.message.toLowerCase();
+    if (
+      message.includes("unique") ||
+      message.includes("duplicate") ||
+      message.includes("already exists")
+    ) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Sentryにエラーを送信する（サーバーサイド用）
+ */
+async function captureErrorToSentry(
+  error: Error | string,
+  context?: Record<string, unknown>,
+): Promise<void> {
+  // サーバーサイドでのみ実行
+  if (typeof window !== "undefined") {
+    return;
+  }
+
+  try {
+    // 動的インポートでSentryを読み込む（Edge Runtimeでも動作するように）
+    const Sentry = await import("@sentry/nextjs").catch(() => null);
+    if (!Sentry) {
+      return;
+    }
+
+    if (typeof error === "string") {
+      Sentry.captureMessage(error, {
+        level: "error",
+        extra: context,
+        tags: {
+          source: "xp-grant",
+        },
+      });
+    } else {
+      Sentry.captureException(error, {
+        extra: context,
+        tags: {
+          source: "xp-grant",
+        },
+      });
+    }
+  } catch (sentryError) {
+    // Sentryへの送信に失敗しても処理を続行
+    console.error("Failed to send error to Sentry:", sentryError);
+  }
+}
+
+/**
+ * グッジョブ達成時にXPを付与する（リトライ機構付き）
  */
 export async function grantMissionCompletionXp(
   userId: string,
   missionId: string,
   achievementId: string,
+  retryCount = 0,
+  maxRetries = 3,
 ): Promise<{
   success: boolean;
   userLevel?: UserLevel;
@@ -294,10 +418,109 @@ export async function grantMissionCompletionXp(
         xpGranted: xpToGrant,
       };
     }
+
+    // ユニーク制約違反の場合は既にXPが付与されている可能性が高い
+    // この場合は成功として扱う（重複付与を防ぐため）
+    if (isUniqueConstraintError(result.error)) {
+      console.warn(
+        "XP付与でユニーク制約違反が発生しました（既にXPが付与されている可能性があります）:",
+        { userId, missionId, achievementId, error: result.error },
+      );
+      // 既存のXPトランザクションを確認して、実際に付与されているかチェック
+      const { data: existingTransaction } = await supabase
+        .from("xp_transactions")
+        .select("xp_amount")
+        .eq("source_type", "MISSION_COMPLETION")
+        .eq("source_id", achievementId)
+        .single();
+
+      if (existingTransaction) {
+        // 既にXPが付与されている場合は成功として扱う
+        const { data: userLevel } = await supabase
+          .from("user_levels")
+          .select("*")
+          .eq("user_id", userId)
+          .single();
+
+        return {
+          success: true,
+          userLevel: userLevel || undefined,
+          xpGranted: existingTransaction.xp_amount,
+        };
+      }
+    }
+
+    // リトライ可能なエラーで、リトライ回数が上限に達していない場合
+    if (isRetryableError(result.error) && retryCount < maxRetries) {
+      const delayMs = Math.min(1000 * 2 ** retryCount, 5000); // 指数バックオフ（最大5秒）
+      console.warn(
+        `XP付与に失敗しました（リトライ可能）。${delayMs}ms後にリトライします（${retryCount + 1}/${maxRetries}）:`,
+        result.error,
+      );
+
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+
+      return grantMissionCompletionXp(
+        userId,
+        missionId,
+        achievementId,
+        retryCount + 1,
+        maxRetries,
+      );
+    }
+
+    // リトライ不可能なエラー、またはリトライ上限に達した場合
+    // Sentryにエラーを送信
+    await captureErrorToSentry(
+      new Error(`XP付与に失敗しました: ${result.error}`),
+      {
+        userId,
+        missionId,
+        achievementId,
+        xpToGrant,
+        retryCount,
+        maxRetries,
+        errorMessage: result.error,
+      },
+    );
+
     return result;
   } catch (error) {
+    // 予期しないエラーもリトライ可能かチェック
+    if (isRetryableError(error) && retryCount < maxRetries) {
+      const delayMs = Math.min(1000 * 2 ** retryCount, 5000);
+      console.warn(
+        `XP付与で予期しないエラーが発生（リトライ可能）。${delayMs}ms後にリトライします（${retryCount + 1}/${maxRetries}）:`,
+        error,
+      );
+
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+
+      return grantMissionCompletionXp(
+        userId,
+        missionId,
+        achievementId,
+        retryCount + 1,
+        maxRetries,
+      );
+    }
+
+    // 予期しないエラーをSentryに送信
+    const errorMessage =
+      error instanceof Error ? error.message : "予期しないエラーが発生しました";
+    await captureErrorToSentry(
+      error instanceof Error ? error : new Error(errorMessage),
+      {
+        userId,
+        missionId,
+        achievementId,
+        retryCount,
+        maxRetries,
+      },
+    );
+
     console.error("Error in grantMissionCompletionXp:", error);
-    return { success: false, error: "予期しないエラーが発生しました" };
+    return { success: false, error: errorMessage };
   }
 }
 
