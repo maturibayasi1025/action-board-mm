@@ -427,9 +427,11 @@ export async function grantMissionCompletionXp(
         { userId, missionId, achievementId, error: result.error },
       );
       // 既存のXPトランザクションを確認して、実際に付与されているかチェック
+      // 新しいユニーク制約(user_id, source_type, source_id)に合わせてuser_idも含めてチェック
       const { data: existingTransaction } = await supabase
         .from("xp_transactions")
         .select("xp_amount")
+        .eq("user_id", userId)
         .eq("source_type", "MISSION_COMPLETION")
         .eq("source_id", achievementId)
         .single();

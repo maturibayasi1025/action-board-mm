@@ -341,13 +341,15 @@ async function checkAndAwardXP(missionId: string) {
 
   for (let i = 0; i < xpMilestones.length; i++) {
     if (likesCount === xpMilestones[i]) {
+      // source_idにマイルストーン情報を含めることで、同じマイルストーンに対して重複してXPが付与されることを防止
+      const sourceId = `${missionId}:milestone:${xpMilestones[i]}`;
+
       // XPトランザクションが既に存在するかチェック
       const { data: existingXP } = await supabase
         .from("xp_transactions")
         .select()
         .eq("source_type", "USER_MISSION_LIKES")
-        .eq("source_id", missionId)
-        .eq("xp_amount", xpRewards[i])
+        .eq("source_id", sourceId)
         .single();
 
       if (!existingXP) {
@@ -356,7 +358,7 @@ async function checkAndAwardXP(missionId: string) {
           user_id: mission.created_by,
           xp_amount: xpRewards[i],
           source_type: "USER_MISSION_LIKES",
-          source_id: missionId,
+          source_id: sourceId,
           description: `ユーザーグッジョブ「${mission.title}」が${xpMilestones[i]}いいねを獲得`,
         });
       }

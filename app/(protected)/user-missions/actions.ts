@@ -477,7 +477,7 @@ export async function toggleLikeAction(missionId: string) {
     await awardLikeGiverXP(missionId, user.id, supabase);
 
     // グッジョブ作成者にマイルストーンXPを付与
-    await checkAndAwardMilestoneXP(missionId, supabase);
+    await checkAndAwardMilestoneXP(missionId, user.id, supabase);
 
     // Slack通知を送信（Webhook URLが設定されている場合）
     if (process.env.SLACK_WEBHOOK_URL) {
@@ -579,6 +579,7 @@ async function removeLikeGiverXP(
 // 新しいポイント設計: いいね数 × 1ポイントを作成者に付与
 async function checkAndAwardMilestoneXP(
   missionId: string,
+  likerId: string,
   supabase: Awaited<ReturnType<typeof createClient>>,
 ) {
   // グッジョブの詳細といいね数を取得
@@ -591,11 +592,12 @@ async function checkAndAwardMilestoneXP(
   if (error || !mission) return;
 
   // いいねがつくたびに作成者に1ポイント付与
+  // source_idにいいねしたユーザーIDを含めることで、同じユーザーからの重複いいねを防止
   await supabase.from("xp_transactions").insert({
     user_id: mission.created_by,
     xp_amount: 1,
     source_type: "USER_MISSION_LIKES",
-    source_id: missionId,
+    source_id: `${missionId}:${likerId}`,
     description: `ユーザーグッジョブ「${mission.title}」がいいねを獲得`,
   });
 }
