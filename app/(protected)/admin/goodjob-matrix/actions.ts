@@ -110,9 +110,9 @@ export async function getMatrixData(
           countMap.set(
             userId,
             new Map([
-              ["passionate_execution", new Set()],
-              ["supreme_relationships", new Set()],
-              ["happiness_circulation", new Set()],
+              ["passionate_execution", new Set<string>()],
+              ["supreme_relationships", new Set<string>()],
+              ["happiness_circulation", new Set<string>()],
             ]),
           );
         }
