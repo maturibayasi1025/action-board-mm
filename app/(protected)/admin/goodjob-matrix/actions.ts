@@ -314,7 +314,7 @@ export async function getGoodjobDetails(
       title: mission.title,
       content: mission.content || "",
       createdByName: creatorMap.get(mission.created_by) || "不明",
-      approvedAt: mission.approved_at,
+      approvedAt: mission.approved_at || "",
     }));
 
     return { success: true, data: details };
