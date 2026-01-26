@@ -152,7 +152,7 @@ export async function getMatrixData(
 
     // MatrixRowに変換
     const matrixData: MatrixRow[] = [];
-    for (const [userId, typeMap] of countMap.entries()) {
+    for (const [userId, typeMap] of Array.from(countMap.entries())) {
       const passionateExecution =
         typeMap.get("passionate_execution")?.size || 0;
       const supremeRelationships =
