@@ -8,7 +8,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useEffect, useState } from "react";
+import { ChevronDown, ChevronUp } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { type MatrixRow, getMatrixData } from "../actions";
 import { DetailModal } from "./detail-modal";
@@ -40,6 +41,14 @@ function getEndDateFromYearMonth(year: number, month: number): string {
   return date.toISOString();
 }
 
+type SortKey =
+  | "userName"
+  | "passionateExecution"
+  | "supremeRelationships"
+  | "happinessCirculation"
+  | "total";
+type SortOrder = "asc" | "desc";
+
 export function MatrixTable() {
   const [matrixData, setMatrixData] = useState<MatrixRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -50,6 +59,10 @@ export function MatrixTable() {
   const [startMonth, setStartMonth] = useState(now.getMonth() + 1);
   const [endYear, setEndYear] = useState(now.getFullYear());
   const [endMonth, setEndMonth] = useState(now.getMonth() + 1);
+
+  // ソート状態
+  const [sortKey, setSortKey] = useState<SortKey>("userName");
+  const [sortOrder, setSortOrder] = useState<SortOrder>("asc");
 
   // モーダル状態
   const [modalOpen, setModalOpen] = useState(false);
@@ -84,9 +97,38 @@ export function MatrixTable() {
     fetchData();
   }, [startYear, startMonth, endYear, endMonth]);
 
+  // ソートハンドラー
+  const handleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+    } else {
+      setSortKey(key);
+      // 数値カラムはデフォルト降順、文字列カラムは昇順
+      setSortOrder(key === "userName" ? "asc" : "desc");
+    }
+  };
+
+  // ソート済みデータの計算
+  const sortedData = useMemo(() => {
+    return [...matrixData].sort((a, b) => {
+      const aValue = a[sortKey];
+      const bValue = b[sortKey];
+
+      if (typeof aValue === "string" && typeof bValue === "string") {
+        return sortOrder === "asc"
+          ? aValue.localeCompare(bValue, "ja")
+          : bValue.localeCompare(aValue, "ja");
+      }
+
+      return sortOrder === "asc"
+        ? (aValue as number) - (bValue as number)
+        : (bValue as number) - (aValue as number);
+    });
+  }, [matrixData, sortKey, sortOrder]);
+
   // 上位10%の閾値を計算
   const calculateThreshold = (): number => {
-    const allValues = matrixData
+    const allValues = sortedData
       .flatMap((row) => [
         row.passionateExecution,
         row.supremeRelationships,
@@ -220,24 +262,84 @@ export function MatrixTable() {
               <thead>
                 <tr className="border-b bg-muted/50">
                   <th className="px-4 py-3 text-left font-semibold sticky left-0 z-20 bg-muted/50 min-w-[150px]">
-                    メンバー
+                    <button
+                      type="button"
+                      className="flex items-center gap-1 w-full justify-start hover:text-primary transition-colors"
+                      onClick={() => handleSort("userName")}
+                    >
+                      メンバー
+                      {sortKey === "userName" &&
+                        (sortOrder === "asc" ? (
+                          <ChevronUp className="h-4 w-4" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4" />
+                        ))}
+                    </button>
                   </th>
                   <th className="px-4 py-3 text-center font-semibold min-w-[150px]">
-                    夢中になってやり切る
+                    <button
+                      type="button"
+                      className="flex items-center gap-1 w-full justify-center hover:text-primary transition-colors"
+                      onClick={() => handleSort("passionateExecution")}
+                    >
+                      夢中になってやり切る
+                      {sortKey === "passionateExecution" &&
+                        (sortOrder === "asc" ? (
+                          <ChevronUp className="h-4 w-4" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4" />
+                        ))}
+                    </button>
                   </th>
                   <th className="px-4 py-3 text-center font-semibold min-w-[150px]">
-                    至高な人間関係
+                    <button
+                      type="button"
+                      className="flex items-center gap-1 w-full justify-center hover:text-primary transition-colors"
+                      onClick={() => handleSort("supremeRelationships")}
+                    >
+                      至高な人間関係
+                      {sortKey === "supremeRelationships" &&
+                        (sortOrder === "asc" ? (
+                          <ChevronUp className="h-4 w-4" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4" />
+                        ))}
+                    </button>
                   </th>
                   <th className="px-4 py-3 text-center font-semibold min-w-[150px]">
-                    幸せの循環
+                    <button
+                      type="button"
+                      className="flex items-center gap-1 w-full justify-center hover:text-primary transition-colors"
+                      onClick={() => handleSort("happinessCirculation")}
+                    >
+                      幸せの循環
+                      {sortKey === "happinessCirculation" &&
+                        (sortOrder === "asc" ? (
+                          <ChevronUp className="h-4 w-4" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4" />
+                        ))}
+                    </button>
                   </th>
                   <th className="px-4 py-3 text-center font-semibold min-w-[100px]">
-                    合計
+                    <button
+                      type="button"
+                      className="flex items-center gap-1 w-full justify-center hover:text-primary transition-colors"
+                      onClick={() => handleSort("total")}
+                    >
+                      合計
+                      {sortKey === "total" &&
+                        (sortOrder === "asc" ? (
+                          <ChevronUp className="h-4 w-4" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4" />
+                        ))}
+                    </button>
                   </th>
                 </tr>
               </thead>
               <tbody>
-                {matrixData.map((row) => (
+                {sortedData.map((row) => (
                   <tr key={row.userId} className="border-b hover:bg-muted/30">
                     <td className="px-4 py-3 font-medium sticky left-0 z-10 bg-background border-r">
                       {row.userName}
