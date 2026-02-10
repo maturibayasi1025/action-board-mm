@@ -16,8 +16,8 @@ const LevelUpCheck = dynamic(() =>
     default: mod.LevelUpCheck,
   })),
 );
-import MetricsWithSuspense from "@/components/metrics/MetricsWithSuspense";
-import FeaturedMissions from "@/components/mission/FeaturedMissions";
+// import MetricsWithSuspense from "@/components/metrics/MetricsWithSuspense";
+// import FeaturedMissions from "@/components/mission/FeaturedMissions";
 import ImportantMissions from "@/components/mission/ImportantMissions";
 import MissionsByCategory from "@/components/mission/MissionsByCategory";
 import MvvBadgeHonorSection from "@/components/mvv-badge-honor-section";
