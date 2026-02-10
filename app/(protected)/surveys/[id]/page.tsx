@@ -9,6 +9,8 @@ import { redirect } from "next/navigation";
 import { SurveyFormClient } from "./_components/survey-form-client";
 import { getSurvey, getSurveyQuestions, getUserResponses } from "./actions";
 
+export const runtime = "edge";
+
 interface SurveyPageProps {
   params: Promise<{ id: string }>;
 }
