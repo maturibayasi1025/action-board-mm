@@ -1367,11 +1367,12 @@ async function checkIsFirstGoodJobToday(
       now: now.toISOString(),
     });
 
-    // 今日作成されたグッジョブをカウント
+    // 今日作成されたグッジョブをカウント（承認済みのみ）
     const { count, error } = await supabase
       .from("user_missions")
       .select("id", { count: "exact", head: true })
       .eq("created_by", userId)
+      .eq("status", "approved")
       .gte("created_at", jstTodayStartUTC.toISOString())
       .lte("created_at", jstTodayEndUTC.toISOString());
 
