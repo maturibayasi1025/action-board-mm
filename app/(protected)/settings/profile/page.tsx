@@ -1,6 +1,6 @@
 import type { Message } from "@/components/form-message";
 import { createClient } from "@/lib/supabase/server";
-import { isRedirectError } from "next/dist/client/components/redirect";
+import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { redirect } from "next/navigation";
 import ProfileForm from "./ProfileForm";
 
