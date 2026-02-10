@@ -58,7 +58,7 @@ export async function getSurveyResponses(surveyId: string) {
   }
 
   // ユーザー情報を別途取得（RLSをバイパスするため）
-  const userIds = [...new Set((responses || []).map((r) => r.user_id))];
+  const userIds = Array.from(new Set((responses || []).map((r) => r.user_id)));
 
   let userMap = new Map<string, string>();
   if (userIds.length > 0) {
