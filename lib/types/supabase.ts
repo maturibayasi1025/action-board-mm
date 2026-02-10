@@ -161,6 +161,144 @@ export type Database = {
         };
         Relationships: [];
       };
+      enps_questions: {
+        Row: {
+          created_at: string;
+          display_order: number;
+          id: string;
+          is_active: boolean;
+          is_required: boolean;
+          parent_question_id: string | null;
+          question_text: string;
+          question_type: "score_0_10" | "text";
+          updated_at: string;
+        };
+        Insert: {
+          created_at?: string;
+          display_order?: number;
+          id?: string;
+          is_active?: boolean;
+          is_required?: boolean;
+          parent_question_id?: string | null;
+          question_text: string;
+          question_type: "score_0_10" | "text";
+          updated_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          display_order?: number;
+          id?: string;
+          is_active?: boolean;
+          is_required?: boolean;
+          parent_question_id?: string | null;
+          question_text?: string;
+          question_type?: "score_0_10" | "text";
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "enps_questions_parent_question_id_fkey";
+            columns: ["parent_question_id"];
+            isOneToOne: false;
+            referencedRelation: "enps_questions";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      enps_responses: {
+        Row: {
+          created_at: string;
+          id: string;
+          question_id: string;
+          score_value: number | null;
+          survey_id: string;
+          text_value: string | null;
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          question_id: string;
+          score_value?: number | null;
+          survey_id: string;
+          text_value?: string | null;
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          question_id?: string;
+          score_value?: number | null;
+          survey_id?: string;
+          text_value?: string | null;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "enps_responses_question_id_fkey";
+            columns: ["question_id"];
+            isOneToOne: false;
+            referencedRelation: "enps_questions";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "enps_responses_survey_id_fkey";
+            columns: ["survey_id"];
+            isOneToOne: false;
+            referencedRelation: "enps_surveys";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "enps_responses_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      enps_surveys: {
+        Row: {
+          created_at: string;
+          description: string | null;
+          end_date: string;
+          id: string;
+          is_active: boolean;
+          slack_notified_at: string | null;
+          start_date: string;
+          title: string;
+          updated_at: string;
+          year_month: string;
+        };
+        Insert: {
+          created_at?: string;
+          description?: string | null;
+          end_date: string;
+          id?: string;
+          is_active?: boolean;
+          slack_notified_at?: string | null;
+          start_date: string;
+          title: string;
+          updated_at?: string;
+          year_month: string;
+        };
+        Update: {
+          created_at?: string;
+          description?: string | null;
+          end_date?: string;
+          id?: string;
+          is_active?: boolean;
+          slack_notified_at?: string | null;
+          start_date?: string;
+          title?: string;
+          updated_at?: string;
+          year_month?: string;
+        };
+        Relationships: [];
+      };
       external_user_pending_xp: {
         Row: {
           claimed_at: string | null;
