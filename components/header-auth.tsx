@@ -66,6 +66,14 @@ export default async function AuthButton() {
                 <DropdownMenuItem asChild>
                   <Link href="/admin/mvv-badges">MVVバッジを登録する</Link>
                 </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/admin/goodjob-matrix">グッジョブマトリクス</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/admin/assessment-export">
+                    査定データエクスポート
+                  </Link>
+                </DropdownMenuItem>
               </DropdownMenuGroup>
             </>
           )}
