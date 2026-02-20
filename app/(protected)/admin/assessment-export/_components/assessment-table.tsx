@@ -9,8 +9,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Download } from "lucide-react";
-import { useEffect, useState } from "react";
+import { ChevronDown, ChevronUp, Download } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { type AssessmentRow, getAssessmentData } from "../actions";
 
@@ -37,6 +37,23 @@ function getEndDateFromYearMonth(year: number, month: number): string {
   return date.toISOString();
 }
 
+type SortKey =
+  | "userName"
+  | "prefecture"
+  | "goodjobPostedCount"
+  | "goodjobReceivedCount"
+  | "passionateExecutionCount"
+  | "supremeRelationshipsCount"
+  | "happinessCirculationCount"
+  | "likesGivenCount"
+  | "likesReceivedCount"
+  | "postingDaysCount"
+  | "missionAchievementCount"
+  | "totalXp"
+  | "currentLevel"
+  | "registeredAt";
+type SortOrder = "asc" | "desc";
+
 /** CSV用に値をエスケープ（カンマ・改行・ダブルクォートを含む場合） */
 function escapeCsvCell(value: string | number): string {
   const str = String(value);
@@ -55,6 +72,9 @@ export function AssessmentTable() {
   const [startMonth, setStartMonth] = useState(now.getMonth() + 1);
   const [endYear, setEndYear] = useState(now.getFullYear());
   const [endMonth, setEndMonth] = useState(now.getMonth() + 1);
+
+  const [sortKey, setSortKey] = useState<SortKey>("userName");
+  const [sortOrder, setSortOrder] = useState<SortOrder>("asc");
 
   const years = generateYearOptions();
   const months = generateMonthOptions();
@@ -78,6 +98,36 @@ export function AssessmentTable() {
     fetchData();
   }, [startYear, startMonth, endYear, endMonth]);
 
+  const handleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+    } else {
+      setSortKey(key);
+      setSortOrder(
+        ["userName", "prefecture", "registeredAt"].includes(key)
+          ? "asc"
+          : "desc",
+      );
+    }
+  };
+
+  const sortedData = useMemo(() => {
+    return [...data].sort((a, b) => {
+      const aValue = a[sortKey];
+      const bValue = b[sortKey];
+
+      if (typeof aValue === "string" && typeof bValue === "string") {
+        return sortOrder === "asc"
+          ? aValue.localeCompare(bValue, "ja")
+          : bValue.localeCompare(aValue, "ja");
+      }
+
+      return sortOrder === "asc"
+        ? (aValue as number) - (bValue as number)
+        : (bValue as number) - (aValue as number);
+    });
+  }, [data, sortKey, sortOrder]);
+
   const handleDownloadCsv = () => {
     const headers = [
       "ユーザー名",
@@ -96,7 +146,7 @@ export function AssessmentTable() {
       "登録日",
     ];
 
-    const rows = data.map((row) => [
+    const rows = sortedData.map((row) => [
       escapeCsvCell(row.userName),
       escapeCsvCell(row.prefecture),
       row.goodjobPostedCount,
@@ -239,51 +289,219 @@ export function AssessmentTable() {
               <thead>
                 <tr className="border-b bg-muted/50">
                   <th className="px-3 py-2 text-left font-semibold min-w-[120px]">
-                    ユーザー名
+                    <button
+                      type="button"
+                      className="flex items-center gap-1 font-semibold hover:text-primary transition-colors cursor-pointer"
+                      onClick={() => handleSort("userName")}
+                    >
+                      ユーザー名
+                      {sortKey === "userName" &&
+                        (sortOrder === "asc" ? (
+                          <ChevronUp className="h-4 w-4" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4" />
+                        ))}
+                    </button>
                   </th>
                   <th className="px-3 py-2 text-left font-semibold min-w-[80px]">
-                    都道府県
+                    <button
+                      type="button"
+                      className="flex items-center gap-1 font-semibold hover:text-primary transition-colors cursor-pointer"
+                      onClick={() => handleSort("prefecture")}
+                    >
+                      都道府県
+                      {sortKey === "prefecture" &&
+                        (sortOrder === "asc" ? (
+                          <ChevronUp className="h-4 w-4" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4" />
+                        ))}
+                    </button>
                   </th>
                   <th className="px-3 py-2 text-center font-semibold min-w-[80px]">
-                    グッジョブ投稿
+                    <button
+                      type="button"
+                      className="flex items-center gap-1 w-full justify-center font-semibold hover:text-primary transition-colors cursor-pointer"
+                      onClick={() => handleSort("goodjobPostedCount")}
+                    >
+                      グッジョブ投稿
+                      {sortKey === "goodjobPostedCount" &&
+                        (sortOrder === "asc" ? (
+                          <ChevronUp className="h-4 w-4" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4" />
+                        ))}
+                    </button>
                   </th>
                   <th className="px-3 py-2 text-center font-semibold min-w-[100px]">
-                    称賛された数
+                    <button
+                      type="button"
+                      className="flex items-center gap-1 w-full justify-center font-semibold hover:text-primary transition-colors cursor-pointer"
+                      onClick={() => handleSort("goodjobReceivedCount")}
+                    >
+                      称賛された数
+                      {sortKey === "goodjobReceivedCount" &&
+                        (sortOrder === "asc" ? (
+                          <ChevronUp className="h-4 w-4" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4" />
+                        ))}
+                    </button>
                   </th>
                   <th className="px-3 py-2 text-center font-semibold min-w-[70px]">
-                    夢中
+                    <button
+                      type="button"
+                      className="flex items-center gap-1 w-full justify-center font-semibold hover:text-primary transition-colors cursor-pointer"
+                      onClick={() => handleSort("passionateExecutionCount")}
+                    >
+                      夢中
+                      {sortKey === "passionateExecutionCount" &&
+                        (sortOrder === "asc" ? (
+                          <ChevronUp className="h-4 w-4" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4" />
+                        ))}
+                    </button>
                   </th>
                   <th className="px-3 py-2 text-center font-semibold min-w-[70px]">
-                    人間関係
+                    <button
+                      type="button"
+                      className="flex items-center gap-1 w-full justify-center font-semibold hover:text-primary transition-colors cursor-pointer"
+                      onClick={() => handleSort("supremeRelationshipsCount")}
+                    >
+                      人間関係
+                      {sortKey === "supremeRelationshipsCount" &&
+                        (sortOrder === "asc" ? (
+                          <ChevronUp className="h-4 w-4" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4" />
+                        ))}
+                    </button>
                   </th>
                   <th className="px-3 py-2 text-center font-semibold min-w-[70px]">
-                    幸せ循環
+                    <button
+                      type="button"
+                      className="flex items-center gap-1 w-full justify-center font-semibold hover:text-primary transition-colors cursor-pointer"
+                      onClick={() => handleSort("happinessCirculationCount")}
+                    >
+                      幸せ循環
+                      {sortKey === "happinessCirculationCount" &&
+                        (sortOrder === "asc" ? (
+                          <ChevronUp className="h-4 w-4" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4" />
+                        ))}
+                    </button>
                   </th>
                   <th className="px-3 py-2 text-center font-semibold min-w-[70px]">
-                    いいね押した
+                    <button
+                      type="button"
+                      className="flex items-center gap-1 w-full justify-center font-semibold hover:text-primary transition-colors cursor-pointer"
+                      onClick={() => handleSort("likesGivenCount")}
+                    >
+                      いいね押した
+                      {sortKey === "likesGivenCount" &&
+                        (sortOrder === "asc" ? (
+                          <ChevronUp className="h-4 w-4" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4" />
+                        ))}
+                    </button>
                   </th>
                   <th className="px-3 py-2 text-center font-semibold min-w-[70px]">
-                    いいねもらった
+                    <button
+                      type="button"
+                      className="flex items-center gap-1 w-full justify-center font-semibold hover:text-primary transition-colors cursor-pointer"
+                      onClick={() => handleSort("likesReceivedCount")}
+                    >
+                      いいねもらった
+                      {sortKey === "likesReceivedCount" &&
+                        (sortOrder === "asc" ? (
+                          <ChevronUp className="h-4 w-4" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4" />
+                        ))}
+                    </button>
                   </th>
                   <th className="px-3 py-2 text-center font-semibold min-w-[60px]">
-                    投稿日数
+                    <button
+                      type="button"
+                      className="flex items-center gap-1 w-full justify-center font-semibold hover:text-primary transition-colors cursor-pointer"
+                      onClick={() => handleSort("postingDaysCount")}
+                    >
+                      投稿日数
+                      {sortKey === "postingDaysCount" &&
+                        (sortOrder === "asc" ? (
+                          <ChevronUp className="h-4 w-4" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4" />
+                        ))}
+                    </button>
                   </th>
                   <th className="px-3 py-2 text-center font-semibold min-w-[70px]">
-                    ミッション達成
+                    <button
+                      type="button"
+                      className="flex items-center gap-1 w-full justify-center font-semibold hover:text-primary transition-colors cursor-pointer"
+                      onClick={() => handleSort("missionAchievementCount")}
+                    >
+                      ミッション達成
+                      {sortKey === "missionAchievementCount" &&
+                        (sortOrder === "asc" ? (
+                          <ChevronUp className="h-4 w-4" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4" />
+                        ))}
+                    </button>
                   </th>
                   <th className="px-3 py-2 text-center font-semibold min-w-[60px]">
-                    総XP
+                    <button
+                      type="button"
+                      className="flex items-center gap-1 w-full justify-center font-semibold hover:text-primary transition-colors cursor-pointer"
+                      onClick={() => handleSort("totalXp")}
+                    >
+                      総XP
+                      {sortKey === "totalXp" &&
+                        (sortOrder === "asc" ? (
+                          <ChevronUp className="h-4 w-4" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4" />
+                        ))}
+                    </button>
                   </th>
                   <th className="px-3 py-2 text-center font-semibold min-w-[50px]">
-                    レベル
+                    <button
+                      type="button"
+                      className="flex items-center gap-1 w-full justify-center font-semibold hover:text-primary transition-colors cursor-pointer"
+                      onClick={() => handleSort("currentLevel")}
+                    >
+                      レベル
+                      {sortKey === "currentLevel" &&
+                        (sortOrder === "asc" ? (
+                          <ChevronUp className="h-4 w-4" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4" />
+                        ))}
+                    </button>
                   </th>
                   <th className="px-3 py-2 text-left font-semibold min-w-[90px]">
-                    登録日
+                    <button
+                      type="button"
+                      className="flex items-center gap-1 font-semibold hover:text-primary transition-colors cursor-pointer"
+                      onClick={() => handleSort("registeredAt")}
+                    >
+                      登録日
+                      {sortKey === "registeredAt" &&
+                        (sortOrder === "asc" ? (
+                          <ChevronUp className="h-4 w-4" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4" />
+                        ))}
+                    </button>
                   </th>
                 </tr>
               </thead>
               <tbody>
-                {data.map((row) => (
+                {sortedData.map((row) => (
                   <tr key={row.userId} className="border-b hover:bg-muted/30">
                     <td className="px-3 py-2 font-medium">{row.userName}</td>
                     <td className="px-3 py-2">{row.prefecture}</td>
