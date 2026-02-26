@@ -70,6 +70,12 @@ export default async function AuthButton() {
                   <Link href="/admin/goodjob-matrix">グッジョブマトリクス</Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
+                  <Link href="/admin/enps-surveys">eNPSアンケート管理</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/admin/award-surveys">表彰アンケート管理</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
                   <Link href="/admin/assessment-export">
                     査定データエクスポート
                   </Link>
