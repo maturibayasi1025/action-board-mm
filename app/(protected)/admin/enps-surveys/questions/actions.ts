@@ -4,7 +4,19 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { requireOwner } from "@/lib/utils/isOwner";
 import { revalidatePath } from "next/cache";
 
-export async function getQuestions() {
+type EnpsQuestionRow = {
+  id: string;
+  question_text: string;
+  question_type: "score_0_10" | "text";
+  display_order: number;
+  is_required: boolean;
+  is_active: boolean;
+  parent_question_id: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export async function getQuestions(): Promise<EnpsQuestionRow[]> {
   await requireOwner();
   const supabase = await createServiceClient();
 
@@ -18,7 +30,7 @@ export async function getQuestions() {
     return [];
   }
 
-  return questions || [];
+  return (questions || []) as EnpsQuestionRow[];
 }
 
 export async function createQuestion(data: {

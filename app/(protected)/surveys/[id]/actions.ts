@@ -3,6 +3,18 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
+type EnpsQuestionRow = {
+  id: string;
+  question_text: string;
+  question_type: "score_0_10" | "text";
+  display_order: number;
+  is_required: boolean;
+  is_active: boolean;
+  parent_question_id: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 export async function submitSurveyResponse(
   surveyId: string,
   responses: Array<{
@@ -95,7 +107,7 @@ export async function getSurvey(surveyId: string) {
   return survey;
 }
 
-export async function getSurveyQuestions() {
+export async function getSurveyQuestions(): Promise<EnpsQuestionRow[]> {
   const supabase = await createClient();
 
   const { data: questions, error } = await supabase
@@ -109,7 +121,7 @@ export async function getSurveyQuestions() {
     return [];
   }
 
-  return questions || [];
+  return (questions || []) as EnpsQuestionRow[];
 }
 
 export async function getUserResponses(surveyId: string) {
