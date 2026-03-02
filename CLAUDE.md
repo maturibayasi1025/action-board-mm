@@ -109,6 +109,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `NEXT_PUBLIC_LINE_CLIENT_ID` - LINE Login用チャンネルID
 - `BATCH_ADMIN_KEY` - バッチ処理API用の管理者キー
 
+### GitHub Actions Secrets
+- スケジュールワークフロー（eNPS/Awardサーベイ、バッジ計算）に必要なSecretsは `.github/SECRETS_SETUP.md` を参照
+
 ## 開発ワークフロー
 
 ### ブランチ戦略

@@ -440,7 +440,11 @@ HUBSPOT_CONTACT_LIST_ID=123456
 
 ## デプロイ
 
-## 環境変数のデプロイ
+### GitHub Actions（スケジュールワークフロー）
+
+eNPS/Award サーベイ生成やバッジ計算など、スケジュール実行されるワークフローには Repository Secrets の設定が必要です。設定手順は [.github/SECRETS_SETUP.md](./.github/SECRETS_SETUP.md) を参照してください。
+
+### 環境変数のデプロイ
 1. Terraform Cloudへの招待をもらう
 
    * [Terraform Cloud Workspaces](https://app.terraform.io/app/gamification/workspaces)
