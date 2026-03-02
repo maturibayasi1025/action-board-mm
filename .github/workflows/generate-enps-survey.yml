@@ -1,0 +1,4 @@
+on:
+  schedule:
+    - cron: '0 1 25 * *'   # 毎月25日 10:00 JST (UTC 01:00)
+  workflow_dispatch:
