@@ -17,10 +17,10 @@ export type Database = {
     Functions: {
       graphql: {
         Args: {
-          operationName?: string;
-          variables?: Json;
           extensions?: Json;
+          operationName?: string;
           query?: string;
+          variables?: Json;
         };
         Returns: Json;
       };
@@ -77,6 +77,135 @@ export type Database = {
           },
         ];
       };
+      award_questions: {
+        Row: {
+          created_at: string;
+          display_order: number;
+          help_text: string | null;
+          id: string;
+          is_active: boolean;
+          is_required: boolean;
+          placeholder: string | null;
+          question_group: string;
+          question_text: string;
+          question_type: string;
+          updated_at: string;
+        };
+        Insert: {
+          created_at?: string;
+          display_order?: number;
+          help_text?: string | null;
+          id?: string;
+          is_active?: boolean;
+          is_required?: boolean;
+          placeholder?: string | null;
+          question_group: string;
+          question_text: string;
+          question_type: string;
+          updated_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          display_order?: number;
+          help_text?: string | null;
+          id?: string;
+          is_active?: boolean;
+          is_required?: boolean;
+          placeholder?: string | null;
+          question_group?: string;
+          question_text?: string;
+          question_type?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      award_responses: {
+        Row: {
+          created_at: string;
+          id: string;
+          question_id: string;
+          survey_id: string;
+          text_value: string | null;
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          question_id: string;
+          survey_id: string;
+          text_value?: string | null;
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          question_id?: string;
+          survey_id?: string;
+          text_value?: string | null;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "award_responses_question_id_fkey";
+            columns: ["question_id"];
+            isOneToOne: false;
+            referencedRelation: "award_questions";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "award_responses_survey_id_fkey";
+            columns: ["survey_id"];
+            isOneToOne: false;
+            referencedRelation: "award_surveys";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      award_surveys: {
+        Row: {
+          created_at: string;
+          description: string | null;
+          end_date: string;
+          id: string;
+          is_active: boolean;
+          period_number: number;
+          slack_notified_at: string | null;
+          start_date: string;
+          title: string;
+          updated_at: string;
+          year_month: string;
+        };
+        Insert: {
+          created_at?: string;
+          description?: string | null;
+          end_date: string;
+          id?: string;
+          is_active?: boolean;
+          period_number: number;
+          slack_notified_at?: string | null;
+          start_date: string;
+          title: string;
+          updated_at?: string;
+          year_month: string;
+        };
+        Update: {
+          created_at?: string;
+          description?: string | null;
+          end_date?: string;
+          id?: string;
+          is_active?: boolean;
+          period_number?: number;
+          slack_notified_at?: string | null;
+          start_date?: string;
+          title?: string;
+          updated_at?: string;
+          year_month?: string;
+        };
+        Relationships: [];
+      };
       daily_action_summary: {
         Row: {
           count: number;
@@ -131,6 +260,137 @@ export type Database = {
           count?: number;
           created_at?: string;
           date?: string;
+        };
+        Relationships: [];
+      };
+      enps_questions: {
+        Row: {
+          created_at: string;
+          display_order: number;
+          id: string;
+          is_active: boolean;
+          is_required: boolean;
+          parent_question_id: string | null;
+          question_text: string;
+          question_type: string;
+          updated_at: string;
+        };
+        Insert: {
+          created_at?: string;
+          display_order?: number;
+          id?: string;
+          is_active?: boolean;
+          is_required?: boolean;
+          parent_question_id?: string | null;
+          question_text: string;
+          question_type: string;
+          updated_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          display_order?: number;
+          id?: string;
+          is_active?: boolean;
+          is_required?: boolean;
+          parent_question_id?: string | null;
+          question_text?: string;
+          question_type?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "enps_questions_parent_question_id_fkey";
+            columns: ["parent_question_id"];
+            isOneToOne: false;
+            referencedRelation: "enps_questions";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      enps_responses: {
+        Row: {
+          created_at: string;
+          id: string;
+          question_id: string;
+          score_value: number | null;
+          survey_id: string;
+          text_value: string | null;
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          question_id: string;
+          score_value?: number | null;
+          survey_id: string;
+          text_value?: string | null;
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          question_id?: string;
+          score_value?: number | null;
+          survey_id?: string;
+          text_value?: string | null;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "enps_responses_question_id_fkey";
+            columns: ["question_id"];
+            isOneToOne: false;
+            referencedRelation: "enps_questions";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "enps_responses_survey_id_fkey";
+            columns: ["survey_id"];
+            isOneToOne: false;
+            referencedRelation: "enps_surveys";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      enps_surveys: {
+        Row: {
+          created_at: string;
+          description: string | null;
+          end_date: string;
+          id: string;
+          is_active: boolean;
+          slack_notified_at: string | null;
+          start_date: string;
+          title: string;
+          updated_at: string;
+          year_month: string;
+        };
+        Insert: {
+          created_at?: string;
+          description?: string | null;
+          end_date: string;
+          id?: string;
+          is_active?: boolean;
+          slack_notified_at?: string | null;
+          start_date: string;
+          title: string;
+          updated_at?: string;
+          year_month: string;
+        };
+        Update: {
+          created_at?: string;
+          description?: string | null;
+          end_date?: string;
+          id?: string;
+          is_active?: boolean;
+          slack_notified_at?: string | null;
+          start_date?: string;
+          title?: string;
+          updated_at?: string;
+          year_month?: string;
         };
         Relationships: [];
       };
@@ -1087,10 +1347,13 @@ export type Database = {
       user_badges: {
         Row: {
           achieved_at: string;
+          badge_image_path: string | null;
           badge_type: string;
           created_at: string;
+          icon_image_path: string | null;
           id: string;
           is_notified: boolean;
+          quarter_period: string | null;
           rank: number;
           sub_type: string | null;
           updated_at: string;
@@ -1098,10 +1361,13 @@ export type Database = {
         };
         Insert: {
           achieved_at?: string;
+          badge_image_path?: string | null;
           badge_type: string;
           created_at?: string;
+          icon_image_path?: string | null;
           id?: string;
           is_notified?: boolean;
+          quarter_period?: string | null;
           rank: number;
           sub_type?: string | null;
           updated_at?: string;
@@ -1109,10 +1375,13 @@ export type Database = {
         };
         Update: {
           achieved_at?: string;
+          badge_image_path?: string | null;
           badge_type?: string;
           created_at?: string;
+          icon_image_path?: string | null;
           id?: string;
           is_notified?: boolean;
+          quarter_period?: string | null;
           rank?: number;
           sub_type?: string | null;
           updated_at?: string;
@@ -1606,89 +1875,106 @@ export type Database = {
       };
     };
     Functions: {
-      calculate_level_from_xp: {
-        Args: { xp: number };
-        Returns: number;
+      calculate_level_from_xp: { Args: { xp: number }; Returns: number };
+      get_likes_ranking: {
+        Args: { limit_count?: number };
+        Returns: {
+          address_prefecture: string;
+          likes_count: number;
+          rank: number;
+          user_id: string;
+          user_name: string;
+        }[];
       };
       get_mission_links: {
         Args: { p_mission_id: string };
         Returns: {
+          display_order: number;
           link: string;
           remark: string;
-          display_order: number;
         }[];
       };
       get_mission_quiz_questions: {
         Args: { p_mission_id: string };
         Returns: {
-          question_id: string;
-          question_order: number;
+          category_description: string;
           category_id: string;
           category_name: string;
-          category_description: string;
+          correct_answer: number;
+          explanation: string;
           mission_links: Json;
-          question: string;
           option1: string;
           option2: string;
           option3: string;
           option4: string;
-          correct_answer: number;
-          explanation: string;
+          question: string;
+          question_id: string;
+          question_order: number;
         }[];
       };
       get_mission_ranking: {
         Args: { limit_count?: number; mission_id: string };
         Returns: {
-          user_name: string;
-          user_id: string;
+          address_prefecture: string;
+          clear_count: number;
+          level: number;
           rank: number;
           total_points: number;
-          clear_count: number;
           updated_at: string;
+          user_id: string;
+          user_name: string;
           xp: number;
-          level: number;
+        }[];
+      };
+      get_period_likes_ranking: {
+        Args: { p_limit?: number; p_start_date?: string };
+        Returns: {
           address_prefecture: string;
+          likes_count: number;
+          rank: number;
+          user_id: string;
+          user_name: string;
         }[];
       };
       get_period_mission_ranking: {
-        Args: { p_mission_id: string; p_limit?: number; p_start_date?: string };
+        Args: { p_limit?: number; p_mission_id: string; p_start_date?: string };
         Returns: {
-          mission_id: string;
-          user_id: string;
-          name: string;
           address_prefecture: string;
-          user_achievement_count: number;
-          total_points: number;
+          mission_id: string;
+          name: string;
           rank: number;
+          total_points: number;
+          user_achievement_count: number;
+          user_id: string;
         }[];
       };
       get_period_prefecture_ranking: {
-        Args: { p_prefecture: string; p_start_date?: string; p_limit?: number };
+        Args: { p_limit?: number; p_prefecture: string; p_start_date?: string };
         Returns: {
-          user_id: string;
           name: string;
           rank: number;
+          user_id: string;
           xp: number;
         }[];
       };
       get_period_ranking: {
-        Args: { p_limit?: number; p_start_date?: string; p_end_date?: string };
+        Args: { p_end_date?: string; p_limit?: number; p_start_date?: string };
         Returns: {
-          xp: number;
-          user_id: string;
           address_prefecture: string;
           level: number;
           name: string;
           rank: number;
           updated_at: string;
+          user_id: string;
+          xp: number;
         }[];
       };
       get_poster_board_stats: {
-        Args: Record<PropertyKey, never>;
+        Args: never;
         Returns: {
+          count: number;
           prefecture: string;
           status: Database["public"]["Enums"]["poster_board_status"];
-          count: number;
         }[];
       };
       get_poster_board_stats_optimized: {
@@ -1703,27 +1989,27 @@ export type Database = {
       get_prefecture_ranking: {
         Args: { limit_count?: number; prefecture: string };
         Returns: {
-          xp: number;
+          address_prefecture: string;
           level: number;
           rank: number;
-          address_prefecture: string;
-          user_name: string;
-          user_id: string;
           updated_at: string;
+          user_id: string;
+          user_name: string;
+          xp: number;
         }[];
       };
       get_top_users_posting_count: {
         Args: { user_ids: string[] };
         Returns: {
-          user_id: string;
           posting_count: number;
+          user_id: string;
         }[];
       };
       get_user_by_email: {
         Args: { user_email: string };
         Returns: {
-          id: string;
           email: string;
+          id: string;
           user_metadata: Json;
         }[];
       };
@@ -1743,66 +2029,86 @@ export type Database = {
         };
         Returns: {
           board_id: string;
+          last_edited_at: string;
           lat: number;
           long: number;
           status: Database["public"]["Enums"]["poster_board_status"];
-          last_edited_at: string;
+        }[];
+      };
+      get_user_likes_ranking: {
+        Args: { target_user_id: string };
+        Returns: {
+          address_prefecture: string;
+          likes_count: number;
+          rank: number;
+          user_id: string;
+          user_name: string;
         }[];
       };
       get_user_mission_ranking: {
-        Args: { user_id: string; mission_id: string };
+        Args: { mission_id: string; user_id: string };
         Returns: {
+          address_prefecture: string;
+          clear_count: number;
+          level: number;
+          rank: number;
+          total_points: number;
+          updated_at: string;
           user_id: string;
           user_name: string;
-          address_prefecture: string;
-          level: number;
           xp: number;
-          updated_at: string;
-          clear_count: number;
-          total_points: number;
+        }[];
+      };
+      get_user_period_likes_ranking: {
+        Args: { p_start_date?: string; p_user_id: string };
+        Returns: {
+          address_prefecture: string;
+          likes_count: number;
           rank: number;
+          user_id: string;
+          user_name: string;
         }[];
       };
       get_user_period_mission_ranking: {
         Args: {
           p_mission_id: string;
-          p_user_id: string;
           p_start_date?: string;
+          p_user_id: string;
         };
         Returns: {
-          mission_id: string;
-          user_id: string;
-          name: string;
           address_prefecture: string;
-          user_achievement_count: number;
-          total_points: number;
+          mission_id: string;
+          name: string;
           rank: number;
+          total_points: number;
+          user_achievement_count: number;
+          user_id: string;
         }[];
       };
       get_user_period_prefecture_ranking: {
         Args: {
-          p_user_id: string;
           p_prefecture: string;
           p_start_date?: string;
+          p_user_id: string;
         };
         Returns: {
-          xp: number;
-          user_id: string;
-          name: string;
           level: number;
+          name: string;
           rank: number;
+          user_id: string;
+          xp: number;
         }[];
       };
       get_user_period_ranking: {
-        Args: { target_user_id: string; start_date?: string };
+        Args: { start_date?: string; target_user_id: string };
         Returns: {
-          xp: number;
-          user_id: string;
           address_prefecture: string;
           level: number;
           name: string;
           rank: number;
           updated_at: string;
+          user_id: string;
+          xp: number;
         }[];
       };
       get_user_posting_count: {
@@ -1810,67 +2116,18 @@ export type Database = {
         Returns: number;
       };
       get_user_prefecture_ranking: {
-        Args: { target_user_id: string; prefecture: string };
+        Args: { prefecture: string; target_user_id: string };
         Returns: {
+          address_prefecture: string;
           level: number;
+          rank: number;
           updated_at: string;
+          user_id: string;
+          user_name: string;
           xp: number;
-          rank: number;
-          address_prefecture: string;
-          user_name: string;
-          user_id: string;
         }[];
       };
-      get_likes_ranking: {
-        Args: { limit_count?: number };
-        Returns: {
-          user_id: string;
-          user_name: string;
-          address_prefecture: string;
-          rank: number;
-          likes_count: number;
-        }[];
-      };
-      get_user_likes_ranking: {
-        Args: { target_user_id: string };
-        Returns: {
-          user_id: string;
-          user_name: string;
-          address_prefecture: string;
-          rank: number;
-          likes_count: number;
-        }[];
-      };
-      get_period_likes_ranking: {
-        Args: {
-          p_limit?: number;
-          p_start_date?: string;
-        };
-        Returns: {
-          user_id: string;
-          user_name: string;
-          address_prefecture: string;
-          rank: number;
-          likes_count: number;
-        }[];
-      };
-      get_user_period_likes_ranking: {
-        Args: {
-          p_user_id: string;
-          p_start_date?: string;
-        };
-        Returns: {
-          user_id: string;
-          user_name: string;
-          address_prefecture: string;
-          rank: number;
-          likes_count: number;
-        }[];
-      };
-      total_xp_for_level: {
-        Args: { level: number };
-        Returns: number;
-      };
+      total_xp_for_level: { Args: { level: number }; Returns: number };
     };
     Enums: {
       poster_board_status:
