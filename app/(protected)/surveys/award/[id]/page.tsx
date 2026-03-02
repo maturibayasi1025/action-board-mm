@@ -14,6 +14,8 @@ import {
   getUserAwardResponses,
 } from "./actions";
 
+export const runtime = "edge";
+
 interface AwardSurveyPageProps {
   params: Promise<{ id: string }>;
 }
