@@ -84,6 +84,7 @@ export async function createUserMissionAction(input: CreateUserMissionInput) {
       : [];
 
     // グッジョブ作成（即時承認）
+    const nowIso = new Date().toISOString();
     const { data: mission, error: missionError } = await supabase
       .from("user_missions")
       .insert({
@@ -93,8 +94,9 @@ export async function createUserMissionAction(input: CreateUserMissionInput) {
         image_paths:
           normalizedImagePaths.length > 0 ? (normalizedImagePaths as Json) : [],
         status: "approved", // 自動承認で即時表示
-        approved_at: new Date().toISOString(),
+        approved_at: nowIso,
         approved_by: user.id, // 自分自身を承認者として設定
+        published_at: nowIso, // 公開日時（1日1グッジョブ判定用）
       })
       .select()
       .single();
@@ -1239,14 +1241,19 @@ export async function publishDraftUserMissionAction(draftId: string) {
       throw new Error("MVV項目を少なくとも1つ選択してください");
     }
 
+    // その日初めてのグッジョブ投稿かチェック（公開前にチェック）
+    const isFirstToday = await checkIsFirstGoodJobToday(user.id, supabase);
+
+    const nowIso = new Date().toISOString();
     // 下書きを公開（statusをapprovedに更新）
     const { data: mission, error: updateError } = await supabase
       .from("user_missions")
       .update({
         status: "approved",
-        approved_at: new Date().toISOString(),
+        approved_at: nowIso,
         approved_by: user.id,
-        updated_at: new Date().toISOString(),
+        published_at: nowIso, // 公開日時（1日1グッジョブ判定用）
+        updated_at: nowIso,
       })
       .eq("id", draftId)
       .select()
@@ -1327,7 +1334,26 @@ export async function publishDraftUserMissionAction(draftId: string) {
       }
     }
 
-    return { success: true, missionId: mission.id };
+    // 初回投稿の場合は共有グッジョブ候補を取得して返す（即時投稿と同様）
+    let availableSharedMissions: Array<{
+      id: string;
+      title: string;
+      icon_url: string | null;
+      difficulty: number;
+      content: string | null;
+    }> = [];
+    if (isFirstToday) {
+      availableSharedMissions = await getAvailableSharedMissions(
+        user.id,
+        supabase,
+      );
+    }
+
+    return {
+      success: true,
+      missionId: mission.id,
+      availableSharedMissions,
+    };
   } catch (error) {
     console.error("publishDraftUserMissionAction総合エラー:", error);
     throw error;
@@ -1367,14 +1393,15 @@ async function checkIsFirstGoodJobToday(
       now: now.toISOString(),
     });
 
-    // 今日作成されたグッジョブをカウント（承認済みのみ）
+    // 今日公開されたグッジョブをカウント（承認済みのみ、published_at基準）
     const { count, error } = await supabase
       .from("user_missions")
       .select("id", { count: "exact", head: true })
       .eq("created_by", userId)
       .eq("status", "approved")
-      .gte("created_at", jstTodayStartUTC.toISOString())
-      .lte("created_at", jstTodayEndUTC.toISOString());
+      .not("published_at", "is", null)
+      .gte("published_at", jstTodayStartUTC.toISOString())
+      .lte("published_at", jstTodayEndUTC.toISOString());
 
     if (error) {
       console.error("[checkIsFirstGoodJobToday] クエリエラー:", {

@@ -74,7 +74,7 @@ async function getPraisedMissionsServer(
     `)
     .in("id", missionIds)
     .eq("status", "approved")
-    .order("created_at", { ascending: false });
+    .order("published_at", { ascending: false, nullsFirst: false });
 
   if (error) {
     console.error("Error fetching praised missions:", error);

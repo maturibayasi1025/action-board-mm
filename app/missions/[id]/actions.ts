@@ -378,15 +378,16 @@ export const achieveMissionAction = async (formData: FormData) => {
       `[1日1回制限チェック] JST今日の終了(UTC): ${jstTodayEndUTC.toISOString()}`,
     );
 
-    // 今日（JST）にユーザーが作成したグッジョブを検索（承認済みのみ）
+    // 今日（JST）にユーザーが公開したグッジョブを検索（承認済みのみ、published_at基準）
     const { data: todayUserMissions, error: todayUserMissionError } =
       await supabase
         .from("user_missions")
-        .select("id, created_at")
+        .select("id, published_at")
         .eq("created_by", authUser.id)
         .eq("status", "approved")
-        .gte("created_at", jstTodayStartUTC.toISOString())
-        .lte("created_at", jstTodayEndUTC.toISOString());
+        .not("published_at", "is", null)
+        .gte("published_at", jstTodayStartUTC.toISOString())
+        .lte("published_at", jstTodayEndUTC.toISOString());
 
     if (todayUserMissionError) {
       console.error(
@@ -415,10 +416,10 @@ export const achieveMissionAction = async (formData: FormData) => {
       "[1日1回制限チェック] 今日作成されたグッジョブがあるため、今日達成した共有グッジョブをチェックします",
     );
     console.log(
-      "[1日1回制限チェック] 作成記録:",
+      "[1日1回制限チェック] 公開記録:",
       todayUserMissions.map((m) => ({
         id: m.id,
-        created_at: m.created_at,
+        published_at: m.published_at,
       })),
     );
 

@@ -23,7 +23,7 @@ async function getUserMissionsServer() {
       .from("user_missions")
       .select("*")
       .eq("status", "approved")
-      .order("created_at", { ascending: false })
+      .order("published_at", { ascending: false })
       .limit(6);
 
     if (error) {

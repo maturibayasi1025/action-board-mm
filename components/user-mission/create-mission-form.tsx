@@ -295,7 +295,16 @@ export function CreateMissionForm(
           toast.success("グッジョブを公開しました", {
             description: "すぐにユーザーグッジョブ一覧に表示されます。",
           });
-          router.push("/user-missions/my");
+          // 共有グッジョブが利用可能な場合、モーダルを表示（即時投稿と同様）
+          if (
+            result.availableSharedMissions &&
+            result.availableSharedMissions.length > 0
+          ) {
+            setAvailableSharedMissions(result.availableSharedMissions);
+            setIsSharedMissionModalOpen(true);
+          } else {
+            router.push("/user-missions/my");
+          }
         } else {
           throw new Error("公開に失敗しました");
         }

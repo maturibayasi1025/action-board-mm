@@ -190,7 +190,7 @@ export async function getUserMissions(userId?: string) {
           praised_person_name
         )
       `)
-      .order("created_at", { ascending: false });
+      .order("published_at", { ascending: false, nullsFirst: false });
 
     if (userId) {
       query = query.eq("created_by", userId);

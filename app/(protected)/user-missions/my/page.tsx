@@ -54,7 +54,8 @@ async function getUserMissionsServer(userId: string): Promise<UserMission[]> {
       )
     `)
     .eq("created_by", userId)
-    .order("created_at", { ascending: false });
+    .order("published_at", { ascending: false, nullsFirst: false })
+    .order("updated_at", { ascending: false });
 
   if (error) {
     console.error("Error fetching user missions:", error);
