@@ -20,7 +20,7 @@
     "pages:dev": "npx wrangler pages dev .vercel/output/static --compatibility-date=2024-01-01",
     "build:next-only": "npm run clean && next build && npm run clean-cache",
     "start": "next start",
-    "types": "npx supabase gen types typescript --local > lib/types/supabase.ts && biome check --write lib/types/supabase.ts",
+    "types": "npx supabase gen types typescript --local > lib/types/supabase.ts.new && mv lib/types/supabase.ts.new lib/types/supabase.ts && biome check --write lib/types/supabase.ts",
     "biome:check:write": "biome check --write .",
     "test": "jest && playwright test",
     "test:ci": "jest --ci --reporters=default --reporters=jest-junit --testPathIgnorePatterns=tests/rls/ && jest --ci --reporters=default --reporters=jest-junit --testMatch='**/tests/rls/**/*.test.ts' --testEnvironment=node --coverage=false && CI=true playwright test",
