@@ -47,7 +47,7 @@ export function SummaryCards({
 
   return (
     <section className="grid gap-4 md:grid-cols-3">
-      <Card>
+      <Card className="bg-white">
         <CardHeader className="pb-2">
           <CardDescription>投稿数（期間合計）</CardDescription>
           <CardTitle>{totalMissions.toLocaleString()} 件</CardTitle>
@@ -57,7 +57,7 @@ export function SummaryCards({
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="bg-white">
         <CardHeader className="pb-2">
           <CardDescription>いいね数（期間合計）</CardDescription>
           <CardTitle>{totalLikes.toLocaleString()} 件</CardTitle>
@@ -67,7 +67,7 @@ export function SummaryCards({
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="bg-white">
         <CardHeader className="pb-2">
           <CardDescription>前期比</CardDescription>
           <CardTitle>推移比較</CardTitle>

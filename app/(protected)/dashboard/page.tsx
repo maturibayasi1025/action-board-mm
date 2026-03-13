@@ -28,7 +28,7 @@ export default async function DashboardPage({
   const dashboardData = await getDashboardData(period);
 
   return (
-    <div className="flex min-h-screen flex-col py-4">
+    <div className="flex min-h-screen flex-col bg-slate-50 py-4">
       <div className="mx-auto w-full max-w-6xl space-y-6 px-4">
         <header className="space-y-3 text-center">
           <h1 className="text-2xl font-bold md:text-3xl">
@@ -48,7 +48,7 @@ export default async function DashboardPage({
         />
 
         <section className="grid gap-4 lg:grid-cols-2">
-          <Card>
+          <Card className="bg-white">
             <CardHeader>
               <CardTitle>グッジョブ投稿数（日次）</CardTitle>
             </CardHeader>
@@ -60,7 +60,7 @@ export default async function DashboardPage({
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-white">
             <CardHeader>
               <CardTitle>いいね数（日次）</CardTitle>
             </CardHeader>

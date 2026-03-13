@@ -20,19 +20,19 @@ interface LikesChartProps {
   period: "weekly" | "monthly";
 }
 
-const chartConfig = {
-  likes: {
-    color: "hsl(var(--chart-2))",
-    label: "いいね数",
-  },
-} satisfies ChartConfig;
-
 function labelFor(date: string, period: "weekly" | "monthly"): string {
   const parsed = parseISO(date);
   return period === "weekly"
     ? format(parsed, "M/d(EEE)", { locale: ja })
     : format(parsed, "M/d", { locale: ja });
 }
+
+const chartConfig = {
+  likes: {
+    color: "hsl(var(--chart-2))",
+    label: "いいね数",
+  },
+} satisfies ChartConfig;
 
 export function LikesChart({ data, period }: LikesChartProps) {
   const chartData = data.map((item) => ({
@@ -43,26 +43,38 @@ export function LikesChart({ data, period }: LikesChartProps) {
   return (
     <ChartContainer config={chartConfig} className="min-h-[280px] w-full">
       <LineChart data={chartData}>
-        <CartesianGrid vertical={false} />
+        <CartesianGrid vertical={false} strokeDasharray="3 3" />
         <XAxis
           dataKey="dateLabel"
           tickLine={false}
           axisLine={false}
           minTickGap={20}
+          tick={{ fontSize: 12 }}
         />
         <YAxis
           allowDecimals={false}
           tickLine={false}
           axisLine={false}
           width={36}
+          tick={{ fontSize: 12 }}
         />
-        <ChartTooltip content={<ChartTooltipContent hideLabel />} />
+        <ChartTooltip
+          content={
+            <ChartTooltipContent
+              formatter={(value) => [
+                `${Number(value).toLocaleString()} 件`,
+                "いいね数",
+              ]}
+              hideLabel
+            />
+          }
+        />
         <Line
           dataKey="likes"
           type="monotone"
-          stroke="hsl(var(--chart-2))"
+          stroke="var(--color-likes)"
           strokeWidth={2}
-          dot={{ fill: "hsl(var(--chart-2))", r: 3 }}
+          dot={{ fill: "var(--color-likes)", r: 3 }}
           activeDot={{ r: 5 }}
           name="いいね数"
         />
