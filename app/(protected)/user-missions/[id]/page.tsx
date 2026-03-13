@@ -1,4 +1,5 @@
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -11,6 +12,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { Like, MvvItem, PraisedUser } from "@/lib/types/user-missions";
 import { isLikeExpired } from "@/lib/utils/user-mission-likes";
 import { Calendar, User } from "lucide-react";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 
 export const runtime = "edge";
@@ -169,7 +171,7 @@ export default async function UserMissionDetailPage({
                 </div>
               </CardDescription>
             </div>
-            <div className="md:ml-4">
+            <div className="md:ml-4 flex flex-col gap-2 items-start md:items-end">
               <LikeButton
                 missionId={mission.id}
                 initialLiked={mission.isLikedByCurrentUser}
@@ -177,6 +179,13 @@ export default async function UserMissionDetailPage({
                 isOwnMission={isOwnMission}
                 isExpired={isLikeExpired(mission.publishedAt)}
               />
+              {isOwnMission && mission.status === "approved" && (
+                <Link href={`/user-missions/${mission.id}/edit`}>
+                  <Button variant="outline" size="sm">
+                    編集
+                  </Button>
+                </Link>
+              )}
             </div>
           </div>
         </CardHeader>

@@ -357,11 +357,18 @@ export function MyMissionsListClient({
               </Link>
             </div>
           ) : (
-            <Link href={`/user-missions/${mission.id}`} className="ml-auto">
-              <Button variant="ghost" size="sm">
-                詳細を見る
-              </Button>
-            </Link>
+            <div className="ml-auto flex gap-2">
+              <Link href={`/user-missions/${mission.id}/edit`}>
+                <Button variant="outline" size="sm">
+                  編集
+                </Button>
+              </Link>
+              <Link href={`/user-missions/${mission.id}`}>
+                <Button variant="ghost" size="sm">
+                  詳細を見る
+                </Button>
+              </Link>
+            </div>
           )}
         </CardFooter>
       </Card>

@@ -32,6 +32,11 @@ export interface SaveDraftUserMissionInput {
   };
 }
 
+export interface UpdateApprovedUserMissionInput {
+  title: string;
+  content: string;
+}
+
 export type SaveDraftUserMissionResult =
   | { success: true; missionId: string }
   | { success: false; error: string };
@@ -346,6 +351,76 @@ export async function createUserMissionAction(input: CreateUserMissionInput) {
     console.error("createUserMissionAction総合エラー:", error);
     throw error;
   }
+}
+
+export async function updateUserMissionAction(
+  missionId: string,
+  input: UpdateApprovedUserMissionInput,
+) {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    throw new Error("認証に失敗しました。再ログインしてください。");
+  }
+
+  const { data: mission, error: missionError } = await supabase
+    .from("user_missions")
+    .select("id, created_by, status")
+    .eq("id", missionId)
+    .single();
+
+  if (missionError || !mission) {
+    throw new Error("グッジョブが見つかりません。");
+  }
+
+  if (mission.created_by !== user.id) {
+    throw new Error("権限がありません。");
+  }
+
+  if (mission.status !== "approved") {
+    throw new Error("公開済みのグッジョブのみ編集できます。");
+  }
+
+  const normalizedTitle = input.title.trim();
+  const normalizedContent = input.content.trim();
+
+  if (normalizedTitle.length === 0) {
+    throw new Error("タイトルを入力してください。");
+  }
+  if (normalizedContent.length === 0) {
+    throw new Error("内容を入力してください。");
+  }
+
+  const { error: updateError } = await supabase
+    .from("user_missions")
+    .update({
+      title: normalizedTitle,
+      content: normalizedContent,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", missionId);
+
+  if (updateError) {
+    throw new Error(`グッジョブの更新に失敗しました: ${updateError.message}`);
+  }
+
+  if (!process.env.CF_PAGES) {
+    try {
+      revalidatePath("/user-missions");
+      revalidatePath("/user-missions/my");
+      revalidatePath("/");
+      revalidatePath(`/user-missions/${missionId}`);
+    } catch (revalidateError) {
+      console.error("Revalidate エラー（継続）:", revalidateError);
+    }
+  }
+
+  return { success: true };
 }
 
 export async function toggleLikeAction(missionId: string) {
