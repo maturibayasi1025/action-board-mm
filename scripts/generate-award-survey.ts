@@ -15,9 +15,10 @@ function getRequiredEnv(name: string): string {
 }
 
 function calculatePeriodNumber(year: number, month: number): number {
-  const periodStartYear = 2025;
-  const periodStartMonth = 4;
-  return (year - periodStartYear) * 12 + (month - periodStartMonth) + 1;
+  const periodBaseNumber = 12;
+  const periodBaseFiscalYear = 2026; // 2026/03 - 2027/02 が 12期
+  const fiscalYear = month >= 3 ? year : year - 1;
+  return periodBaseNumber + (fiscalYear - periodBaseFiscalYear);
 }
 
 async function sendSlackNotification(params: {

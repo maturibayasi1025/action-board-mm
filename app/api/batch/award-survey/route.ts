@@ -4,12 +4,13 @@ import { type NextRequest, NextResponse } from "next/server";
 export const runtime = "edge";
 
 /**
- * 2025年4月を1期として期数を計算する
+ * 3月始まりの年度で期数を計算する（3月〜翌2月で同一期）
  */
 function calculatePeriodNumber(year: number, month: number): number {
-  const PERIOD_START_YEAR = 2025;
-  const PERIOD_START_MONTH = 4; // 4月
-  return (year - PERIOD_START_YEAR) * 12 + (month - PERIOD_START_MONTH) + 1;
+  const PERIOD_BASE_NUMBER = 12;
+  const PERIOD_BASE_FISCAL_YEAR = 2026; // 2026/03 - 2027/02 が 12期
+  const fiscalYear = month >= 3 ? year : year - 1;
+  return PERIOD_BASE_NUMBER + (fiscalYear - PERIOD_BASE_FISCAL_YEAR);
 }
 
 /**
