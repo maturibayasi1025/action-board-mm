@@ -27,13 +27,9 @@ jobs:
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          BATCH_ADMIN_KEY: ${{ secrets.BATCH_ADMIN_KEY }}
           NEXT_PUBLIC_APP_ORIGIN: ${{ secrets.NEXT_PUBLIC_APP_ORIGIN }}
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-        run: |
-          curl -X POST "${{ secrets.NEXT_PUBLIC_APP_ORIGIN }}/api/batch/enps-survey" \
-            -H "Content-Type: application/json" \
-            -d "{\"adminKey\": \"${{ secrets.BATCH_ADMIN_KEY }}\"}"
+        run: npm run generate-enps-survey
 
       - name: Notify on failure
         if: failure()

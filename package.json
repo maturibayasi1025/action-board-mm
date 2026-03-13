@@ -40,6 +40,8 @@
     "poster:clear": "./poster_data/clear.sh",
     "poster:mask-names": "tsx poster_data/mask-names.ts",
     "calculate-badges": "tsx scripts/calculate-badges.ts",
+    "generate-award-survey": "tsx scripts/generate-award-survey.ts",
+    "generate-enps-survey": "tsx scripts/generate-enps-survey.ts",
     "clean": "rm -rf .next && rm -rf out && rm -rf .vercel",
     "clean-cache": "rm -rf .next/cache && rm -rf .next/trace"
   },
