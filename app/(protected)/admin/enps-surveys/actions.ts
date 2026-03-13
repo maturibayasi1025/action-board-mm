@@ -26,16 +26,26 @@ export async function getSurveys() {
         .select("*", { count: "exact", head: true })
         .eq("survey_id", survey.id);
 
-      // ユニークな回答者数を取得
-      const { count: uniqueUsers } = await supabase
+      // 行数ではなく、回答したユニークユーザー数を算出する
+      const { data: responders, error: respondersError } = await supabase
         .from("enps_responses")
-        .select("user_id", { count: "exact", head: true })
+        .select("user_id")
         .eq("survey_id", survey.id);
+
+      if (respondersError) {
+        console.error("ユニーク回答者数の取得エラー:", respondersError);
+      }
+
+      const uniqueUsers = new Set(
+        (responders || [])
+          .map((responder) => responder.user_id)
+          .filter((userId): userId is string => typeof userId === "string"),
+      ).size;
 
       return {
         ...survey,
         response_count: count || 0,
-        unique_response_count: uniqueUsers || 0,
+        unique_response_count: uniqueUsers,
       };
     }),
   );
