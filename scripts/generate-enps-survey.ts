@@ -90,9 +90,10 @@ async function main() {
     const supabase = createClient<Database>(supabaseUrl, serviceRoleKey);
 
     const now = new Date();
-    const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-    const yearMonth = `${nextMonth.getFullYear()}-${String(nextMonth.getMonth() + 1).padStart(2, "0")}`;
-    const yearMonthDisplay = `${nextMonth.getFullYear()}年${nextMonth.getMonth() + 1}月度`;
+    const year = now.getFullYear();
+    const month = now.getMonth();
+    const yearMonth = `${year}-${String(month + 1).padStart(2, "0")}`;
+    const yearMonthDisplay = `${year}年${month + 1}月度`;
 
     const { data: existingSurvey, error: existingSurveyError } = await supabase
       .from("enps_surveys")
@@ -107,23 +108,12 @@ async function main() {
     }
 
     if (existingSurvey) {
-      console.log(`来月分のアンケート（${yearMonth}）は既に存在します`);
+      console.log(`当月分のアンケート（${yearMonth}）は既に存在します`);
       process.exit(0);
     }
 
-    const startDate = new Date(
-      nextMonth.getFullYear(),
-      nextMonth.getMonth(),
-      1,
-    );
-    const endDate = new Date(
-      nextMonth.getFullYear(),
-      nextMonth.getMonth() + 1,
-      0,
-      23,
-      59,
-      59,
-    );
+    const startDate = new Date(year, month, 25);
+    const endDate = new Date(year, month + 1, 0, 23, 59, 59);
 
     const { data: survey, error: surveyError } = await supabase
       .from("enps_surveys")

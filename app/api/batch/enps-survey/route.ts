@@ -7,7 +7,7 @@ export const runtime = "edge";
  * 月次eNPSアンケートを自動生成するバッチ処理
  *
  * 本APIはGitHub Actions Cronから呼び出される想定で、以下の処理を行います：
- * 1. 来月分のアンケートを自動生成
+ * 1. 当月分のアンケートを自動生成
  * 2. 既存の有効な質問を確認
  * 3. Slack Webhook で通知（回答用URL付き）
  */
@@ -29,13 +29,14 @@ export async function POST(request: NextRequest) {
 
     console.log("=== eNPSアンケート自動生成バッチ処理を開始します ===");
 
-    // 来月の年月を計算
+    // 当月の年月を計算
     const now = new Date();
-    const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-    const yearMonth = `${nextMonth.getFullYear()}-${String(nextMonth.getMonth() + 1).padStart(2, "0")}`;
-    const yearMonthDisplay = `${nextMonth.getFullYear()}年${nextMonth.getMonth() + 1}月度`;
+    const year = now.getFullYear();
+    const month = now.getMonth();
+    const yearMonth = `${year}-${String(month + 1).padStart(2, "0")}`;
+    const yearMonthDisplay = `${year}年${month + 1}月度`;
 
-    // 既に来月分のアンケートが存在するかチェック
+    // 既に当月分のアンケートが存在するかチェック
     const { data: existingSurvey } = await supabase
       .from("enps_surveys")
       .select("id")
@@ -43,30 +44,19 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (existingSurvey) {
-      console.log(`来月分のアンケート（${yearMonth}）は既に存在します`);
+      console.log(`当月分のアンケート（${yearMonth}）は既に存在します`);
       return NextResponse.json({
         success: true,
-        message: `来月分のアンケート（${yearMonth}）は既に存在します`,
+        message: `当月分のアンケート（${yearMonth}）は既に存在します`,
         survey_id: existingSurvey.id,
       });
     }
 
     // 回答開始日時と終了日時を設定
-    // 開始日時: 来月1日の00:00 JST
-    const startDate = new Date(
-      nextMonth.getFullYear(),
-      nextMonth.getMonth(),
-      1,
-    );
-    // 終了日時: 来月末日の23:59 JST
-    const endDate = new Date(
-      nextMonth.getFullYear(),
-      nextMonth.getMonth() + 1,
-      0,
-      23,
-      59,
-      59,
-    );
+    // 開始日時: 当月25日の00:00 JST
+    const startDate = new Date(year, month, 25);
+    // 終了日時: 当月末日の23:59 JST
+    const endDate = new Date(year, month + 1, 0, 23, 59, 59);
 
     // アンケートを作成
     const { data: survey, error: surveyError } = await supabase
@@ -237,12 +227,11 @@ export async function GET() {
   try {
     const supabase = await createServiceClient();
 
-    // 来月の年月を計算
+    // 当月の年月を計算
     const now = new Date();
-    const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-    const yearMonth = `${nextMonth.getFullYear()}-${String(nextMonth.getMonth() + 1).padStart(2, "0")}`;
+    const yearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 
-    // 来月分のアンケートが既に存在するか確認
+    // 当月分のアンケートが既に存在するか確認
     const { data: existingSurvey } = await supabase
       .from("enps_surveys")
       .select("id, title, created_at, slack_notified_at")

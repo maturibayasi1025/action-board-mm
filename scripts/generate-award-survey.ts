@@ -97,13 +97,13 @@ async function main() {
     const supabase = createClient<Database>(supabaseUrl, serviceRoleKey);
 
     const now = new Date();
-    const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-    const nextYear = nextMonth.getFullYear();
-    const nextMonthNum = nextMonth.getMonth() + 1;
-    const yearMonth = `${nextYear}-${String(nextMonthNum).padStart(2, "0")}`;
-    const yearMonthDisplay = `${nextYear}年${String(nextMonthNum).padStart(2, "0")}月度`;
-    const periodNumber = calculatePeriodNumber(nextYear, nextMonthNum);
-    const title = `【表彰アンケート】${periodNumber}期／${nextYear}年${String(nextMonthNum).padStart(2, "0")}月度`;
+    const year = now.getFullYear();
+    const month = now.getMonth();
+    const monthNumber = month + 1;
+    const yearMonth = `${year}-${String(monthNumber).padStart(2, "0")}`;
+    const yearMonthDisplay = `${year}年${String(monthNumber).padStart(2, "0")}月度`;
+    const periodNumber = calculatePeriodNumber(year, monthNumber);
+    const title = `【表彰アンケート】${periodNumber}期／${year}年${String(monthNumber).padStart(2, "0")}月度`;
 
     const { data: existingSurvey, error: existingSurveyError } = await supabase
       .from("award_surveys")
@@ -118,12 +118,12 @@ async function main() {
     }
 
     if (existingSurvey) {
-      console.log(`来月分のアンケート（${yearMonth}）は既に存在します`);
+      console.log(`当月分のアンケート（${yearMonth}）は既に存在します`);
       process.exit(0);
     }
 
-    const startDate = new Date(nextYear, nextMonth.getMonth(), 1);
-    const endDate = new Date(nextYear, nextMonth.getMonth() + 1, 0, 23, 59, 59);
+    const startDate = new Date(year, month, 25);
+    const endDate = new Date(year, month + 1, 0, 23, 59, 59);
 
     const { data: survey, error: surveyError } = await supabase
       .from("award_surveys")
