@@ -113,6 +113,7 @@ async function getUserMissionsServer() {
     updatedAt: mission.updated_at,
     approvedAt: mission.approved_at,
     approvedBy: mission.approved_by,
+    publishedAt: mission.published_at,
     publicMissionId: mission.public_mission_id,
     likesCount: mission.likes_count,
     mvvItems: {

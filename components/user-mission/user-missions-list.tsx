@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/select";
 import { LikeButton } from "@/components/user-mission/like-button";
 import { createClient } from "@/lib/supabase/client";
+import { isLikeExpired } from "@/lib/utils/user-mission-likes";
 import { Calendar, PenTool, Plus, Search, User, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
@@ -43,6 +44,7 @@ type UserMission = {
   updatedAt: string;
   approvedAt: string | null;
   approvedBy: string | null;
+  publishedAt: string | null;
   publicMissionId: string | null;
   likesCount: number;
   mvvItems: {
@@ -427,6 +429,7 @@ export function UserMissionsList({ missions }: { missions: UserMission[] }) {
                   initialLiked={mission.isLikedByCurrentUser || false}
                   initialCount={mission.likesCount}
                   isOwnMission={currentUserId === mission.createdBy}
+                  isExpired={isLikeExpired(mission.publishedAt)}
                 />
                 <Link
                   href={`/user-missions/${mission.id}`}

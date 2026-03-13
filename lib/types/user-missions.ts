@@ -33,6 +33,7 @@ export interface UserMissionWithRelations {
   updated_at: string;
   approved_at: string | null;
   approved_by: string | null;
+  published_at: string | null;
   public_mission_id: string | null;
   likes_count: number;
   user_mission_mvv_items: MvvItem[] | null;

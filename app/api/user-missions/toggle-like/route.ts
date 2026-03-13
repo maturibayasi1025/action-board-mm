@@ -1,3 +1,4 @@
+import { isLikeExpired } from "@/lib/utils/user-mission-likes";
 import { createClient } from "@supabase/supabase-js";
 // app/api/user-missions/toggle-like/route.ts
 import { type NextRequest, NextResponse } from "next/server";
@@ -46,13 +47,20 @@ export async function POST(request: NextRequest) {
     // グッジョブの作成者とタイトルを確認
     const { data: mission } = await supabase
       .from("user_missions")
-      .select("created_by, title")
+      .select("created_by, title, published_at")
       .eq("id", missionId)
       .single();
 
     if (mission?.created_by === user.id) {
       return NextResponse.json(
         { error: "自分のグッジョブにはいいねできません" },
+        { status: 400 },
+      );
+    }
+
+    if (isLikeExpired(mission?.published_at ?? null)) {
+      return NextResponse.json(
+        { error: "いいね可能期間（7日間）を過ぎています" },
         { status: 400 },
       );
     }

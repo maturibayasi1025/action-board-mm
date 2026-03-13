@@ -11,6 +11,7 @@ import {
 import { LikeButton } from "@/components/user-mission/like-button";
 import { createClient } from "@/lib/supabase/server";
 import type { Like, MvvItem, PraisedUser } from "@/lib/types/user-missions";
+import { isLikeExpired } from "@/lib/utils/user-mission-likes";
 import { ArrowRight, PenTool, Plus, User } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
@@ -128,6 +129,7 @@ async function getUserMissionsServer() {
           updated_at: string;
           approved_at: string | null;
           approved_by: string | null;
+          published_at: string | null;
           public_mission_id: string | null;
           likes_count: number;
           image_paths?: string[] | null;
@@ -166,6 +168,7 @@ async function getUserMissionsServer() {
           updatedAt: missionTyped.updated_at,
           approvedAt: missionTyped.approved_at,
           approvedBy: missionTyped.approved_by,
+          publishedAt: missionTyped.published_at,
           publicMissionId: missionTyped.public_mission_id,
           likesCount: missionTyped.likes_count,
           mvvItems: {
@@ -200,6 +203,7 @@ async function getUserMissionsServer() {
           updated_at: string;
           approved_at: string | null;
           approved_by: string | null;
+          published_at: string | null;
           public_mission_id: string | null;
           likes_count: number;
           image_paths?: string[] | null;
@@ -226,6 +230,7 @@ async function getUserMissionsServer() {
           updatedAt: missionTyped.updated_at,
           approvedAt: missionTyped.approved_at,
           approvedBy: missionTyped.approved_by,
+          publishedAt: missionTyped.published_at,
           publicMissionId: missionTyped.public_mission_id,
           likesCount: missionTyped.likes_count || 0,
           mvvItems: {
@@ -348,6 +353,7 @@ async function UserMissionsList() {
                   initialLiked={mission.isLikedByCurrentUser || false}
                   initialCount={mission.likesCount}
                   isOwnMission={user?.id === mission.createdBy}
+                  isExpired={isLikeExpired(mission.publishedAt)}
                 />
                 <Link
                   href={`/user-missions/${mission.id}`}

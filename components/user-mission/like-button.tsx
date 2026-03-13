@@ -15,6 +15,7 @@ interface LikeButtonProps {
   initialCount: number;
   onLikeChange?: (liked: boolean, count: number) => void;
   isOwnMission?: boolean;
+  isExpired?: boolean;
 }
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -36,6 +37,7 @@ export function LikeButton({
   initialCount,
   onLikeChange,
   isOwnMission = false,
+  isExpired = false,
 }: LikeButtonProps) {
   const [isLiked, setIsLiked] = useState(initialLiked);
   const [likesCount, setLikesCount] = useState(initialCount);
@@ -44,6 +46,9 @@ export function LikeButton({
   const handleClick = async () => {
     // 自分のグッジョブの場合は処理をスキップ
     if (isOwnMission) {
+      return;
+    }
+    if (isExpired) {
       return;
     }
 
@@ -104,6 +109,15 @@ export function LikeButton({
 
   const isRainbow = likesCount > 10;
   const uniqueId = `rainbow-gradient-${missionId}`;
+
+  if (isExpired) {
+    return (
+      <div className="flex items-center gap-2 text-muted-foreground px-3 py-2">
+        <Heart className="h-4 w-4" />
+        <span>{likesCount}</span>
+      </div>
+    );
+  }
 
   return (
     <>

@@ -9,6 +9,7 @@ import {
 import { LikeButton } from "@/components/user-mission/like-button";
 import { createClient } from "@/lib/supabase/server";
 import type { Like, MvvItem, PraisedUser } from "@/lib/types/user-missions";
+import { isLikeExpired } from "@/lib/utils/user-mission-likes";
 import { Calendar, User } from "lucide-react";
 import { notFound } from "next/navigation";
 
@@ -88,6 +89,7 @@ async function getUserMissionById(id: string) {
     updatedAt: data.updated_at,
     approvedAt: data.approved_at,
     approvedBy: data.approved_by,
+    publishedAt: data.published_at,
     publicMissionId: data.public_mission_id,
     likesCount: data.likes_count,
     mvvItems: {
@@ -173,6 +175,7 @@ export default async function UserMissionDetailPage({
                 initialLiked={mission.isLikedByCurrentUser}
                 initialCount={mission.likesCount}
                 isOwnMission={isOwnMission}
+                isExpired={isLikeExpired(mission.publishedAt)}
               />
             </div>
           </div>

@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import type { Json } from "@/lib/types/supabase";
+import { isLikeExpired } from "@/lib/utils/user-mission-likes";
 import { revalidatePath } from "next/cache";
 
 export interface CreateUserMissionInput {
@@ -401,7 +402,7 @@ export async function toggleLikeAction(missionId: string) {
     // グッジョブの作成者を確認
     const { data: mission, error: missionError } = await supabase
       .from("user_missions")
-      .select("created_by")
+      .select("created_by, published_at")
       .eq("id", missionId)
       .single();
 
@@ -415,6 +416,10 @@ export async function toggleLikeAction(missionId: string) {
     // 自分のグッジョブにはいいねできない
     if (mission.created_by === user.id) {
       throw new Error("自分のグッジョブにはいいねできません");
+    }
+
+    if (isLikeExpired(mission.published_at)) {
+      throw new Error("いいね可能期間（7日間）を過ぎています");
     }
 
     // 既存のいいねをチェック
