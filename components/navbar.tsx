@@ -54,6 +54,9 @@ export default async function Navbar() {
                   ランキング
                 </Link>
               </div>
+              <div className="font-semibold hidden sm:flex">
+                <Link href="/dashboard">ダッシュボード</Link>
+              </div>
               <div className="hidden sm:flex">
                 <Button asChild size="sm" variant="default">
                   <Link
@@ -103,6 +106,9 @@ export default async function Navbar() {
                       <Link href="/ranking/ranking-mission?missionId=e1f1d556-df31-4f79-b96d-6a1badeb5a0b">
                         ランキング
                       </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/dashboard">ダッシュボード</Link>
                     </DropdownMenuItem>
                   </DropdownMenuGroup>
                 </DropdownMenuContent>

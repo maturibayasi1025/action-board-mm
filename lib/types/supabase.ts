@@ -1879,6 +1879,20 @@ export type Database = {
     };
     Functions: {
       calculate_level_from_xp: { Args: { xp: number }; Returns: number };
+      get_daily_user_mission_counts: {
+        Args: { p_end_date: string; p_start_date: string };
+        Returns: {
+          count: number;
+          date: string;
+        }[];
+      };
+      get_daily_user_mission_likes_counts: {
+        Args: { p_end_date: string; p_start_date: string };
+        Returns: {
+          count: number;
+          date: string;
+        }[];
+      };
       get_likes_ranking: {
         Args: { limit_count?: number };
         Returns: {
