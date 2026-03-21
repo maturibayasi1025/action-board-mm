@@ -1,6 +1,8 @@
 import { getMissionData } from "@/app/missions/[id]/_lib/data";
+import { createClient } from "@/lib/supabase/server";
 
 import type { LinkedPostMissionContext } from "./linked-post-mission.types";
+import { hasAchievementInActiveSurveyPeriod } from "./survey-linked-achievement-in-period";
 
 export type SurveyKind = "enps" | "award";
 
@@ -44,5 +46,14 @@ export async function getLinkedPostMissionContext(
     return null;
   }
 
-  return { mission };
+  const supabase = await createClient();
+  const alreadyRecordedInActiveSurveyPeriod =
+    await hasAchievementInActiveSurveyPeriod(
+      supabase,
+      userId,
+      missionId,
+      surveyKind,
+    );
+
+  return { mission, alreadyRecordedInActiveSurveyPeriod };
 }

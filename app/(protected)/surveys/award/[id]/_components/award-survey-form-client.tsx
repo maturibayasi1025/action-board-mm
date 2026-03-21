@@ -75,6 +75,9 @@ export function AwardSurveyFormClient({
           onOpenChange={setPostMissionOpen}
           mission={linkedPostMission.mission}
           authUser={authUser}
+          alreadyRecordedInActiveSurveyPeriod={
+            linkedPostMission.alreadyRecordedInActiveSurveyPeriod
+          }
         />
       )}
     </>

@@ -19,6 +19,7 @@ import type { Tables } from "@/lib/types/supabase";
 import type { User } from "@supabase/supabase-js";
 import { AlertCircle } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -33,6 +34,8 @@ type Props = {
   onOpenChange: (open: boolean) => void;
   mission: Tables<"missions">;
   authUser: User;
+  /** 受付期間内にすでに達成記録がある（送信不可・ボタン無効） */
+  alreadyRecordedInActiveSurveyPeriod?: boolean;
 };
 
 export function SurveyPostMissionDialog({
@@ -40,7 +43,9 @@ export function SurveyPostMissionDialog({
   onOpenChange,
   mission,
   authUser,
+  alreadyRecordedInActiveSurveyPeriod = false,
 }: Props) {
+  const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [formKey, setFormKey] = useState(0);
@@ -81,6 +86,7 @@ export function SurveyPostMissionDialog({
         setFormKey((k) => k + 1);
         handleXpAnimation(result);
         onOpenChange(false);
+        router.refresh();
         setIsCompleteDialogOpen(true);
       } else {
         setErrorMessage(result.error || "エラーが発生しました");
@@ -159,17 +165,22 @@ export function SurveyPostMissionDialog({
                 }
               />
 
+              {alreadyRecordedInActiveSurveyPeriod && (
+                <div className="rounded-lg border border-muted bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
+                  このアンケートの受付期間中は、すでにグッジョブを記録済みです。次の受付が始まるまでお待ちください。
+                </div>
+              )}
               <ArtifactForm
                 key={formKey}
                 mission={mission}
                 authUser={authUser}
-                disabled={isSubmitting}
+                disabled={isSubmitting || alreadyRecordedInActiveSurveyPeriod}
                 submittedArtifactImagePath={null}
               />
               <SubmitButton
                 pendingText="登録中..."
                 size="lg"
-                disabled={isSubmitting}
+                disabled={isSubmitting || alreadyRecordedInActiveSurveyPeriod}
               >
                 グッジョブ完了を記録する
               </SubmitButton>

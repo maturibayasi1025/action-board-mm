@@ -90,6 +90,9 @@ export function SurveyFormClient({
           onOpenChange={setPostMissionOpen}
           mission={linkedPostMission.mission}
           authUser={authUser}
+          alreadyRecordedInActiveSurveyPeriod={
+            linkedPostMission.alreadyRecordedInActiveSurveyPeriod
+          }
         />
       )}
     </>

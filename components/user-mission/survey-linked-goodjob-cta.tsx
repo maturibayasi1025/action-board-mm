@@ -27,6 +27,7 @@ export function SurveyLinkedGoodjobCta({
   authUser,
 }: Props) {
   const [dialogOpen, setDialogOpen] = useState(false);
+  const alreadyDone = linkedPostMission.alreadyRecordedInActiveSurveyPeriod;
 
   return (
     <>
@@ -35,10 +36,21 @@ export function SurveyLinkedGoodjobCta({
           <CardTitle className="text-lg">{title}</CardTitle>
           <CardDescription>{description}</CardDescription>
         </CardHeader>
-        <CardContent>
-          <Button type="button" onClick={() => setDialogOpen(true)}>
-            グッジョブの達成を記録する
+        <CardContent className="space-y-2">
+          <Button
+            type="button"
+            disabled={alreadyDone}
+            onClick={() => setDialogOpen(true)}
+          >
+            {alreadyDone
+              ? "この受付期間は記録済みです"
+              : "グッジョブの達成を記録する"}
           </Button>
+          {alreadyDone && (
+            <p className="text-sm text-muted-foreground">
+              次の受付が始まるまで、再度の記録はできません。
+            </p>
+          )}
         </CardContent>
       </Card>
 
@@ -47,6 +59,9 @@ export function SurveyLinkedGoodjobCta({
         onOpenChange={setDialogOpen}
         mission={linkedPostMission.mission}
         authUser={authUser}
+        alreadyRecordedInActiveSurveyPeriod={
+          linkedPostMission.alreadyRecordedInActiveSurveyPeriod
+        }
       />
     </>
   );
