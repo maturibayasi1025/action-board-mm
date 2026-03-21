@@ -5,7 +5,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import { getLinkedPostMissionContext } from "../../_lib/linked-post-mission";
 import { AwardSurveyFormClient } from "./_components/award-survey-form-client";
 import {
   getAwardQuestions,
@@ -39,6 +41,17 @@ export default async function AwardSurveyPage({
   const isExpired = endDate < now;
   const isNotStarted = startDate > now;
   const hasResponded = Object.keys(existingResponses).length > 0;
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const isFirstTimeResponse = !hasResponded;
+  const isSurveyInActiveWindow = !isNotStarted && !isExpired;
+  const linkedPostMission =
+    user && isFirstTimeResponse && isSurveyInActiveWindow
+      ? await getLinkedPostMissionContext("award", user.id)
+      : null;
 
   return (
     <div className="container mx-auto py-8 px-4">
@@ -96,6 +109,9 @@ export default async function AwardSurveyPage({
               questions={questions}
               existingResponses={existingResponses}
               userName={userName}
+              linkedPostMission={linkedPostMission}
+              isFirstTimeResponse={isFirstTimeResponse}
+              authUser={user}
             />
           ))}
 

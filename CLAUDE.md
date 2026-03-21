@@ -108,6 +108,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `LINE_CLIENT_SECRET` - LINE Login用チャンネルシークレット
 - `NEXT_PUBLIC_LINE_CLIENT_ID` - LINE Login用チャンネルID
 - `BATCH_ADMIN_KEY` - バッチ処理API用の管理者キー
+- `SURVEY_ENPS_POST_MISSION_ID` / `SURVEY_AWARD_POST_MISSION_ID`（任意）- eNPS・表彰アンケートの初回回答後に案内するグッジョブの `missions.id`。未設定時は案内モーダルは出ない。運用では TEXT/NONE などダイアログから投稿しやすい成果物タイプのミッションを2件用意し、各IDを設定する
 
 ### GitHub Actions Secrets
 - スケジュールワークフロー（eNPS/Awardサーベイ、バッジ計算）に必要なSecretsは `.github/SECRETS_SETUP.md` を参照

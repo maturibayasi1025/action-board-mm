@@ -1,19 +1,26 @@
 "use client";
 
+import type { LinkedPostMissionContext } from "@/app/(protected)/surveys/_lib/linked-post-mission.types";
 import type {
   AwardQuestion,
   AwardResponse,
 } from "@/app/(protected)/surveys/award/[id]/actions";
 import { submitAwardResponse } from "@/app/(protected)/surveys/award/[id]/actions";
 import { AwardSurveyForm } from "@/components/award/AwardSurveyForm";
+import { SurveyPostMissionDialog } from "@/components/survey/SurveyPostMissionDialog";
+import type { User } from "@supabase/supabase-js";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { toast } from "sonner";
 
 interface AwardSurveyFormClientProps {
   surveyId: string;
   questions: AwardQuestion[];
   existingResponses: Record<string, AwardResponse>;
   userName: string | null;
+  linkedPostMission: LinkedPostMissionContext | null;
+  isFirstTimeResponse: boolean;
+  authUser: User | null;
 }
 
 export function AwardSurveyFormClient({
@@ -21,19 +28,30 @@ export function AwardSurveyFormClient({
   questions,
   existingResponses,
   userName,
+  linkedPostMission,
+  isFirstTimeResponse,
+  authUser,
 }: AwardSurveyFormClientProps) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [postMissionOpen, setPostMissionOpen] = useState(false);
 
   const handleSubmit = async (responses: AwardResponse[]) => {
+    const shouldOfferMission =
+      isFirstTimeResponse && linkedPostMission !== null && authUser !== null;
+
     setIsSubmitting(true);
     try {
       await submitAwardResponse(surveyId, responses);
       router.refresh();
-      alert("回答を送信しました。ありがとうございます！");
+      if (shouldOfferMission) {
+        setPostMissionOpen(true);
+      } else {
+        toast.success("回答を送信しました。ありがとうございます！");
+      }
     } catch (error) {
       console.error("回答の送信に失敗しました:", error);
-      alert(
+      toast.error(
         error instanceof Error ? error.message : "回答の送信に失敗しました",
       );
     } finally {
@@ -42,13 +60,24 @@ export function AwardSurveyFormClient({
   };
 
   return (
-    <AwardSurveyForm
-      surveyId={surveyId}
-      questions={questions}
-      existingResponses={existingResponses}
-      userName={userName}
-      onSubmit={handleSubmit}
-      disabled={isSubmitting}
-    />
+    <>
+      <AwardSurveyForm
+        surveyId={surveyId}
+        questions={questions}
+        existingResponses={existingResponses}
+        userName={userName}
+        onSubmit={handleSubmit}
+        disabled={isSubmitting}
+      />
+      {linkedPostMission && authUser && (
+        <SurveyPostMissionDialog
+          open={postMissionOpen}
+          onOpenChange={setPostMissionOpen}
+          mission={linkedPostMission.mission}
+          authUser={authUser}
+          userAchievementCount={linkedPostMission.userAchievementCount}
+        />
+      )}
+    </>
   );
 }

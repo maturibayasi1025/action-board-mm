@@ -92,6 +92,7 @@ export async function submitAwardResponse(
   }
 
   revalidatePath(`/surveys/award/${surveyId}`);
+  revalidatePath("/user-missions/new");
   return { success: true };
 }
 

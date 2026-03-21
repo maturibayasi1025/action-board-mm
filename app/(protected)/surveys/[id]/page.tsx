@@ -5,7 +5,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import { getLinkedPostMissionContext } from "../_lib/linked-post-mission";
 import { SurveyFormClient } from "./_components/survey-form-client";
 import { getSurvey, getSurveyQuestions, getUserResponses } from "./actions";
 
@@ -30,6 +32,17 @@ export default async function SurveyPage({ params }: SurveyPageProps) {
   const endDate = new Date(survey.end_date);
   const isExpired = endDate < now;
   const isNotStarted = startDate > now;
+  const isSurveyInActiveWindow = !isNotStarted && !isExpired;
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const isFirstTimeResponse = Object.keys(existingResponses).length === 0;
+  const linkedPostMission =
+    user && isFirstTimeResponse && isSurveyInActiveWindow
+      ? await getLinkedPostMissionContext("enps", user.id)
+      : null;
 
   return (
     <div className="container mx-auto py-8 px-4">
@@ -80,6 +93,9 @@ export default async function SurveyPage({ params }: SurveyPageProps) {
               surveyId={id}
               questions={questions}
               existingResponses={existingResponses}
+              linkedPostMission={linkedPostMission}
+              isFirstTimeResponse={isFirstTimeResponse}
+              authUser={user}
             />
           ))}
 

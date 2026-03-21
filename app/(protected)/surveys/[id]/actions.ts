@@ -87,6 +87,7 @@ export async function submitSurveyResponse(
   }
 
   revalidatePath(`/surveys/${surveyId}`);
+  revalidatePath("/user-missions/new");
   return { success: true };
 }
 
