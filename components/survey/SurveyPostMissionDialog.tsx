@@ -1,7 +1,6 @@
 "use client";
 
 import { MissionCompleteDialog } from "@/app/missions/[id]/_components/MissionCompleteDialog";
-import { useMissionSubmission } from "@/app/missions/[id]/_hooks/useMissionSubmission";
 import { achieveMissionAction } from "@/app/missions/[id]/actions";
 import { ArtifactForm } from "@/components/mission/ArtifactForm";
 import { SubmitButton } from "@/components/submit-button";
@@ -34,7 +33,6 @@ type Props = {
   onOpenChange: (open: boolean) => void;
   mission: Tables<"missions">;
   authUser: User;
-  userAchievementCount: number;
 };
 
 export function SurveyPostMissionDialog({
@@ -42,13 +40,7 @@ export function SurveyPostMissionDialog({
   onOpenChange,
   mission,
   authUser,
-  userAchievementCount,
 }: Props) {
-  const { buttonLabel, hasReachedUserMaxAchievements } = useMissionSubmission(
-    mission,
-    userAchievementCount,
-  );
-
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [formKey, setFormKey] = useState(0);
@@ -126,7 +118,7 @@ export function SurveyPostMissionDialog({
     }
   };
 
-  const showForm = !unsupported && !hasReachedUserMaxAchievements;
+  const showForm = !unsupported;
 
   return (
     <>
@@ -145,17 +137,6 @@ export function SurveyPostMissionDialog({
                 このグッジョブはこの画面からは投稿できません。グッジョブ詳細ページから達成を記録してください。
               </p>
               <Button asChild className="w-full">
-                <Link href={`/missions/${mission.id}`}>
-                  グッジョブ詳細を開く
-                </Link>
-              </Button>
-            </div>
-          )}
-
-          {!unsupported && hasReachedUserMaxAchievements && (
-            <div className="space-y-3 text-sm text-muted-foreground">
-              <p>このグッジョブは既に達成済みです。</p>
-              <Button asChild variant="outline" className="w-full">
                 <Link href={`/missions/${mission.id}`}>
                   グッジョブ詳細を開く
                 </Link>
@@ -190,7 +171,7 @@ export function SurveyPostMissionDialog({
                 size="lg"
                 disabled={isSubmitting}
               >
-                {buttonLabel}
+                グッジョブ完了を記録する
               </SubmitButton>
               <p className="text-sm text-muted-foreground">
                 ※

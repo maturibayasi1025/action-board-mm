@@ -47,7 +47,6 @@ export function SurveyLinkedGoodjobCta({
         onOpenChange={setDialogOpen}
         mission={linkedPostMission.mission}
         authUser={authUser}
-        userAchievementCount={linkedPostMission.userAchievementCount}
       />
     </>
   );

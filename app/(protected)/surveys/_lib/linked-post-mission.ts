@@ -1,7 +1,4 @@
-import {
-  getMissionData,
-  getUserAchievements,
-} from "@/app/missions/[id]/_lib/data";
+import { getMissionData } from "@/app/missions/[id]/_lib/data";
 
 import type { LinkedPostMissionContext } from "./linked-post-mission.types";
 
@@ -32,6 +29,5 @@ export async function getLinkedPostMissionContext(
     return null;
   }
 
-  const { count } = await getUserAchievements(userId, mission.id);
-  return { mission, userAchievementCount: count };
+  return { mission };
 }

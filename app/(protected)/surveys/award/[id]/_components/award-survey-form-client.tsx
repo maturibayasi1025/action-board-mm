@@ -75,7 +75,6 @@ export function AwardSurveyFormClient({
           onOpenChange={setPostMissionOpen}
           mission={linkedPostMission.mission}
           authUser={authUser}
-          userAchievementCount={linkedPostMission.userAchievementCount}
         />
       )}
     </>
