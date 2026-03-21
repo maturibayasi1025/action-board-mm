@@ -1,5 +1,8 @@
 "use server";
 
+import { getSurveyLinkedMissionKind } from "@/app/(protected)/surveys/_lib/linked-post-mission";
+import { userRespondedActiveAwardSurvey } from "@/app/(protected)/surveys/_lib/user-responded-active-award-survey";
+import { userRespondedActiveEnpsSurvey } from "@/app/(protected)/surveys/_lib/user-responded-active-enps-survey";
 import { ARTIFACT_TYPES } from "@/lib/artifactTypes"; // パス変更
 import { VALID_JP_PREFECTURES } from "@/lib/constants/poster-prefectures";
 import {
@@ -378,49 +381,82 @@ export const achieveMissionAction = async (formData: FormData) => {
       `[1日1回制限チェック] JST今日の終了(UTC): ${jstTodayEndUTC.toISOString()}`,
     );
 
-    // 今日（JST）にユーザーが公開したグッジョブを検索（承認済みのみ、published_at基準）
-    const { data: todayUserMissions, error: todayUserMissionError } =
-      await supabase
-        .from("user_missions")
-        .select("id, published_at")
-        .eq("created_by", authUser.id)
-        .eq("status", "approved")
-        .not("published_at", "is", null)
-        .gte("published_at", jstTodayStartUTC.toISOString())
-        .lte("published_at", jstTodayEndUTC.toISOString());
+    const surveyLinkedKind = getSurveyLinkedMissionKind(validatedMissionId);
+    let skipTodayUserMissionPrerequisite = false;
 
-    if (todayUserMissionError) {
-      console.error(
-        `Today's user mission check error: ${todayUserMissionError.message}`,
+    if (surveyLinkedKind === "award") {
+      const responded = await userRespondedActiveAwardSurvey(authUser.id);
+      if (!responded) {
+        return {
+          success: false,
+          error: "受付中の表彰アンケートに回答していないため、達成できません。",
+        };
+      }
+      skipTodayUserMissionPrerequisite = true;
+    } else if (surveyLinkedKind === "enps") {
+      const responded = await userRespondedActiveEnpsSurvey(authUser.id);
+      if (!responded) {
+        return {
+          success: false,
+          error: "受付中のeNPSアンケートに回答していないため、達成できません。",
+        };
+      }
+      skipTodayUserMissionPrerequisite = true;
+    }
+
+    if (!skipTodayUserMissionPrerequisite) {
+      // 今日（JST）にユーザーが公開したグッジョブを検索（承認済みのみ、published_at基準）
+      const { data: todayUserMissions, error: todayUserMissionError } =
+        await supabase
+          .from("user_missions")
+          .select("id, published_at")
+          .eq("created_by", authUser.id)
+          .eq("status", "approved")
+          .not("published_at", "is", null)
+          .gte("published_at", jstTodayStartUTC.toISOString())
+          .lte("published_at", jstTodayEndUTC.toISOString());
+
+      if (todayUserMissionError) {
+        console.error(
+          `Today's user mission check error: ${todayUserMissionError.message}`,
+        );
+        return {
+          success: false,
+          error: "今日のグッジョブ作成記録の確認に失敗しました。",
+        };
+      }
+
+      console.log(
+        `[1日1回制限チェック] 今日のグッジョブ作成記録数: ${todayUserMissions?.length || 0}`,
       );
-      return {
-        success: false,
-        error: "今日のグッジョブ作成記録の確認に失敗しました。",
-      };
+
+      // user_missionsに今日作成されたグッジョブがない場合はエラーを返す
+      if (!todayUserMissions || todayUserMissions.length === 0) {
+        return {
+          success: false,
+          error: "今日グッジョブを作成していないため、達成できません。",
+        };
+      }
+
+      console.log(
+        "[1日1回制限チェック] 今日作成されたグッジョブがあるため、今日達成した共有グッジョブをチェックします",
+      );
+      console.log(
+        "[1日1回制限チェック] 公開記録:",
+        todayUserMissions.map((m) => ({
+          id: m.id,
+          published_at: m.published_at,
+        })),
+      );
+    } else {
+      console.log(
+        "[1日1回制限チェック] アンケート連携共有グッジョブのため、今日のユーザーグッジョブ作成前提をスキップします",
+      );
     }
 
+    // 今日達成した共有グッジョブをチェック（アンケート連携でも 1 日 1 回は維持）
     console.log(
-      `[1日1回制限チェック] 今日のグッジョブ作成記録数: ${todayUserMissions?.length || 0}`,
-    );
-
-    // user_missionsに今日作成されたグッジョブがない場合はエラーを返す
-    if (!todayUserMissions || todayUserMissions.length === 0) {
-      return {
-        success: false,
-        error: "今日グッジョブを作成していないため、達成できません。",
-      };
-    }
-
-    // user_missionsに今日作成されたグッジョブがある場合、achievementsテーブルで今日達成した共有グッジョブをチェック
-    console.log(
-      "[1日1回制限チェック] 今日作成されたグッジョブがあるため、今日達成した共有グッジョブをチェックします",
-    );
-    console.log(
-      "[1日1回制限チェック] 公開記録:",
-      todayUserMissions.map((m) => ({
-        id: m.id,
-        published_at: m.published_at,
-      })),
+      "[1日1回制限チェック] 今日達成した共有グッジョブの有無を確認します",
     );
 
     // 今日（JST）の当該共有グッジョブの達成記録を検索

@@ -6,6 +6,21 @@ export type SurveyKind = "enps" | "award";
 
 export type { LinkedPostMissionContext } from "./linked-post-mission.types";
 
+/** env で紐づけたアンケート連携ミッションか（達成時の前提チェックに利用） */
+export function getSurveyLinkedMissionKind(
+  missionId: string,
+): SurveyKind | null {
+  const enps = process.env.SURVEY_ENPS_POST_MISSION_ID?.trim();
+  const award = process.env.SURVEY_AWARD_POST_MISSION_ID?.trim();
+  if (award && missionId === award) {
+    return "award";
+  }
+  if (enps && missionId === enps) {
+    return "enps";
+  }
+  return null;
+}
+
 /**
  * アンケート回答後に案内するグッジョブ（env のミッション ID）。
  * 未設定・ユーザーなし・ミッション不在のときは null。
