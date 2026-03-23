@@ -1,3 +1,4 @@
+import { UnansweredSlackReminder } from "@/components/admin/unanswered-slack-reminder";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -330,7 +331,7 @@ export default async function SurveyDetailPage({
                 回答を促すための確認用リストです。
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-6">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                 {unansweredUsers.map((user) => (
                   <div key={user.id} className="text-sm">
@@ -338,6 +339,7 @@ export default async function SurveyDetailPage({
                   </div>
                 ))}
               </div>
+              <UnansweredSlackReminder kind="enps" surveyId={id} />
             </CardContent>
           </Card>
         )}
