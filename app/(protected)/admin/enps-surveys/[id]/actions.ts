@@ -98,9 +98,6 @@ export async function getSurveyResponses(surveyId: string) {
     );
     const scores = questionResponses.map((r) => r.score_value as number);
 
-    console.log(`質問 ${question.id} の回答数:`, questionResponses.length);
-    console.log("スコア配列:", scores);
-
     const promoters = scores.filter((s) => s >= 9).length;
     const passives = scores.filter((s) => s >= 7 && s < 9).length;
     const detractors = scores.filter((s) => s < 7).length;

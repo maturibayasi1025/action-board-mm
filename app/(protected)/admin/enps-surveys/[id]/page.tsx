@@ -1,3 +1,4 @@
+import { SurveyResponsesPanel } from "@/components/admin/survey-responses-panel";
 import { UnansweredSlackReminder } from "@/components/admin/unanswered-slack-reminder";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -260,65 +261,23 @@ export default async function SurveyDetailPage({
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {responses.length === 0 ? (
-              <p className="text-center text-muted-foreground py-8">
-                まだ回答がありません。
-              </p>
-            ) : (
-              <div className="space-y-6">
-                {questions
-                  .sort((a, b) => a.display_order - b.display_order)
-                  .map((question) => {
-                    const questionResponses = responses.filter(
-                      (r) => r.question_id === question.id,
-                    );
-
-                    if (questionResponses.length === 0) return null;
-
-                    return (
-                      <div key={question.id} className="space-y-2">
-                        <h3 className="font-semibold">
-                          {question.question_text}
-                        </h3>
-                        <div className="space-y-2">
-                          {questionResponses.map((response) => {
-                            const userName =
-                              (response as { user_name?: string })?.user_name ||
-                              "不明";
-                            return (
-                              <div
-                                key={response.id}
-                                className="p-3 border rounded-lg space-y-1"
-                              >
-                                <div className="text-sm font-medium">
-                                  {userName}
-                                </div>
-                                {question.question_type === "score_0_10" &&
-                                  response.score_value !== null && (
-                                    <div className="text-lg font-semibold">
-                                      スコア: {response.score_value}点
-                                    </div>
-                                  )}
-                                {question.question_type === "text" &&
-                                  response.text_value && (
-                                    <div className="text-sm text-muted-foreground whitespace-pre-wrap">
-                                      {response.text_value}
-                                    </div>
-                                  )}
-                                <div className="text-xs text-muted-foreground">
-                                  {new Date(response.created_at).toLocaleString(
-                                    "ja-JP",
-                                  )}
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    );
-                  })}
-              </div>
-            )}
+            <SurveyResponsesPanel
+              questions={questions.map((q) => ({
+                id: q.id,
+                question_text: q.question_text,
+                question_type: q.question_type,
+                display_order: q.display_order,
+              }))}
+              responses={responses.map((r) => ({
+                id: r.id,
+                question_id: r.question_id,
+                user_id: r.user_id,
+                user_name: (r as { user_name?: string }).user_name ?? "不明",
+                created_at: r.created_at,
+                score_value: r.score_value,
+                text_value: r.text_value,
+              }))}
+            />
           </CardContent>
         </Card>
 

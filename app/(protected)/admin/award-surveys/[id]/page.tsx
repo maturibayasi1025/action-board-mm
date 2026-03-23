@@ -1,3 +1,4 @@
+import { SurveyResponsesPanel } from "@/components/admin/survey-responses-panel";
 import { UnansweredSlackReminder } from "@/components/admin/unanswered-slack-reminder";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -96,16 +97,31 @@ export default async function AwardSurveyDetailPage({
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-2">
-                {sortedNominations.map(([name, count]) => (
-                  <div
-                    key={name}
-                    className="flex items-center justify-between py-2 border-b"
-                  >
-                    <span className="font-medium">{name}</span>
-                    <Badge variant="secondary">{count}票</Badge>
-                  </div>
-                ))}
+              <div className="max-w-3xl rounded-md border border-border overflow-hidden">
+                <table className="w-full text-sm">
+                  <tbody className="divide-y divide-border">
+                    {sortedNominations.map(([name, count], index) => (
+                      <tr
+                        key={name}
+                        className={
+                          index % 2 === 0 ? "bg-muted/40" : "bg-background"
+                        }
+                      >
+                        <th
+                          scope="row"
+                          className="py-3 px-4 text-left font-medium align-middle"
+                        >
+                          <span className="break-words">{name}</span>
+                        </th>
+                        <td className="py-3 px-4 text-right align-middle whitespace-nowrap w-px">
+                          <Badge variant="secondary" className="tabular-nums">
+                            {count}票
+                          </Badge>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </CardContent>
           </Card>
@@ -116,52 +132,35 @@ export default async function AwardSurveyDetailPage({
           const groupQuestions = questionsByGroup[group] || [];
           if (groupQuestions.length === 0) return null;
 
+          const groupQuestionIds = new Set(groupQuestions.map((q) => q.id));
+          const hasAnyInGroup = responses.some((r) =>
+            groupQuestionIds.has(r.question_id),
+          );
+          if (!hasAnyInGroup) return null;
+
           return (
             <Card key={group}>
               <CardHeader>
                 <CardTitle>{QUESTION_GROUP_LABELS[group]}</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-6">
-                  {groupQuestions
-                    .sort((a, b) => a.display_order - b.display_order)
-                    .map((question) => {
-                      const questionResponses = responses.filter(
-                        (r) => r.question_id === question.id,
-                      );
-                      if (questionResponses.length === 0) return null;
-
-                      return (
-                        <div key={question.id} className="space-y-2">
-                          <h3 className="font-semibold text-sm">
-                            {question.question_text}
-                          </h3>
-                          <div className="space-y-2">
-                            {questionResponses.map((response) => (
-                              <div
-                                key={response.id}
-                                className="p-3 border rounded-lg space-y-1"
-                              >
-                                <div className="text-sm font-medium">
-                                  {response.user_name}
-                                </div>
-                                {response.text_value && (
-                                  <div className="text-sm text-muted-foreground whitespace-pre-wrap">
-                                    {response.text_value}
-                                  </div>
-                                )}
-                                <div className="text-xs text-muted-foreground">
-                                  {new Date(response.created_at).toLocaleString(
-                                    "ja-JP",
-                                  )}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      );
-                    })}
-                </div>
+                <SurveyResponsesPanel
+                  questions={groupQuestions.map((q) => ({
+                    id: q.id,
+                    question_text: q.question_text,
+                    question_type: q.question_type,
+                    display_order: q.display_order,
+                  }))}
+                  responses={responses.map((r) => ({
+                    id: r.id,
+                    question_id: r.question_id,
+                    user_id: r.user_id,
+                    user_name: r.user_name,
+                    created_at: r.created_at,
+                    score_value: null,
+                    text_value: r.text_value,
+                  }))}
+                />
               </CardContent>
             </Card>
           );
