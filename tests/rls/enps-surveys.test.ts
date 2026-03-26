@@ -256,5 +256,76 @@ describe("eNPS Surveys RLS Policies", () => {
       expect(error).not.toBeNull();
       expect(error?.code).toBe("42501");
     });
+
+    it("should allow authenticated users to delete their own responses", async () => {
+      const { data: created, error: insertErr } = await serviceClient
+        .from("enps_responses")
+        .insert({
+          survey_id: testSurveyId,
+          question_id: testQuestionId,
+          user_id: testUserId,
+          score_value: 6,
+        })
+        .select()
+        .single();
+
+      if (insertErr || !created) {
+        throw new Error(
+          `Failed to create test response for delete: ${insertErr?.message}`,
+        );
+      }
+
+      const { error: deleteError } = await authenticatedClient
+        .from("enps_responses")
+        .delete()
+        .eq("id", created.id);
+
+      expect(deleteError).toBeNull();
+
+      const { data: remaining } = await serviceClient
+        .from("enps_responses")
+        .select("id")
+        .eq("id", created.id);
+
+      expect(remaining?.length ?? 0).toBe(0);
+    });
+
+    it("should not allow authenticated users to delete other users' responses", async () => {
+      const { data: otherUser } = await serviceClient.auth.admin.createUser({
+        email: `other-delete-${Date.now()}@example.com`,
+        password: "test-password-123",
+        email_confirm: true,
+      });
+
+      if (!otherUser.user) {
+        throw new Error("Failed to create other user");
+      }
+
+      const { data: otherResponse } = await serviceClient
+        .from("enps_responses")
+        .insert({
+          survey_id: testSurveyId,
+          question_id: testQuestionId,
+          user_id: otherUser.user.id,
+          score_value: 4,
+        })
+        .select()
+        .single();
+
+      if (!otherResponse) {
+        throw new Error("Failed to create other user's response");
+      }
+
+      const { error } = await authenticatedClient
+        .from("enps_responses")
+        .delete()
+        .eq("id", otherResponse.id);
+
+      expect(error).not.toBeNull();
+      expect(error?.code).toBe("42501");
+
+      await serviceClient.from("enps_responses").delete().eq("id", otherResponse.id);
+      await serviceClient.auth.admin.deleteUser(otherUser.user.id);
+    });
   });
 });

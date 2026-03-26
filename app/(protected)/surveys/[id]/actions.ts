@@ -1,7 +1,57 @@
 "use server";
 
+import { logPostgrestError } from "@/lib/supabase/log-postgrest-error";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+
+/** CHECK enps_responses_score_or_text 適合行のみ INSERT する */
+function buildEnpsResponseInsertRows(
+  surveyId: string,
+  userId: string,
+  responses: Array<{
+    question_id: string;
+    score_value?: number | null;
+    text_value?: string | null;
+  }>,
+): Array<{
+  survey_id: string;
+  user_id: string;
+  question_id: string;
+  score_value: number | null;
+  text_value: string | null;
+}> {
+  const rows: Array<{
+    survey_id: string;
+    user_id: string;
+    question_id: string;
+    score_value: number | null;
+    text_value: string | null;
+  }> = [];
+
+  for (const r of responses) {
+    const score = r.score_value ?? null;
+    const textTrimmed = r.text_value?.trim();
+    const text = textTrimmed && textTrimmed.length > 0 ? textTrimmed : null;
+
+    if (score === null && text === null) {
+      continue;
+    }
+    if (score !== null && text !== null) {
+      throw new Error(
+        "送信データが不正です。各質問はスコアまたはテキストのどちらか一方のみ入力してください。",
+      );
+    }
+    rows.push({
+      survey_id: surveyId,
+      user_id: userId,
+      question_id: r.question_id,
+      score_value: score,
+      text_value: text,
+    });
+  }
+
+  return rows;
+}
 
 type EnpsQuestionRow = {
   id: string;
@@ -64,31 +114,47 @@ export async function submitSurveyResponse(
     .eq("user_id", user.id);
 
   if (deleteError) {
-    console.error("既存回答の削除エラー:", deleteError);
-    // 削除エラーは無視して続行（新規作成の場合もあるため）
+    logPostgrestError(
+      "submitSurveyResponse delete enps_responses",
+      deleteError,
+      {
+        surveyId,
+        userId: user.id,
+      },
+    );
+    throw new Error("回答の更新に失敗しました（既存データの削除）");
   }
 
-  // 新しい回答を挿入
-  const responseData = responses.map((r) => ({
-    survey_id: surveyId,
-    user_id: user.id,
-    question_id: r.question_id,
-    score_value: r.score_value ?? null,
-    text_value: r.text_value ?? null,
-  }));
+  const responseData = buildEnpsResponseInsertRows(
+    surveyId,
+    user.id,
+    responses,
+  );
+
+  if (responseData.length === 0) {
+    throw new Error("回答に有効なデータがありません");
+  }
 
   const { error: insertError } = await supabase
     .from("enps_responses")
     .insert(responseData);
 
   if (insertError) {
-    console.error("回答の挿入エラー:", insertError);
+    logPostgrestError(
+      "submitSurveyResponse insert enps_responses",
+      insertError,
+      {
+        surveyId,
+        userId: user.id,
+        rowCount: responseData.length,
+      },
+    );
     throw new Error("回答の送信に失敗しました");
   }
 
   revalidatePath(`/surveys/${surveyId}`);
   revalidatePath("/user-missions/new");
-  return { success: true };
+  return { success: true as const, submittedByUserId: user.id };
 }
 
 export async function getSurvey(surveyId: string) {

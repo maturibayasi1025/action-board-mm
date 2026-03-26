@@ -1,5 +1,6 @@
 "use server";
 
+import { logPostgrestError } from "@/lib/supabase/log-postgrest-error";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
@@ -71,29 +72,46 @@ export async function submitAwardResponse(
     .eq("user_id", user.id);
 
   if (deleteError) {
-    console.error("既存回答の削除エラー:", deleteError);
+    logPostgrestError(
+      "submitAwardResponse delete award_responses",
+      deleteError,
+      { surveyId, userId: user.id },
+    );
+    throw new Error("回答の更新に失敗しました（既存データの削除）");
   }
 
-  // 新しい回答を挿入
-  const responseData = responses.map((r) => ({
-    survey_id: surveyId,
-    user_id: user.id,
-    question_id: r.question_id,
-    text_value: r.text_value ?? null,
-  }));
+  const responseData = responses
+    .map((r) => {
+      const trimmed = r.text_value?.trim();
+      return {
+        survey_id: surveyId,
+        user_id: user.id,
+        question_id: r.question_id,
+        text_value: trimmed && trimmed.length > 0 ? trimmed : null,
+      };
+    })
+    .filter((row) => row.text_value != null);
+
+  if (responseData.length === 0) {
+    throw new Error("回答を入力してください");
+  }
 
   const { error: insertError } = await supabase
     .from("award_responses")
     .insert(responseData);
 
   if (insertError) {
-    console.error("回答の挿入エラー:", insertError);
+    logPostgrestError(
+      "submitAwardResponse insert award_responses",
+      insertError,
+      { surveyId, userId: user.id, rowCount: responseData.length },
+    );
     throw new Error("回答の送信に失敗しました");
   }
 
   revalidatePath(`/surveys/award/${surveyId}`);
   revalidatePath("/user-missions/new");
-  return { success: true };
+  return { success: true as const, submittedByUserId: user.id };
 }
 
 export async function getAwardSurvey(surveyId: string) {
