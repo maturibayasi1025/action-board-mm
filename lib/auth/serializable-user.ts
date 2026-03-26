@@ -10,5 +10,5 @@ export function toSerializableAuthUser(
   user: User | null,
 ): SerializableAuthUser | null {
   if (!user) return null;
-  return { id: user.id, email: user.email ?? null };
+  return { id: user.id, email: user.email ?? undefined };
 }
