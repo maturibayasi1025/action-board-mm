@@ -5,6 +5,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { toSerializableAuthUser } from "@/lib/auth/serializable-user";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { getLinkedPostMissionContext } from "../_lib/linked-post-mission";
@@ -95,7 +96,7 @@ export default async function SurveyPage({ params }: SurveyPageProps) {
               existingResponses={existingResponses}
               linkedPostMission={linkedPostMission}
               isFirstTimeResponse={isFirstTimeResponse}
-              authUser={user}
+              authUser={toSerializableAuthUser(user)}
             />
           ))}
 

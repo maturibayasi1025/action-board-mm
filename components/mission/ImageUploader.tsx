@@ -2,14 +2,14 @@
 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import type { SerializableAuthUser } from "@/lib/auth/serializable-user";
 import { createClient } from "@/lib/supabase/client";
 import type { Tables } from "@/lib/types/supabase";
-import type { User } from "@supabase/supabase-js";
 import { useState } from "react";
 
 type ImageUploaderProps = {
   mission: Tables<"missions">;
-  authUser: User | null;
+  authUser: SerializableAuthUser | null;
   disabled: boolean;
   onImagePathChange: (path: string | undefined) => void;
   allowedMimeTypes?: readonly string[];

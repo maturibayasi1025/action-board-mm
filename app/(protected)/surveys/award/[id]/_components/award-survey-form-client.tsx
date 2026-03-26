@@ -8,7 +8,7 @@ import type {
 import { submitAwardResponse } from "@/app/(protected)/surveys/award/[id]/actions";
 import { AwardSurveyForm } from "@/components/award/AwardSurveyForm";
 import { SurveyPostMissionDialog } from "@/components/survey/SurveyPostMissionDialog";
-import type { User } from "@supabase/supabase-js";
+import type { SerializableAuthUser } from "@/lib/auth/serializable-user";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -20,7 +20,7 @@ interface AwardSurveyFormClientProps {
   userName: string | null;
   linkedPostMission: LinkedPostMissionContext | null;
   isFirstTimeResponse: boolean;
-  authUser: User | null;
+  authUser: SerializableAuthUser | null;
 }
 
 export function AwardSurveyFormClient({

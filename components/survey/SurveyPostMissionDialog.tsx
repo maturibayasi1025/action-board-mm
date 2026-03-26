@@ -15,8 +15,8 @@ import {
 } from "@/components/ui/dialog";
 import { XpProgressToastContent } from "@/components/xp-progress-toast-content";
 import { ARTIFACT_TYPES } from "@/lib/artifactTypes";
+import type { SerializableAuthUser } from "@/lib/auth/serializable-user";
 import type { Tables } from "@/lib/types/supabase";
-import type { User } from "@supabase/supabase-js";
 import { AlertCircle } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -33,7 +33,7 @@ type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   mission: Tables<"missions">;
-  authUser: User;
+  authUser: SerializableAuthUser;
   /** 受付期間内にすでに達成記録がある（送信不可・ボタン無効） */
   alreadyRecordedInActiveSurveyPeriod?: boolean;
 };

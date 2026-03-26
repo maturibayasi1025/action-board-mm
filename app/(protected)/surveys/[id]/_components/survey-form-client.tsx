@@ -3,7 +3,7 @@
 import type { LinkedPostMissionContext } from "@/app/(protected)/surveys/_lib/linked-post-mission.types";
 import { SurveyForm } from "@/components/enps/SurveyForm";
 import { SurveyPostMissionDialog } from "@/components/survey/SurveyPostMissionDialog";
-import type { User } from "@supabase/supabase-js";
+import type { SerializableAuthUser } from "@/lib/auth/serializable-user";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -31,7 +31,7 @@ interface SurveyFormClientProps {
   >;
   linkedPostMission: LinkedPostMissionContext | null;
   isFirstTimeResponse: boolean;
-  authUser: User | null;
+  authUser: SerializableAuthUser | null;
 }
 
 export function SurveyFormClient({

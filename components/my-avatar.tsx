@@ -42,7 +42,7 @@ export default async function MyAvatar({ className }: MyAvatarProps) {
         style={{ objectFit: "cover" }}
       />
       <AvatarFallback className="bg-emerald-100 text-emerald-700 font-medium">
-        {profile?.name.substring(0, 1) ?? "ユ"}
+        {profile?.name?.substring(0, 1) ?? "ユ"}
       </AvatarFallback>
     </Avatar>
   );
