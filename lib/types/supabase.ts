@@ -1344,6 +1344,21 @@ export type Database = {
         };
         Relationships: [];
       };
+      unanswered_survey_global_exclusions: {
+        Row: {
+          created_at: string;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
       user_badges: {
         Row: {
           achieved_at: string;

@@ -1,4 +1,6 @@
 import path from "node:path";
+import { SLACK_MRKDWN_CHANNEL_MENTION } from "@/lib/slack/constants";
+import { resolveAwardSurveySlackWebhookUrl } from "@/lib/slack/survey-webhook-urls";
 import type { Database } from "@/lib/types/supabase";
 import { createClient } from "@supabase/supabase-js";
 import dotenv from "dotenv";
@@ -30,13 +32,13 @@ async function sendSlackNotification(params: {
 }) {
   const { webhookUrl, title, yearMonthDisplay, surveyUrl, endDate } = params;
   const slackMessage = {
-    text: `${title} のお知らせ`,
+    text: `${SLACK_MRKDWN_CHANNEL_MENTION} ${title} のお知らせ`,
     blocks: [
       {
         type: "section",
         text: {
           type: "mrkdwn",
-          text: `*${title}*\n\n${yearMonthDisplay}の表彰アンケートを開始しました。\nMVV表彰に関して、バリューを体現出来たエピソードをご回答ください。`,
+          text: `${SLACK_MRKDWN_CHANNEL_MENTION}\n\n*${title}*\n\n${yearMonthDisplay}の表彰アンケートを開始しました。\nMVV表彰に関して、バリューを体現出来たエピソードをご回答ください。`,
         },
       },
       {
@@ -93,7 +95,7 @@ async function main() {
     const serviceRoleKey = getRequiredEnv("SUPABASE_SERVICE_ROLE_KEY");
     const appOrigin =
       process.env.NEXT_PUBLIC_APP_ORIGIN || "http://localhost:3000";
-    const webhookUrl = process.env.SLACK_WEBHOOK_URL;
+    const webhookUrl = resolveAwardSurveySlackWebhookUrl();
 
     const supabase = createClient<Database>(supabaseUrl, serviceRoleKey);
 
@@ -165,7 +167,7 @@ async function main() {
 
     if (!webhookUrl) {
       console.warn(
-        "SLACK_WEBHOOK_URL が未設定のため、Slack通知はスキップします。",
+        "SLACK_WEBHOOK_URL_AWARD または SLACK_WEBHOOK_URL が未設定のため、Slack通知はスキップします。",
       );
       process.exit(0);
     }

@@ -1,3 +1,8 @@
+import { SLACK_MRKDWN_CHANNEL_MENTION } from "@/lib/slack/constants";
+import {
+  isEnpsSurveySlackWebhookConfigured,
+  resolveEnpsSurveySlackWebhookUrl,
+} from "@/lib/slack/survey-webhook-urls";
 import { createServiceClient } from "@/lib/supabase/server";
 import { type NextRequest, NextResponse } from "next/server";
 
@@ -109,10 +114,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Slack通知を送信
-    const webhookUrl = process.env.SLACK_WEBHOOK_URL;
+    const webhookUrl = resolveEnpsSurveySlackWebhookUrl();
     if (!webhookUrl) {
       console.warn(
-        "SLACK_WEBHOOK_URLが設定されていません。Slack通知をスキップします。",
+        "SLACK_WEBHOOK_URL_ENPS または SLACK_WEBHOOK_URL が設定されていません。Slack通知をスキップします。",
       );
       return NextResponse.json({
         success: true,
@@ -128,13 +133,13 @@ export async function POST(request: NextRequest) {
     const surveyUrl = `${appOrigin}/surveys/${survey.id}`;
 
     const slackMessage = {
-      text: "月次eNPSアンケートのお知らせ",
+      text: `${SLACK_MRKDWN_CHANNEL_MENTION} 月次eNPSアンケートのお知らせ`,
       blocks: [
         {
           type: "section",
           text: {
             type: "mrkdwn",
-            text: `*月次eNPSアンケートのお知らせ*\n\n${yearMonthDisplay}のeNPSアンケートを開始しました。\n5分程度で回答できますので、ご協力をお願いします。`,
+            text: `${SLACK_MRKDWN_CHANNEL_MENTION}\n\n*月次eNPSアンケートのお知らせ*\n\n${yearMonthDisplay}のeNPSアンケートを開始しました。\n5分程度で回答できますので、ご協力をお願いします。`,
           },
         },
         {
@@ -249,7 +254,7 @@ export async function GET() {
       survey_exists: !!existingSurvey,
       survey: existingSurvey || null,
       active_questions_count: activeQuestionsCount || 0,
-      slack_webhook_configured: !!process.env.SLACK_WEBHOOK_URL,
+      slack_webhook_configured: isEnpsSurveySlackWebhookConfigured(),
     });
   } catch (error) {
     console.error("統計取得でエラーが発生しました:", error);

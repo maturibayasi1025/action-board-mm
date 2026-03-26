@@ -1,6 +1,10 @@
 "use server";
 
 import { createServiceClient } from "@/lib/supabase/server";
+import {
+  fetchGlobalExcludedUserIds,
+  filterUnansweredPrivateUsers,
+} from "@/lib/survey/unanswered-candidates";
 import { requireOwner } from "@/lib/utils/isOwner";
 
 export async function getAwardSurveyDetail(surveyId: string) {
@@ -99,10 +103,16 @@ export async function getAwardUnansweredUsers(surveyId: string) {
 
   const answeredUserIds = new Set(answeredUsers?.map((u) => u.user_id) || []);
 
+  const excludedUserIds = await fetchGlobalExcludedUserIds(supabase);
+
   // 全ユーザーを取得
   const { data: allUsers } = await supabase
     .from("private_users")
     .select("id, name");
 
-  return (allUsers || []).filter((u) => !answeredUserIds.has(u.id));
+  return filterUnansweredPrivateUsers(
+    allUsers ?? [],
+    answeredUserIds,
+    excludedUserIds,
+  );
 }

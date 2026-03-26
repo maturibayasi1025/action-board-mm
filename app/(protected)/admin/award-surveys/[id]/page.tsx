@@ -1,4 +1,6 @@
+import { listGlobalUnansweredExclusions } from "@/app/(protected)/admin/_actions/unanswered-global-exclusions";
 import { SurveyResponsesPanel } from "@/components/admin/survey-responses-panel";
+import { UnansweredExclusionPanel } from "@/components/admin/unanswered-exclusion-panel";
 import { UnansweredSlackReminder } from "@/components/admin/unanswered-slack-reminder";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -51,6 +53,7 @@ export default async function AwardSurveyDetailPage({
   const { questions, responses, nominationSummary } =
     await getAwardSurveyResponses(id);
   const unansweredUsers = await getAwardUnansweredUsers(id);
+  const excludedGlobalUsers = await listGlobalUnansweredExclusions();
 
   if (!survey) {
     redirect("/admin/award-surveys");
@@ -167,23 +170,24 @@ export default async function AwardSurveyDetailPage({
         })}
 
         {/* 未回答者一覧 */}
-        {unansweredUsers.length > 0 && (
+        {(unansweredUsers.length > 0 || excludedGlobalUsers.length > 0) && (
           <Card>
             <CardHeader>
               <CardTitle>未回答者一覧</CardTitle>
               <CardDescription>
-                回答を促すための確認用リストです。
+                {unansweredUsers.length > 0
+                  ? "回答を促すための確認用リストです。「対象外」は全アンケート共通で未回答一覧と Slack 通知から外します。"
+                  : "現在の未回答者はいません。催促対象外（共通）の設定のみ表示しています。"}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                {unansweredUsers.map((user) => (
-                  <div key={user.id} className="text-sm">
-                    {user.name}
-                  </div>
-                ))}
-              </div>
-              <UnansweredSlackReminder kind="award" surveyId={id} />
+              <UnansweredExclusionPanel
+                unansweredUsers={unansweredUsers}
+                excludedGlobalUsers={excludedGlobalUsers}
+              />
+              {unansweredUsers.length > 0 && (
+                <UnansweredSlackReminder kind="award" surveyId={id} />
+              )}
             </CardContent>
           </Card>
         )}

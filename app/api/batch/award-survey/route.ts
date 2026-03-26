@@ -1,3 +1,8 @@
+import { SLACK_MRKDWN_CHANNEL_MENTION } from "@/lib/slack/constants";
+import {
+  isAwardSurveySlackWebhookConfigured,
+  resolveAwardSurveySlackWebhookUrl,
+} from "@/lib/slack/survey-webhook-urls";
 import { createServiceClient } from "@/lib/supabase/server";
 import { type NextRequest, NextResponse } from "next/server";
 
@@ -120,10 +125,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Slack通知を送信
-    const webhookUrl = process.env.SLACK_WEBHOOK_URL;
+    const webhookUrl = resolveAwardSurveySlackWebhookUrl();
     if (!webhookUrl) {
       console.warn(
-        "SLACK_WEBHOOK_URLが設定されていません。Slack通知をスキップします。",
+        "SLACK_WEBHOOK_URL_AWARD または SLACK_WEBHOOK_URL が設定されていません。Slack通知をスキップします。",
       );
       return NextResponse.json({
         success: true,
@@ -139,13 +144,13 @@ export async function POST(request: NextRequest) {
     const surveyUrl = `${appOrigin}/surveys/award/${survey.id}`;
 
     const slackMessage = {
-      text: `${title} のお知らせ`,
+      text: `${SLACK_MRKDWN_CHANNEL_MENTION} ${title} のお知らせ`,
       blocks: [
         {
           type: "section",
           text: {
             type: "mrkdwn",
-            text: `*${title}*\n\n${yearMonthDisplay}の表彰アンケートを開始しました。\nMVV表彰に関して、バリューを体現出来たエピソードをご回答ください。`,
+            text: `${SLACK_MRKDWN_CHANNEL_MENTION}\n\n*${title}*\n\n${yearMonthDisplay}の表彰アンケートを開始しました。\nMVV表彰に関して、バリューを体現出来たエピソードをご回答ください。`,
           },
         },
         {
@@ -259,7 +264,7 @@ export async function GET() {
       survey_exists: !!existingSurvey,
       survey: existingSurvey || null,
       active_questions_count: activeQuestionsCount || 0,
-      slack_webhook_configured: !!process.env.SLACK_WEBHOOK_URL,
+      slack_webhook_configured: isAwardSurveySlackWebhookConfigured(),
     });
   } catch (error) {
     console.error("統計取得でエラーが発生しました:", error);

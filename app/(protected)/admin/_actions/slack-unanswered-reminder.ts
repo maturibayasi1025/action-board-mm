@@ -1,10 +1,19 @@
 "use server";
 
+import { SLACK_MRKDWN_CHANNEL_MENTION } from "@/lib/slack/constants";
 import {
   getSlackUsersList,
   resolvePrivateUserNamesToMentions,
 } from "@/lib/slack/slack-users";
+import {
+  resolveAwardSurveySlackWebhookUrl,
+  resolveEnpsSurveySlackWebhookUrl,
+} from "@/lib/slack/survey-webhook-urls";
 import { createServiceClient } from "@/lib/supabase/server";
+import {
+  fetchGlobalExcludedUserIds,
+  filterUnansweredPrivateUsers,
+} from "@/lib/survey/unanswered-candidates";
 import { requireOwner } from "@/lib/utils/isOwner";
 
 export type SurveyReminderKind = "enps" | "award";
@@ -34,14 +43,19 @@ async function getUnansweredNamesForEnpsSurvey(
 
   const answeredUserIds = new Set(answeredUsers?.map((u) => u.user_id) || []);
 
+  const excludedUserIds = await fetchGlobalExcludedUserIds(supabase);
+
   const { data: allUsers } = await supabase
     .from("private_users")
     .select("id, name")
     .order("name", { ascending: true });
 
-  return (
-    allUsers?.filter((u) => !answeredUserIds.has(u.id)).map((u) => u.name) ?? []
+  const unanswered = filterUnansweredPrivateUsers(
+    allUsers ?? [],
+    answeredUserIds,
+    excludedUserIds,
   );
+  return unanswered.map((u) => u.name);
 }
 
 async function getUnansweredNamesForAwardSurvey(
@@ -55,14 +69,19 @@ async function getUnansweredNamesForAwardSurvey(
 
   const answeredUserIds = new Set(answeredUsers?.map((u) => u.user_id) || []);
 
+  const excludedUserIds = await fetchGlobalExcludedUserIds(supabase);
+
   const { data: allUsers } = await supabase
     .from("private_users")
     .select("id, name")
     .order("name", { ascending: true });
 
-  return (
-    allUsers?.filter((u) => !answeredUserIds.has(u.id)).map((u) => u.name) ?? []
+  const unanswered = filterUnansweredPrivateUsers(
+    allUsers ?? [],
+    answeredUserIds,
+    excludedUserIds,
   );
+  return unanswered.map((u) => u.name);
 }
 
 async function postSlackWebhookReminder(params: {
@@ -92,7 +111,10 @@ async function postSlackWebhookReminder(params: {
   const blocks: Record<string, unknown>[] = [
     {
       type: "section",
-      text: { type: "mrkdwn", text: headerMrkdwn },
+      text: {
+        type: "mrkdwn",
+        text: `${SLACK_MRKDWN_CHANNEL_MENTION}\n${headerMrkdwn}`,
+      },
     },
     {
       type: "section",
@@ -124,7 +146,10 @@ async function postSlackWebhookReminder(params: {
   const res = await fetch(webhookUrl, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ text: fallbackText, blocks }),
+    body: JSON.stringify({
+      text: `${SLACK_MRKDWN_CHANNEL_MENTION} ${fallbackText}`,
+      blocks,
+    }),
   });
 
   if (!res.ok) {
@@ -149,17 +174,23 @@ export async function sendSlackReminderToUnanswered(params: {
   const trimmedMessage = message.trim();
   const bodyText = trimmedMessage || DEFAULT_REMINDER_BODY;
 
-  const webhookUrl = process.env.SLACK_WEBHOOK_URL;
+  const webhookUrl =
+    kind === "enps"
+      ? resolveEnpsSurveySlackWebhookUrl()
+      : resolveAwardSurveySlackWebhookUrl();
   if (!webhookUrl) {
     return {
       ok: false,
-      error: "SLACK_WEBHOOK_URL が設定されていません",
+      error:
+        kind === "enps"
+          ? "SLACK_WEBHOOK_URL_ENPS または SLACK_WEBHOOK_URL が設定されていません"
+          : "SLACK_WEBHOOK_URL_AWARD または SLACK_WEBHOOK_URL が設定されていません",
     };
   }
   if (!webhookUrl.startsWith("https://hooks.slack.com/")) {
     return {
       ok: false,
-      error: "SLACK_WEBHOOK_URL の形式が無効です",
+      error: "Slack Webhook URL の形式が無効です",
     };
   }
 

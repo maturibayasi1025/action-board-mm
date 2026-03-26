@@ -52,7 +52,9 @@ LINE_CLIENT_SECRET           # LINE Login Channel Secret
 ### オプションの環境変数
 ```
 MAILGUN_API_BASE_URL         # Mailgun APIベースURL（デフォルト：https://api.mailgun.net）
-SLACK_WEBHOOK_URL            # Slack通知用WebhookURL
+SLACK_WEBHOOK_URL            # Slack通知用WebhookURL（グッジョブ等・サーベイのフォールバック）
+SLACK_WEBHOOK_URL_ENPS       # eNPSサーベイ通知（任意・未設定時は SLACK_WEBHOOK_URL）
+SLACK_WEBHOOK_URL_AWARD      # 表彰サーベイ通知（任意・未設定時は SLACK_WEBHOOK_URL）
 BATCH_ADMIN_KEY             # バッチ処理認証用キー
 HUBSPOT_API_KEY             # HubSpot APIキー
 HUBSPOT_CONTACT_LIST_ID     # HubSpotコンタクトリストID
