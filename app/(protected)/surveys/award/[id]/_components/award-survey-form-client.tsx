@@ -35,6 +35,18 @@ export function AwardSurveyFormClient({
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [postMissionOpen, setPostMissionOpen] = useState(false);
+  /** refresh 後はサーバーが linkedPostMission を渡さなくなるため、初回送信直後の文脈を保持する */
+  const [postSubmitMissionContext, setPostSubmitMissionContext] =
+    useState<LinkedPostMissionContext | null>(null);
+
+  const missionDialogContext = postSubmitMissionContext ?? linkedPostMission;
+
+  const handlePostMissionOpenChange = (open: boolean) => {
+    setPostMissionOpen(open);
+    if (!open) {
+      setPostSubmitMissionContext(null);
+    }
+  };
 
   const handleSubmit = async (responses: AwardResponse[]) => {
     const shouldOfferMission =
@@ -43,10 +55,12 @@ export function AwardSurveyFormClient({
     setIsSubmitting(true);
     try {
       await submitAwardResponse(surveyId, responses);
-      router.refresh();
-      if (shouldOfferMission) {
+      if (shouldOfferMission && linkedPostMission) {
+        setPostSubmitMissionContext(linkedPostMission);
         setPostMissionOpen(true);
-      } else {
+      }
+      router.refresh();
+      if (!shouldOfferMission) {
         toast.success("回答を送信しました。ありがとうございます！");
       }
     } catch (error) {
@@ -69,14 +83,14 @@ export function AwardSurveyFormClient({
         onSubmit={handleSubmit}
         disabled={isSubmitting}
       />
-      {linkedPostMission && authUser && (
+      {missionDialogContext && authUser && (
         <SurveyPostMissionDialog
           open={postMissionOpen}
-          onOpenChange={setPostMissionOpen}
-          mission={linkedPostMission.mission}
+          onOpenChange={handlePostMissionOpenChange}
+          mission={missionDialogContext.mission}
           authUser={authUser}
           alreadyRecordedInActiveSurveyPeriod={
-            linkedPostMission.alreadyRecordedInActiveSurveyPeriod
+            missionDialogContext.alreadyRecordedInActiveSurveyPeriod
           }
         />
       )}
