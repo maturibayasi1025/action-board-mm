@@ -5,6 +5,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { redirectToSignInWithReturnPath } from "@/lib/auth/redirect-to-sign-in";
 import { toSerializableAuthUser } from "@/lib/auth/serializable-user";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
@@ -27,6 +28,15 @@ export default async function AwardSurveyPage({
   params,
 }: AwardSurveyPageProps) {
   const { id } = await params;
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    redirectToSignInWithReturnPath(`/surveys/award/${id}`);
+  }
+
   const survey = await getAwardSurvey(id);
   const questions = await getAwardQuestions();
   const existingResponses = await getUserAwardResponses(id);
@@ -43,10 +53,6 @@ export default async function AwardSurveyPage({
   const isNotStarted = startDate > now;
   const hasResponded = Object.keys(existingResponses).length > 0;
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
   const isFirstTimeResponse = !hasResponded;
   const isSurveyInActiveWindow = !isNotStarted && !isExpired;
   const linkedPostMission =
