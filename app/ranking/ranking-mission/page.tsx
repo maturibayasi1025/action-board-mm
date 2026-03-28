@@ -31,12 +31,11 @@ export default async function RankingMissionPage({ searchParams }: PageProps) {
     error: userError,
   } = await supabase.auth.getUser();
 
-  // グッジョブ一覧を取得（max_achievement_countがnullのもののみ、特定のmissionIdのみ）
+  // グッジョブ一覧を取得（ランキング対象は達成回数無制限のもののみ）
   const { data: missions, error: missionsError } = await supabase
     .from("missions")
     .select("*")
     .is("max_achievement_count", null)
-    .eq("id", "e1f1d556-df31-4f79-b96d-6a1badeb5a0b")
     .order("is_featured", { ascending: false }) // is_featuredがtrueのものを先頭に
     .order("difficulty", { ascending: true }); // その後、難易度の昇順でソート
 

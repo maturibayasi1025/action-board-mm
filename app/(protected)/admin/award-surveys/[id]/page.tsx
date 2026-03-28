@@ -1,8 +1,8 @@
 import { listGlobalUnansweredExclusions } from "@/app/(protected)/admin/_actions/unanswered-global-exclusions";
+import { AwardNominationSummary } from "@/components/admin/award-nomination-summary";
 import { SurveyResponsesPanel } from "@/components/admin/survey-responses-panel";
 import { UnansweredExclusionPanel } from "@/components/admin/unanswered-exclusion-panel";
 import { UnansweredSlackReminder } from "@/components/admin/unanswered-slack-reminder";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -50,7 +50,7 @@ export default async function AwardSurveyDetailPage({
 
   const { id } = await params;
   const survey = await getAwardSurveyDetail(id);
-  const { questions, responses, nominationSummary } =
+  const { questions, responses, nominationDetails } =
     await getAwardSurveyResponses(id);
   const unansweredUsers = await getAwardUnansweredUsers(id);
   const excludedGlobalUsers = await listGlobalUnansweredExclusions();
@@ -70,11 +70,6 @@ export default async function AwardSurveyDetailPage({
     ]),
   );
 
-  // 指名集計をソート（得票数降順）
-  const sortedNominations = Object.entries(nominationSummary).sort(
-    ([, a], [, b]) => b - a,
-  );
-
   return (
     <div className="container mx-auto py-8 px-4">
       <div className="max-w-6xl mx-auto space-y-8">
@@ -90,44 +85,12 @@ export default async function AwardSurveyDetailPage({
           </Link>
         </div>
 
-        {/* 指名集計 */}
-        {sortedNominations.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle>他者指名 集計</CardTitle>
-              <CardDescription>
-                各バリューで指名された人数の合計（重複あり）
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="max-w-3xl rounded-md border border-border overflow-hidden">
-                <table className="w-full text-sm">
-                  <tbody className="divide-y divide-border">
-                    {sortedNominations.map(([name, count], index) => (
-                      <tr
-                        key={name}
-                        className={
-                          index % 2 === 0 ? "bg-muted/40" : "bg-background"
-                        }
-                      >
-                        <th
-                          scope="row"
-                          className="py-3 px-4 text-left font-medium align-middle"
-                        >
-                          <span className="break-words">{name}</span>
-                        </th>
-                        <td className="py-3 px-4 text-right align-middle whitespace-nowrap w-px">
-                          <Badge variant="secondary" className="tabular-nums">
-                            {count}票
-                          </Badge>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
+        {nominationDetails.length > 0 && (
+          <AwardNominationSummary
+            rows={nominationDetails}
+            groupOrder={QUESTION_GROUP_ORDER}
+            groupLabels={QUESTION_GROUP_LABELS}
+          />
         )}
 
         {/* セクション別回答一覧 */}
