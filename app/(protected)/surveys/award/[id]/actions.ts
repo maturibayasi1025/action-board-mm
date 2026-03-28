@@ -2,6 +2,10 @@
 
 import { logPostgrestError } from "@/lib/supabase/log-postgrest-error";
 import { createClient } from "@/lib/supabase/server";
+import {
+  assertSurveySubmitAllowed,
+  recordSurveySubmitSuccess,
+} from "@/lib/survey/submit-throttle";
 import { revalidatePath } from "next/cache";
 
 export type AwardQuestionType = "text" | "textarea";
@@ -64,6 +68,8 @@ export async function submitAwardResponse(
     throw new Error("アンケートの回答期限が過ぎています");
   }
 
+  await assertSurveySubmitAllowed(supabase, surveyId, user.id);
+
   // 既存の回答を削除（更新のため）
   const { error: deleteError } = await supabase
     .from("award_responses")
@@ -108,6 +114,8 @@ export async function submitAwardResponse(
     );
     throw new Error("回答の送信に失敗しました");
   }
+
+  await recordSurveySubmitSuccess(supabase, surveyId, user.id);
 
   revalidatePath(`/surveys/award/${surveyId}`);
   revalidatePath("/user-missions/new");

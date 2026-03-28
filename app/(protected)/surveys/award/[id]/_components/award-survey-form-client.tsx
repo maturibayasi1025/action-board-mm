@@ -33,6 +33,7 @@ export function AwardSurveyFormClient({
   authUser,
 }: AwardSurveyFormClientProps) {
   const router = useRouter();
+  const isUpdate = Object.keys(existingResponses).length > 0;
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [postMissionOpen, setPostMissionOpen] = useState(false);
   /** refresh 後はサーバーが linkedPostMission を渡さなくなるため、初回送信直後の文脈を保持する */
@@ -61,7 +62,11 @@ export function AwardSurveyFormClient({
       }
       router.refresh();
       if (!shouldOfferMission) {
-        toast.success("回答を送信しました。ありがとうございます！");
+        toast.success(
+          isUpdate
+            ? "回答を更新しました。ありがとうございます！"
+            : "回答を送信しました。ありがとうございます！",
+        );
       }
     } catch (error) {
       console.error("回答の送信に失敗しました:", error);
@@ -82,6 +87,7 @@ export function AwardSurveyFormClient({
         userName={userName}
         onSubmit={handleSubmit}
         disabled={isSubmitting}
+        isUpdate={isUpdate}
       />
       {missionDialogContext && authUser && (
         <SurveyPostMissionDialog

@@ -32,6 +32,8 @@ interface AwardSurveyFormProps {
   userName: string | null;
   onSubmit: (responses: AwardResponse[]) => Promise<void>;
   disabled?: boolean;
+  /** 既に回答がある場合は true（ボタン文言が「更新」になる） */
+  isUpdate?: boolean;
 }
 
 export function AwardSurveyForm({
@@ -41,6 +43,7 @@ export function AwardSurveyForm({
   userName,
   onSubmit,
   disabled = false,
+  isUpdate = false,
 }: AwardSurveyFormProps) {
   const [responses, setResponses] = useState<Record<string, string>>(() => {
     const initial: Record<string, string> = {};
@@ -58,6 +61,10 @@ export function AwardSurveyForm({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (isSubmitting || disabled) {
+      return;
+    }
 
     // 必須項目のバリデーション
     const requiredQuestions = questions.filter((q) => q.is_required);
@@ -172,13 +179,11 @@ export function AwardSurveyForm({
         );
       })}
 
-      {!disabled && (
-        <div className="flex justify-end">
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "送信中..." : "回答を送信"}
-          </Button>
-        </div>
-      )}
+      <div className="flex justify-end">
+        <Button type="submit" disabled={disabled || isSubmitting}>
+          {isSubmitting ? "送信中..." : isUpdate ? "回答を更新" : "回答を送信"}
+        </Button>
+      </div>
     </form>
   );
 }

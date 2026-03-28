@@ -28,6 +28,8 @@ interface SurveyFormProps {
   existingResponses?: Record<string, Response>;
   onSubmit: (responses: Response[]) => Promise<void>;
   disabled?: boolean;
+  /** 既に回答がある場合は true（ボタン文言が「更新」になる） */
+  isUpdate?: boolean;
 }
 
 export function SurveyForm({
@@ -36,6 +38,7 @@ export function SurveyForm({
   existingResponses = {},
   onSubmit,
   disabled = false,
+  isUpdate = false,
 }: SurveyFormProps) {
   // 親質問がない質問を先に表示
   const rootQuestions = questions.filter((q) => !q.parent_question_id);
@@ -87,6 +90,10 @@ export function SurveyForm({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (isSubmitting || disabled) {
+      return;
+    }
 
     // 必須項目のバリデーション
     const requiredQuestions = questions.filter((q) => q.is_required);
@@ -154,7 +161,7 @@ export function SurveyForm({
                       onChange={(score) =>
                         handleScoreChange(question.id, score)
                       }
-                      disabled={disabled}
+                      disabled={disabled || isSubmitting}
                       required={question.is_required}
                     />
                   )}
@@ -167,7 +174,7 @@ export function SurveyForm({
                           handleTextChange(question.id, e.target.value)
                         }
                         placeholder="回答を入力"
-                        disabled={disabled}
+                        disabled={disabled || isSubmitting}
                         required={question.is_required}
                         rows={4}
                       />
@@ -191,7 +198,7 @@ export function SurveyForm({
                             handleTextChange(childQuestion.id, e.target.value)
                           }
                           placeholder="回答を入力"
-                          disabled={disabled}
+                          disabled={disabled || isSubmitting}
                           required={childQuestion.is_required}
                           rows={4}
                         />
@@ -203,13 +210,11 @@ export function SurveyForm({
           );
         })}
 
-      {!disabled && (
-        <div className="flex justify-end">
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "送信中..." : "回答を送信"}
-          </Button>
-        </div>
-      )}
+      <div className="flex justify-end">
+        <Button type="submit" disabled={disabled || isSubmitting}>
+          {isSubmitting ? "送信中..." : isUpdate ? "回答を更新" : "回答を送信"}
+        </Button>
+      </div>
     </form>
   );
 }

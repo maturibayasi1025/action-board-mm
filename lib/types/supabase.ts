@@ -1344,6 +1344,24 @@ export type Database = {
         };
         Relationships: [];
       };
+      survey_submit_throttle: {
+        Row: {
+          last_submitted_at: string;
+          survey_id: string;
+          user_id: string;
+        };
+        Insert: {
+          last_submitted_at: string;
+          survey_id: string;
+          user_id: string;
+        };
+        Update: {
+          last_submitted_at?: string;
+          survey_id?: string;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
       unanswered_survey_global_exclusions: {
         Row: {
           created_at: string;
