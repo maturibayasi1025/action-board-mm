@@ -3,9 +3,10 @@
 import { logPostgrestError } from "@/lib/supabase/log-postgrest-error";
 import { createClient } from "@/lib/supabase/server";
 import {
-  assertSurveySubmitAllowed,
+  checkSurveySubmitAllowed,
   recordSurveySubmitSuccess,
 } from "@/lib/survey/submit-throttle";
+import type { SurveySubmitActionResult } from "@/lib/survey/survey-submit-result";
 import { revalidatePath } from "next/cache";
 
 export type AwardQuestionType = "text" | "textarea";
@@ -34,14 +35,14 @@ export interface AwardResponse {
 export async function submitAwardResponse(
   surveyId: string,
   responses: AwardResponse[],
-) {
+): Promise<SurveySubmitActionResult> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
   if (!user) {
-    throw new Error("ログインが必要です");
+    return { ok: false, message: "ログインが必要です" };
   }
 
   // アンケートの存在確認と有効性チェック
@@ -52,23 +53,26 @@ export async function submitAwardResponse(
     .single();
 
   if (surveyError || !survey) {
-    throw new Error("アンケートが見つかりません");
+    return { ok: false, message: "アンケートが見つかりません" };
   }
 
   if (!survey.is_active) {
-    throw new Error("このアンケートは無効です");
+    return { ok: false, message: "このアンケートは無効です" };
   }
 
   const now = new Date();
   if (new Date(survey.start_date) > now) {
-    throw new Error("アンケートはまだ開始されていません");
+    return { ok: false, message: "アンケートはまだ開始されていません" };
   }
 
   if (new Date(survey.end_date) < now) {
-    throw new Error("アンケートの回答期限が過ぎています");
+    return { ok: false, message: "アンケートの回答期限が過ぎています" };
   }
 
-  await assertSurveySubmitAllowed(supabase, surveyId, user.id);
+  const throttle = await checkSurveySubmitAllowed(supabase, surveyId, user.id);
+  if (!throttle.ok) {
+    return throttle;
+  }
 
   // 既存の回答を削除（更新のため）
   const { error: deleteError } = await supabase
@@ -83,7 +87,10 @@ export async function submitAwardResponse(
       deleteError,
       { surveyId, userId: user.id },
     );
-    throw new Error("回答の更新に失敗しました（既存データの削除）");
+    return {
+      ok: false,
+      message: "回答の更新に失敗しました（既存データの削除）",
+    };
   }
 
   const responseData = responses
@@ -99,7 +106,7 @@ export async function submitAwardResponse(
     .filter((row) => row.text_value != null);
 
   if (responseData.length === 0) {
-    throw new Error("回答を入力してください");
+    return { ok: false, message: "回答を入力してください" };
   }
 
   const { error: insertError } = await supabase
@@ -112,14 +119,17 @@ export async function submitAwardResponse(
       insertError,
       { surveyId, userId: user.id, rowCount: responseData.length },
     );
-    throw new Error("回答の送信に失敗しました");
+    return { ok: false, message: "回答の送信に失敗しました" };
   }
 
-  await recordSurveySubmitSuccess(supabase, surveyId, user.id);
+  const recorded = await recordSurveySubmitSuccess(supabase, surveyId, user.id);
+  if (!recorded.ok) {
+    return recorded;
+  }
 
   revalidatePath(`/surveys/award/${surveyId}`);
   revalidatePath("/user-missions/new");
-  return { success: true as const, submittedByUserId: user.id };
+  return { ok: true, submittedByUserId: user.id };
 }
 
 export async function getAwardSurvey(surveyId: string) {

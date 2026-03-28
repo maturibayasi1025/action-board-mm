@@ -3,11 +3,17 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 /** 同一アンケートへの再送信（更新）の最短間隔 */
 export const SURVEY_SUBMIT_MIN_INTERVAL_MS = 5000;
 
-export async function assertSurveySubmitAllowed(
+/** 連続更新が早すぎるとき（Server Action は throw せずこの文言を返すこと） */
+export const SURVEY_SUBMIT_TOO_FAST_MESSAGE =
+  "更新が早すぎます。しばらくしてから再度お試しください。";
+
+type ThrottleCheckResult = { ok: true } | { ok: false; message: string };
+
+export async function checkSurveySubmitAllowed(
   supabase: SupabaseClient,
   surveyId: string,
   userId: string,
-): Promise<void> {
+): Promise<ThrottleCheckResult> {
   const { data, error } = await supabase
     .from("survey_submit_throttle")
     .select("last_submitted_at")
@@ -17,24 +23,24 @@ export async function assertSurveySubmitAllowed(
 
   if (error) {
     console.error("survey_submit_throttle select", error);
-    throw new Error("送信の確認に失敗しました");
+    return { ok: false, message: "送信の確認に失敗しました" };
   }
 
   if (data?.last_submitted_at) {
     const last = new Date(data.last_submitted_at).getTime();
     if (Date.now() - last < SURVEY_SUBMIT_MIN_INTERVAL_MS) {
-      throw new Error(
-        "短時間に繰り返し送信できません。しばらくしてからお試しください。",
-      );
+      return { ok: false, message: SURVEY_SUBMIT_TOO_FAST_MESSAGE };
     }
   }
+
+  return { ok: true };
 }
 
 export async function recordSurveySubmitSuccess(
   supabase: SupabaseClient,
   surveyId: string,
   userId: string,
-): Promise<void> {
+): Promise<{ ok: true } | { ok: false; message: string }> {
   const { error } = await supabase.from("survey_submit_throttle").upsert(
     {
       survey_id: surveyId,
@@ -46,6 +52,8 @@ export async function recordSurveySubmitSuccess(
 
   if (error) {
     console.error("survey_submit_throttle upsert", error);
-    throw new Error("送信の記録に失敗しました");
+    return { ok: false, message: "送信の記録に失敗しました" };
   }
+
+  return { ok: true };
 }

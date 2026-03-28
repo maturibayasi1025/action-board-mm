@@ -71,7 +71,11 @@ export function SurveyFormClient({
 
     setIsSubmitting(true);
     try {
-      await submitSurveyResponse(surveyId, responses);
+      const result = await submitSurveyResponse(surveyId, responses);
+      if (!result.ok) {
+        toast.error(result.message);
+        return;
+      }
       if (shouldOfferMission && linkedPostMission) {
         setPostSubmitMissionContext(linkedPostMission);
         setPostMissionOpen(true);
@@ -86,9 +90,7 @@ export function SurveyFormClient({
       }
     } catch (error) {
       console.error("回答の送信に失敗しました:", error);
-      toast.error(
-        error instanceof Error ? error.message : "回答の送信に失敗しました",
-      );
+      toast.error("回答の送信に失敗しました");
     } finally {
       setIsSubmitting(false);
     }
