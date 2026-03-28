@@ -180,8 +180,13 @@ export function CreateMissionForm(
     fetchUsers();
   }, [supabase]);
 
+  // 自分自身は賞賛対象に選べない
+  const usersExcludingSelf = availableUsers.filter(
+    (u) => !currentUser?.id || u.id !== currentUser.id,
+  );
+
   // 検索クエリに基づいてユーザーをフィルタリング
-  const filteredUsers = availableUsers.filter((user) => {
+  const filteredUsers = usersExcludingSelf.filter((user) => {
     const query = searchQuery.toLowerCase();
     const nameMatch = user.name.toLowerCase().includes(query);
     const xUsernameMatch = user.x_username
@@ -189,6 +194,17 @@ export function CreateMissionForm(
       : false;
     return nameMatch || xUsernameMatch;
   });
+
+  // 下書き復元などで自分が含まれていた場合は除外
+  useEffect(() => {
+    if (!currentUser?.id) return;
+    setSelectedUsers((prev) => {
+      if (!prev.includes(currentUser.id)) return prev;
+      const next = prev.filter((id) => id !== currentUser.id);
+      form.setValue("praisedUserIds", next);
+      return next;
+    });
+  }, [currentUser?.id, form.setValue]);
 
   // ユーザーを選択/選択解除
   const toggleUser = (userId: string) => {
@@ -510,7 +526,7 @@ export function CreateMissionForm(
                 {searchQuery && (
                   <div className="text-sm text-muted-foreground px-1">
                     {filteredUsers.length}件中{filteredUsers.length}件表示（全
-                    {availableUsers.length}件）
+                    {usersExcludingSelf.length}件）
                   </div>
                 )}
                 {/* 選択可能なメンバー */}

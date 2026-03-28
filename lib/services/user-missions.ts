@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/client";
 import type { PraisedUser } from "@/lib/types/user-missions";
+import { excludeCreatorFromPraisedUserIds } from "@/lib/utils/user-mission-praised";
 
 export interface CreateUserMissionInput {
   title: string;
@@ -125,8 +126,12 @@ export async function createUserMission(input: CreateUserMissionInput) {
     }
 
     // 賞賛対象者を挿入
-    if (input.praisedUserIds && input.praisedUserIds.length > 0) {
-      const praisedUsers = input.praisedUserIds.map((userId) => ({
+    const praisedUserIdsSafe = excludeCreatorFromPraisedUserIds(
+      input.praisedUserIds ?? [],
+      user.id,
+    );
+    if (praisedUserIdsSafe.length > 0) {
+      const praisedUsers = praisedUserIdsSafe.map((userId) => ({
         user_mission_id: mission.id,
         praised_user_id: userId,
       }));

@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import type { Json } from "@/lib/types/supabase";
 import { isLikeExpired } from "@/lib/utils/user-mission-likes";
+import { excludeCreatorFromPraisedUserIds } from "@/lib/utils/user-mission-praised";
 import { revalidatePath } from "next/cache";
 
 export interface CreateUserMissionInput {
@@ -89,6 +90,23 @@ export async function createUserMissionAction(input: CreateUserMissionInput) {
         )
       : [];
 
+    const praisedUserIdsWithoutCreator = excludeCreatorFromPraisedUserIds(
+      normalizedPraisedUserIds,
+      user.id,
+    );
+
+    if (
+      praisedUserIdsWithoutCreator.length === 0 &&
+      normalizedPraisedExternalUserNames.length === 0
+    ) {
+      if (normalizedPraisedUserIds.length > 0) {
+        throw new Error(
+          "自分自身を賞賛対象にすることはできません。他のメンバーを少なくとも1人選んでください。",
+        );
+      }
+      throw new Error("賞賛に値するメンバーを少なくとも1人選択してください");
+    }
+
     // グッジョブ作成（即時承認）
     const nowIso = new Date().toISOString();
     const { data: mission, error: missionError } = await supabase
@@ -159,8 +177,8 @@ export async function createUserMissionAction(input: CreateUserMissionInput) {
     }
 
     // 賞賛対象ユーザーを挿入
-    if (normalizedPraisedUserIds.length > 0) {
-      const praisedUsers = normalizedPraisedUserIds.map((userId) => ({
+    if (praisedUserIdsWithoutCreator.length > 0) {
+      const praisedUsers = praisedUserIdsWithoutCreator.map((userId) => ({
         user_mission_id: mission.id,
         praised_user_id: userId,
       }));
@@ -228,7 +246,7 @@ export async function createUserMissionAction(input: CreateUserMissionInput) {
     await awardPointsForMissionCreation(
       mission.id,
       user.id,
-      normalizedPraisedUserIds,
+      praisedUserIdsWithoutCreator,
       normalizedPraisedExternalUserNames,
       supabase,
     );
@@ -271,7 +289,7 @@ export async function createUserMissionAction(input: CreateUserMissionInput) {
           input.title,
           input.content,
           user.id,
-          normalizedPraisedUserIds,
+          praisedUserIdsWithoutCreator,
           normalizedPraisedExternalUserNames,
           imagePaths,
           supabase,
@@ -1027,6 +1045,15 @@ export async function saveDraftUserMissionAction(
       return { success: false, error: "認証が必要です" };
     }
 
+    const praisedUserIdsExcludingCreator = excludeCreatorFromPraisedUserIds(
+      Array.isArray(input.praisedUserIds)
+        ? input.praisedUserIds.filter(
+            (id): id is string => typeof id === "string" && id.length > 0,
+          )
+        : [],
+      user.id,
+    );
+
     // 既存の下書きがある場合は更新、ない場合は新規作成
     if (input.draftId) {
       // 既存の下書きを更新
@@ -1038,7 +1065,11 @@ export async function saveDraftUserMissionAction(
 
       if (fetchError || !existingMission) {
         // 下書きが見つからない場合は新規作成
-        return await createNewDraft(input, user.id, supabase);
+        return await createNewDraft(
+          { ...input, praisedUserIds: praisedUserIdsExcludingCreator },
+          user.id,
+          supabase,
+        );
       }
 
       // 作成者チェック
@@ -1108,8 +1139,8 @@ export async function saveDraftUserMissionAction(
         .delete()
         .eq("user_mission_id", mission.id);
 
-      if (input.praisedUserIds.length > 0) {
-        const praisedUsers = input.praisedUserIds.map((userId) => ({
+      if (praisedUserIdsExcludingCreator.length > 0) {
+        const praisedUsers = praisedUserIdsExcludingCreator.map((userId) => ({
           user_mission_id: mission.id,
           praised_user_id: userId,
         }));
@@ -1145,7 +1176,11 @@ export async function saveDraftUserMissionAction(
       return { success: true, missionId: mission.id };
     }
     // 新規下書きを作成
-    return await createNewDraft(input, user.id, supabase);
+    return await createNewDraft(
+      { ...input, praisedUserIds: praisedUserIdsExcludingCreator },
+      user.id,
+      supabase,
+    );
   } catch (error) {
     console.error("saveDraftUserMissionActionエラー:", error);
     return {
@@ -1302,10 +1337,15 @@ export async function publishDraftUserMissionAction(draftId: string) {
       throw new Error("内容を入力してください");
     }
 
-    const praisedUserIds =
+    const rawPraisedUserIds =
       draft.user_mission_praised_users?.map(
         (p: { praised_user_id: string }) => p.praised_user_id,
       ) || [];
+
+    const praisedUserIds = excludeCreatorFromPraisedUserIds(
+      rawPraisedUserIds,
+      user.id,
+    );
 
     const praisedExternalUserNames =
       draft.user_mission_praised_external_users?.map(
@@ -1313,8 +1353,19 @@ export async function publishDraftUserMissionAction(draftId: string) {
       ) || [];
 
     if (praisedUserIds.length === 0 && praisedExternalUserNames.length === 0) {
+      if (rawPraisedUserIds.some((id) => id === user.id)) {
+        throw new Error(
+          "自分自身を賞賛対象にすることはできません。他のメンバーを少なくとも1人選んでください。",
+        );
+      }
       throw new Error("賞賛に値するメンバーを少なくとも1人選択してください");
     }
+
+    await supabase
+      .from("user_mission_praised_users")
+      .delete()
+      .eq("user_mission_id", draftId)
+      .eq("praised_user_id", user.id);
 
     const mvvItems = draft.user_mission_mvv_items || [];
     if (mvvItems.length === 0) {
