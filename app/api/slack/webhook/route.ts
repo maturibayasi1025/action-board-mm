@@ -1,6 +1,9 @@
+import {
+  ensureSlackUserIdStored,
+  findPrivateUserIdForSlackMention,
+} from "@/lib/slack/match-private-user-for-slack";
 import { createServiceClient } from "@/lib/supabase/server";
 import type { Json } from "@/lib/types/supabase";
-import { findBestMatch } from "@/lib/utils/fuzzyMatch";
 import { type NextRequest, NextResponse } from "next/server";
 
 // Edge RuntimeではcryptoはWeb Crypto APIを使用
@@ -143,41 +146,6 @@ async function getSlackUserInfo(slackUserId: string): Promise<{
 }
 
 /**
- * アプリ内のユーザー名からユーザーIDを取得（あいまい検索）
- */
-async function findUserByName(
-  slackUserName: string,
-  supabase: Awaited<ReturnType<typeof createServiceClient>>,
-): Promise<string | null> {
-  // 全てのユーザーを取得（Service ClientなのでRLSバイパス）
-  const { data: users, error } = await supabase
-    .from("private_users")
-    .select("id, name");
-
-  if (error || !users) {
-    console.error("ユーザー取得エラー:", error);
-    return null;
-  }
-
-  // あいまい検索でマッチング
-  const match = findBestMatch(
-    slackUserName,
-    users.map((u) => ({ text: u.name, data: u.id })),
-    0.7, // 類似度70%以上でマッチング
-  );
-
-  if (match) {
-    console.log(
-      `ユーザー名マッチング: "${slackUserName}" → "${match.text}" (類似度: ${(match.similarity * 100).toFixed(1)}%)`,
-    );
-    return match.data;
-  }
-
-  console.warn(`ユーザー名が見つかりませんでした: "${slackUserName}"`);
-  return null;
-}
-
-/**
  * メッセージからタイトルと内容を抽出
  * 最初の行をタイトル、残りを内容とする
  */
@@ -296,14 +264,20 @@ async function createGoodJobFromSlack(
   supabase: Awaited<ReturnType<typeof createServiceClient>>,
 ): Promise<{ success: boolean; missionId?: string; error?: string }> {
   try {
-    // 投稿者を特定
-    const creatorId = await findUserByName(slackUserName, supabase);
+    // 投稿者を特定（Slack User ID 保存済み・あいまい一致・部分一致）
+    const creatorId = await findPrivateUserIdForSlackMention(
+      slackUserId,
+      slackUserName,
+      supabase,
+    );
     if (!creatorId) {
       return {
         success: false,
         error: `投稿者のユーザーが見つかりませんでした: ${slackUserName}`,
       };
     }
+
+    await ensureSlackUserIdStored(supabase, creatorId, slackUserId);
 
     // メンション先のユーザーを特定
     const praisedUserIds: string[] = [];
@@ -314,12 +288,14 @@ async function createGoodJobFromSlack(
       if (userInfo) {
         // 表示名または実名を使用
         const mentionedUserName = userInfo.display_name || userInfo.name;
-        const mentionedUserId = await findUserByName(
+        const mentionedUserId = await findPrivateUserIdForSlackMention(
+          mentionedId,
           mentionedUserName,
           supabase,
         );
         if (mentionedUserId && mentionedUserId !== creatorId) {
           praisedUserIds.push(mentionedUserId);
+          await ensureSlackUserIdStored(supabase, mentionedUserId, mentionedId);
         } else if (!mentionedUserId) {
           // 登録されていないユーザーは外部ユーザーとして扱う
           praisedExternalUserNames.push(mentionedUserName);

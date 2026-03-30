@@ -1,4 +1,5 @@
 import {
+  buildPraisedMentionsLine,
   formatPraisedNamesWithMentions,
   getSlackUsersList,
 } from "@/lib/slack/slack-users";
@@ -48,15 +49,31 @@ export async function POST(request: NextRequest) {
         content,
         creatorName,
         praisedNames,
+        praisedInternalUsers,
+        externalPraisedNames,
         imageUrls,
         missionId,
-      } = data;
+      } = data as {
+        title?: string;
+        content?: string;
+        creatorName?: string;
+        praisedNames?: string;
+        praisedInternalUsers?: Array<{
+          name: string;
+          slack_user_id: string | null;
+        }>;
+        externalPraisedNames?: string[];
+        imageUrls?: string[];
+        missionId?: string;
+      };
 
       console.log("[Slack通知] 受信したデータ:", {
         type,
         title,
         creatorName,
         praisedNames,
+        praisedInternalUsers,
+        externalPraisedNames,
         imageUrls,
         missionId,
         imageUrlsType: typeof imageUrls,
@@ -66,10 +83,18 @@ export async function POST(request: NextRequest) {
 
       // Slackユーザーリストを取得してメンション形式に変換
       const slackUsers = await getSlackUsersList();
-      const praisedNamesWithMentions = formatPraisedNamesWithMentions(
-        praisedNames || "",
-        slackUsers,
-      );
+
+      const internalList = Array.isArray(praisedInternalUsers)
+        ? praisedInternalUsers
+        : [];
+      const externalList = Array.isArray(externalPraisedNames)
+        ? externalPraisedNames
+        : [];
+
+      const praisedNamesWithMentions =
+        internalList.length > 0 || externalList.length > 0
+          ? buildPraisedMentionsLine(internalList, externalList, slackUsers)
+          : formatPraisedNamesWithMentions(praisedNames || "", slackUsers);
 
       // 詳細画面のURLを生成
       const apiUrl =

@@ -779,16 +779,33 @@ async function sendSlackNotificationForMissionCreation(
       .eq("id", creatorId)
       .single();
 
-    // 賞賛対象者情報を取得
+    // 賞賛対象者情報を取得（Slack メンション用に slack_user_id を含む）
     const { data: praisedUsers } =
       validatedPraisedUserIds.length > 0
         ? await supabase
             .from("private_users")
-            .select("name")
+            .select("id, name, slack_user_id")
             .in("id", validatedPraisedUserIds)
         : { data: null };
 
-    const praisedNames = praisedUsers?.map((u) => u.name).join(", ") || "";
+    type PraisedPrivateRow = {
+      id: string;
+      name: string;
+      slack_user_id: string | null;
+    };
+    const praisedById = new Map<string, PraisedPrivateRow>(
+      (praisedUsers ?? []).map((u) => [u.id, u]),
+    );
+    const orderedPraisedInternal: PraisedPrivateRow[] = [];
+    for (const id of validatedPraisedUserIds) {
+      const row = praisedById.get(id);
+      if (row) {
+        orderedPraisedInternal.push(row);
+      }
+    }
+
+    const praisedNames =
+      orderedPraisedInternal.map((u) => u.name).join(", ") || "";
     const externalNames = validatedPraisedExternalUserNames.join(", ") || "";
     const allPraisedNames = [praisedNames, externalNames]
       .filter((name) => name.length > 0)
@@ -850,6 +867,11 @@ async function sendSlackNotificationForMissionCreation(
           content,
           creatorName: creator?.name || "不明",
           praisedNames: allPraisedNames,
+          praisedInternalUsers: orderedPraisedInternal.map((u) => ({
+            name: u.name,
+            slack_user_id: u.slack_user_id,
+          })),
+          externalPraisedNames: validatedPraisedExternalUserNames,
           imageUrls: imageUrls, // undefinedではなく空配列でも送信
         },
       }),

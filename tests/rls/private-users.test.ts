@@ -75,6 +75,19 @@ describe("private_users テーブルのRLSテスト", () => {
     expect(checkData?.name).toBe(newName);
   });
 
+  test("認証されたユーザーは自分の slack_user_id を更新できる", async () => {
+    const slackId = "U01234567";
+    const { data, error } = await user1.client
+      .from("private_users")
+      .update({ slack_user_id: slackId })
+      .eq("id", user1.user.userId)
+      .select("slack_user_id")
+      .single();
+
+    expect(error).toBeNull();
+    expect(data?.slack_user_id).toBe(slackId);
+  });
+
   test("認証されたユーザーは他のユーザーのprivate_usersレコードを更新できない", async () => {
     // ユーザー1がユーザー2のデータを更新しようとする
     const { data: updateData } = await user1.client

@@ -1094,6 +1094,7 @@ export type Database = {
           id: string;
           name: string;
           registered_at: string;
+          slack_user_id: string | null;
           updated_at: string;
           x_username: string | null;
         };
@@ -1106,6 +1107,7 @@ export type Database = {
           id: string;
           name: string;
           registered_at?: string;
+          slack_user_id?: string | null;
           updated_at?: string;
           x_username?: string | null;
         };
@@ -1118,6 +1120,7 @@ export type Database = {
           id?: string;
           name?: string;
           registered_at?: string;
+          slack_user_id?: string | null;
           updated_at?: string;
           x_username?: string | null;
         };
