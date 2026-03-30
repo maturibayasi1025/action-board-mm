@@ -36,11 +36,12 @@ export async function checkSurveySubmitAllowed(
   return { ok: true };
 }
 
+/** 回答保存後のレート制限メタ。失敗しても回答は既に保存済みのためベストエフォートとする */
 export async function recordSurveySubmitSuccess(
   supabase: SupabaseClient,
   surveyId: string,
   userId: string,
-): Promise<{ ok: true } | { ok: false; message: string }> {
+): Promise<void> {
   const { error } = await supabase.from("survey_submit_throttle").upsert(
     {
       survey_id: surveyId,
@@ -51,9 +52,6 @@ export async function recordSurveySubmitSuccess(
   );
 
   if (error) {
-    console.error("survey_submit_throttle upsert", error);
-    return { ok: false, message: "送信の記録に失敗しました" };
+    console.error("survey_submit_throttle upsert (non-fatal)", error);
   }
-
-  return { ok: true };
 }

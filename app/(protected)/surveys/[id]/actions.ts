@@ -2,11 +2,14 @@
 
 import { logPostgrestError } from "@/lib/supabase/log-postgrest-error";
 import { createClient } from "@/lib/supabase/server";
+import { mapSurveyRpcErrorMessage } from "@/lib/survey/map-survey-rpc-error";
 import {
   checkSurveySubmitAllowed,
   recordSurveySubmitSuccess,
 } from "@/lib/survey/submit-throttle";
 import type { SurveySubmitActionResult } from "@/lib/survey/survey-submit-result";
+import { validateEnpsResponses } from "@/lib/survey/validate-survey-responses";
+import type { Json } from "@/lib/types/supabase";
 import { revalidatePath } from "next/cache";
 
 /** CHECK enps_responses_score_or_text 適合行のみ INSERT する */
@@ -116,26 +119,10 @@ export async function submitSurveyResponse(
     return throttle;
   }
 
-  // 既存の回答を削除（更新のため）
-  const { error: deleteError } = await supabase
-    .from("enps_responses")
-    .delete()
-    .eq("survey_id", surveyId)
-    .eq("user_id", user.id);
-
-  if (deleteError) {
-    logPostgrestError(
-      "submitSurveyResponse delete enps_responses",
-      deleteError,
-      {
-        surveyId,
-        userId: user.id,
-      },
-    );
-    return {
-      ok: false,
-      message: "回答の更新に失敗しました（既存データの削除）",
-    };
+  const questions = await getSurveyQuestions();
+  const requiredCheck = validateEnpsResponses(questions, responses);
+  if (!requiredCheck.ok) {
+    return requiredCheck;
   }
 
   let responseData: ReturnType<typeof buildEnpsResponseInsertRows>;
@@ -153,27 +140,27 @@ export async function submitSurveyResponse(
     return { ok: false, message: "回答に有効なデータがありません" };
   }
 
-  const { error: insertError } = await supabase
-    .from("enps_responses")
-    .insert(responseData);
+  const rpcPayload = responseData.map((row) => ({
+    question_id: row.question_id,
+    score_value: row.score_value,
+    text_value: row.text_value,
+  }));
 
-  if (insertError) {
-    logPostgrestError(
-      "submitSurveyResponse insert enps_responses",
-      insertError,
-      {
-        surveyId,
-        userId: user.id,
-        rowCount: responseData.length,
-      },
-    );
-    return { ok: false, message: "回答の送信に失敗しました" };
+  const { error: rpcError } = await supabase.rpc("replace_enps_responses", {
+    p_survey_id: surveyId,
+    p_rows: rpcPayload as Json,
+  });
+
+  if (rpcError) {
+    logPostgrestError("submitSurveyResponse replace_enps_responses", rpcError, {
+      surveyId,
+      userId: user.id,
+      rowCount: responseData.length,
+    });
+    return { ok: false, message: mapSurveyRpcErrorMessage(rpcError.message) };
   }
 
-  const recorded = await recordSurveySubmitSuccess(supabase, surveyId, user.id);
-  if (!recorded.ok) {
-    return recorded;
-  }
+  await recordSurveySubmitSuccess(supabase, surveyId, user.id);
 
   revalidatePath(`/surveys/${surveyId}`);
   revalidatePath("/user-missions/new");

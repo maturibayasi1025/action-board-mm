@@ -2168,6 +2168,14 @@ export type Database = {
         Args: { target_user_id: string };
         Returns: number;
       };
+      replace_award_responses: {
+        Args: { p_rows: Json; p_survey_id: string };
+        Returns: undefined;
+      };
+      replace_enps_responses: {
+        Args: { p_rows: Json; p_survey_id: string };
+        Returns: undefined;
+      };
       get_user_prefecture_ranking: {
         Args: { prefecture: string; target_user_id: string };
         Returns: {

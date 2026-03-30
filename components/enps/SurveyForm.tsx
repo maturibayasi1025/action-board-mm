@@ -157,6 +157,7 @@ export function SurveyForm({
                 <CardContent className="space-y-4">
                   {question.question_type === "score_0_10" && (
                     <ScoreSelector
+                      name={`enps-score-${question.id}`}
                       value={response?.score_value ?? undefined}
                       onChange={(score) =>
                         handleScoreChange(question.id, score)

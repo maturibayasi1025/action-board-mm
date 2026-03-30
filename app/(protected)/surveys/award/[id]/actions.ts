@@ -2,11 +2,14 @@
 
 import { logPostgrestError } from "@/lib/supabase/log-postgrest-error";
 import { createClient } from "@/lib/supabase/server";
+import { mapSurveyRpcErrorMessage } from "@/lib/survey/map-survey-rpc-error";
 import {
   checkSurveySubmitAllowed,
   recordSurveySubmitSuccess,
 } from "@/lib/survey/submit-throttle";
 import type { SurveySubmitActionResult } from "@/lib/survey/survey-submit-result";
+import { validateAwardResponses } from "@/lib/survey/validate-survey-responses";
+import type { Json } from "@/lib/types/supabase";
 import { revalidatePath } from "next/cache";
 
 export type AwardQuestionType = "text" | "textarea";
@@ -74,23 +77,17 @@ export async function submitAwardResponse(
     return throttle;
   }
 
-  // 既存の回答を削除（更新のため）
-  const { error: deleteError } = await supabase
-    .from("award_responses")
-    .delete()
-    .eq("survey_id", surveyId)
-    .eq("user_id", user.id);
-
-  if (deleteError) {
-    logPostgrestError(
-      "submitAwardResponse delete award_responses",
-      deleteError,
-      { surveyId, userId: user.id },
-    );
-    return {
-      ok: false,
-      message: "回答の更新に失敗しました（既存データの削除）",
-    };
+  const questions = await getAwardQuestions();
+  const requiredCheck = validateAwardResponses(
+    questions.map((q) => ({
+      id: q.id,
+      is_required: q.is_required,
+      is_active: true,
+    })),
+    responses,
+  );
+  if (!requiredCheck.ok) {
+    return requiredCheck;
   }
 
   const responseData = responses
@@ -109,23 +106,21 @@ export async function submitAwardResponse(
     return { ok: false, message: "回答を入力してください" };
   }
 
-  const { error: insertError } = await supabase
-    .from("award_responses")
-    .insert(responseData);
+  const { error: rpcError } = await supabase.rpc("replace_award_responses", {
+    p_survey_id: surveyId,
+    p_rows: responses as unknown as Json,
+  });
 
-  if (insertError) {
-    logPostgrestError(
-      "submitAwardResponse insert award_responses",
-      insertError,
-      { surveyId, userId: user.id, rowCount: responseData.length },
-    );
-    return { ok: false, message: "回答の送信に失敗しました" };
+  if (rpcError) {
+    logPostgrestError("submitAwardResponse replace_award_responses", rpcError, {
+      surveyId,
+      userId: user.id,
+      rowCount: responseData.length,
+    });
+    return { ok: false, message: mapSurveyRpcErrorMessage(rpcError.message) };
   }
 
-  const recorded = await recordSurveySubmitSuccess(supabase, surveyId, user.id);
-  if (!recorded.ok) {
-    return recorded;
-  }
+  await recordSurveySubmitSuccess(supabase, surveyId, user.id);
 
   revalidatePath(`/surveys/award/${surveyId}`);
   revalidatePath("/user-missions/new");

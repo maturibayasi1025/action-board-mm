@@ -8,6 +8,8 @@ interface ScoreSelectorProps {
   onChange: (value: number) => void;
   disabled?: boolean;
   required?: boolean;
+  /** 同一フォーム内に複数のスコア質問があるとき、radio グループが衝突しないように一意にする */
+  name: string;
 }
 
 export function ScoreSelector({
@@ -15,6 +17,7 @@ export function ScoreSelector({
   onChange,
   disabled = false,
   required = false,
+  name,
 }: ScoreSelectorProps) {
   const scores = Array.from({ length: 11 }, (_, i) => i); // 0-10
 
@@ -31,7 +34,7 @@ export function ScoreSelector({
           >
             <input
               type="radio"
-              name="score"
+              name={name}
               value={score}
               checked={value === score}
               onChange={() => !disabled && onChange(score)}
