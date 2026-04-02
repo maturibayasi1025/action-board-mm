@@ -3,6 +3,8 @@ import { UserBusinessUnitsAssign } from "@/components/admin/user-business-units-
 import { isOwner } from "@/lib/utils/isOwner";
 import { redirect } from "next/navigation";
 
+export const runtime = "edge";
+
 export default async function UserBusinessUnitsPage() {
   const owner = await isOwner();
   if (!owner) {

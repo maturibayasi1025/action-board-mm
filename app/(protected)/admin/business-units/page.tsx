@@ -3,6 +3,8 @@ import { BusinessUnitsAdmin } from "@/components/admin/business-units-admin";
 import { isOwner } from "@/lib/utils/isOwner";
 import { redirect } from "next/navigation";
 
+export const runtime = "edge";
+
 export default async function BusinessUnitsAdminPage() {
   const owner = await isOwner();
   if (!owner) {
