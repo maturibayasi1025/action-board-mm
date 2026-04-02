@@ -58,11 +58,13 @@ export async function getSurveyResponses(surveyId: string) {
       questions: questions || [],
       responses: [],
       npsData: {},
+      uniqueRespondentCount: 0,
     };
   }
 
   // ユーザー情報を別途取得（RLSをバイパスするため）
   const userIds = Array.from(new Set((responses || []).map((r) => r.user_id)));
+  const uniqueRespondentCount = userIds.length;
 
   let userMap = new Map<string, string>();
   if (userIds.length > 0) {
@@ -123,6 +125,7 @@ export async function getSurveyResponses(surveyId: string) {
     questions: questions || [],
     responses: responsesWithUsers || [],
     npsData,
+    uniqueRespondentCount,
   };
 }
 

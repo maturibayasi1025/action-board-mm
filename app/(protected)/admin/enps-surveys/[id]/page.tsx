@@ -37,7 +37,8 @@ export default async function SurveyDetailPage({
 
   const { id } = await params;
   const survey = await getSurveyDetail(id);
-  const { questions, responses, npsData } = await getSurveyResponses(id);
+  const { questions, responses, npsData, uniqueRespondentCount } =
+    await getSurveyResponses(id);
   const unansweredUsers = await getUnansweredUsers(id);
   const excludedGlobalUsers = await listGlobalUnansweredExclusions();
   const allSurveysNps = await getAllSurveysNps();
@@ -57,7 +58,8 @@ export default async function SurveyDetailPage({
           <div>
             <h1 className="text-3xl font-bold mb-2">{survey.title}</h1>
             <p className="text-muted-foreground">
-              対象年月: {survey.year_month} | 回答数: {responses.length}件
+              対象年月: {survey.year_month} | 回答者数: {uniqueRespondentCount}
+              人
             </p>
           </div>
           <Link href="/admin/enps-surveys">
@@ -205,11 +207,11 @@ export default async function SurveyDetailPage({
           </div>
         )}
 
-        {/* 月次推移 */}
+        {/* 月次eNPS推移 */}
         {allSurveysNps.length > 1 && (
           <Card>
             <CardHeader>
-              <CardTitle>月次NPS推移</CardTitle>
+              <CardTitle>月次eNPS推移</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">

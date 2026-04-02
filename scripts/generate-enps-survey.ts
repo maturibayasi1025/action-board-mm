@@ -120,7 +120,7 @@ async function main() {
     const { data: survey, error: surveyError } = await supabase
       .from("enps_surveys")
       .insert({
-        title: `月次NPSアンケート / ${yearMonthDisplay}`,
+        title: `月次eNPSアンケート / ${yearMonthDisplay}`,
         description:
           "月次のeNPSについてのアンケートです！\n詳細は社内報をご確認ください！\n5分程度で済むかと思いますので、忌憚なきご意見をお願いいたします！",
         year_month: yearMonth,
