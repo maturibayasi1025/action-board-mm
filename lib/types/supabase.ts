@@ -206,6 +206,84 @@ export type Database = {
         };
         Relationships: [];
       };
+      business_units: {
+        Row: {
+          company_id: string;
+          created_at: string;
+          display_order: number;
+          id: string;
+          is_active: boolean;
+          name: string;
+          parent_id: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          company_id: string;
+          created_at?: string;
+          display_order?: number;
+          id?: string;
+          is_active?: boolean;
+          name: string;
+          parent_id?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          company_id?: string;
+          created_at?: string;
+          display_order?: number;
+          id?: string;
+          is_active?: boolean;
+          name?: string;
+          parent_id?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "business_units_company_id_fkey";
+            columns: ["company_id"];
+            isOneToOne: false;
+            referencedRelation: "companies";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "business_units_parent_id_fkey";
+            columns: ["parent_id"];
+            isOneToOne: false;
+            referencedRelation: "business_units";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      companies: {
+        Row: {
+          created_at: string;
+          display_order: number;
+          id: string;
+          is_active: boolean;
+          name: string;
+          slug: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          created_at?: string;
+          display_order?: number;
+          id?: string;
+          is_active?: boolean;
+          name: string;
+          slug?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          display_order?: number;
+          id?: string;
+          is_active?: boolean;
+          name?: string;
+          slug?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       daily_action_summary: {
         Row: {
           count: number;
@@ -1088,6 +1166,7 @@ export type Database = {
         Row: {
           address_prefecture: string;
           avatar_url: string | null;
+          business_unit_id: string | null;
           created_at: string;
           date_of_birth: string;
           hubspot_contact_id: string | null;
@@ -1101,6 +1180,7 @@ export type Database = {
         Insert: {
           address_prefecture: string;
           avatar_url?: string | null;
+          business_unit_id?: string | null;
           created_at?: string;
           date_of_birth: string;
           hubspot_contact_id?: string | null;
@@ -1114,6 +1194,7 @@ export type Database = {
         Update: {
           address_prefecture?: string;
           avatar_url?: string | null;
+          business_unit_id?: string | null;
           created_at?: string;
           date_of_birth?: string;
           hubspot_contact_id?: string | null;
@@ -1124,12 +1205,21 @@ export type Database = {
           updated_at?: string;
           x_username?: string | null;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "private_users_business_unit_id_fkey";
+            columns: ["business_unit_id"];
+            isOneToOne: false;
+            referencedRelation: "business_units";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       public_user_profiles: {
         Row: {
           address_prefecture: string;
           avatar_url: string | null;
+          business_unit_id: string | null;
           created_at: string;
           github_username: string | null;
           id: string;
@@ -1139,6 +1229,7 @@ export type Database = {
         Insert: {
           address_prefecture: string;
           avatar_url?: string | null;
+          business_unit_id?: string | null;
           created_at: string;
           github_username?: string | null;
           id: string;
@@ -1148,13 +1239,22 @@ export type Database = {
         Update: {
           address_prefecture?: string;
           avatar_url?: string | null;
+          business_unit_id?: string | null;
           created_at?: string;
           github_username?: string | null;
           id?: string;
           name?: string;
           x_username?: string | null;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "public_user_profiles_business_unit_id_fkey";
+            columns: ["business_unit_id"];
+            isOneToOne: false;
+            referencedRelation: "business_units";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       quiz_categories: {
         Row: {

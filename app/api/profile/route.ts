@@ -1,6 +1,7 @@
 import { PREFECTURES } from "@/lib/address";
 import { AVATAR_MAX_FILE_SIZE } from "@/lib/avatar";
 import { createClient } from "@/lib/supabase/server";
+import { resolveBusinessUnitIdFromForm } from "@/lib/validation/business-unit";
 import { revalidatePath } from "next/cache";
 import { type NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
@@ -84,6 +85,19 @@ export async function POST(request: NextRequest) {
 
     // バリデーション済みのデータを使用
     const validatedData = validatedFields.data;
+
+    const businessUnitRaw = formData.get("business_unit_id")?.toString();
+    const businessUnitResolved = await resolveBusinessUnitIdFromForm(
+      supabaseClient,
+      businessUnitRaw,
+    );
+    if (!businessUnitResolved.ok) {
+      return NextResponse.json({
+        success: false,
+        error: businessUnitResolved.error,
+      });
+    }
+    const business_unit_id = businessUnitResolved.businessUnitId;
 
     // 先にユーザー情報を取得
     const { data: privateUser, error: privateUserFetchError } =
@@ -219,6 +233,7 @@ export async function POST(request: NextRequest) {
           x_username: validatedData.x_username || null,
           avatar_url: avatar_path,
           hubspot_contact_id: null,
+          business_unit_id,
           updated_at: new Date().toISOString(),
         });
       if (privateUserError) {
@@ -243,6 +258,7 @@ export async function POST(request: NextRequest) {
           date_of_birth: validatedData.date_of_birth,
           x_username: validatedData.x_username || null,
           avatar_url: avatar_path,
+          business_unit_id,
           updated_at: new Date().toISOString(),
         })
         .eq("id", user.id);
@@ -316,6 +332,7 @@ export async function POST(request: NextRequest) {
 
     // キャッシュを無効化
     revalidatePath("/settings/profile");
+    revalidatePath(`/users/${user.id}`);
 
     console.log("[Update Profile API] Returning success response");
 

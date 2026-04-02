@@ -7,6 +7,7 @@ import { AVATAR_MAX_FILE_SIZE } from "@/lib/avatar";
 // import { createOrUpdateHubSpotContact } from "@/lib/services/hubspot";
 import { createClient } from "@/lib/supabase/server";
 import { encodedRedirect } from "@/lib/utils/utils";
+import { resolveBusinessUnitIdFromForm } from "@/lib/validation/business-unit";
 // import { nanoid } from "nanoid"; // Edge Runtime非対応のため、Web Crypto APIを使用
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -97,6 +98,19 @@ export async function updateProfile(
 
     // バリデーション済みのデータを使用
     const validatedData = validatedFields.data;
+
+    const businessUnitRaw = formData.get("business_unit_id")?.toString();
+    const businessUnitResolved = await resolveBusinessUnitIdFromForm(
+      supabaseClient,
+      businessUnitRaw,
+    );
+    if (!businessUnitResolved.ok) {
+      return {
+        success: false,
+        error: businessUnitResolved.error,
+      };
+    }
+    const business_unit_id = businessUnitResolved.businessUnitId;
 
     // 先にユーザー情報を取得
     const { data: authUser } = await supabaseClient.auth.getUser();
@@ -241,6 +255,7 @@ export async function updateProfile(
           x_username: validatedData.x_username || null,
           avatar_url: avatar_path,
           hubspot_contact_id: null, // 初期値はnull、HubSpot連携後に更新
+          business_unit_id,
           updated_at: new Date().toISOString(),
         });
       if (privateUserError) {
@@ -278,6 +293,7 @@ export async function updateProfile(
           date_of_birth: validatedData.date_of_birth,
           x_username: validatedData.x_username || null,
           avatar_url: avatar_path,
+          business_unit_id,
           updated_at: new Date().toISOString(),
         })
         .eq("id", user.id);
@@ -393,6 +409,7 @@ export async function updateProfile(
     // キャッシュを無効化してページを再読み込み
     console.log("[Update Profile] Revalidating path: /settings/profile");
     revalidatePath("/settings/profile");
+    revalidatePath(`/users/${user.id}`);
 
     console.log("[Update Profile] Returning success response");
 

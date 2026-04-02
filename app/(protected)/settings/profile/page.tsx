@@ -54,6 +54,19 @@ export default async function ProfileSettingsPage({
       .eq("id", user.id)
       .single();
 
+    const [{ data: buCompanies }, { data: buUnits }] = await Promise.all([
+      supabase
+        .from("companies")
+        .select("id, name")
+        .eq("is_active", true)
+        .order("display_order"),
+      supabase
+        .from("business_units")
+        .select("id, company_id, name")
+        .eq("is_active", true)
+        .order("display_order"),
+    ]);
+
     console.log("[Profile Page] Fetch result:", {
       hasPrivateUser: !!privateUser,
       hasPrivateUserError: !!privateUserError,
@@ -143,6 +156,10 @@ export default async function ProfileSettingsPage({
         <ProfileForm
           message={params}
           isNew={isNew}
+          businessUnitOptions={{
+            companies: buCompanies ?? [],
+            units: buUnits ?? [],
+          }}
           initialProfile={{
             name: privateUser?.name || user.user_metadata?.name || "",
             address_prefecture: privateUser?.address_prefecture || "",
@@ -150,6 +167,7 @@ export default async function ProfileSettingsPage({
             x_username: privateUser?.x_username ?? null,
             github_username: publicUser?.github_username ?? null,
             avatar_url: privateUser?.avatar_url ?? null,
+            business_unit_id: privateUser?.business_unit_id ?? null,
           }}
           initialPrivateUser={privateUser}
         />

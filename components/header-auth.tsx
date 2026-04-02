@@ -80,6 +80,14 @@ export default async function AuthButton() {
                     査定データエクスポート
                   </Link>
                 </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/admin/business-units">会社・事業部マスタ</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/admin/user-business-units">
+                    ユーザー事業部の割り当て
+                  </Link>
+                </DropdownMenuItem>
               </DropdownMenuGroup>
             </>
           )}

@@ -18,7 +18,9 @@ import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -43,6 +45,10 @@ import { PrefectureSelect } from "./PrefectureSelect";
 interface ProfileFormProps {
   message?: Message;
   isNew: boolean;
+  businessUnitOptions?: {
+    companies: { id: string; name: string }[];
+    units: { id: string; company_id: string; name: string }[];
+  };
   initialProfile: {
     name?: string;
     address_prefecture?: string;
@@ -50,6 +56,7 @@ interface ProfileFormProps {
     x_username?: string | null;
     github_username?: string | null;
     avatar_url?: string | null;
+    business_unit_id?: string | null;
   } | null;
   initialPrivateUser: {
     id?: string;
@@ -59,6 +66,7 @@ interface ProfileFormProps {
 export default function ProfileForm({
   message,
   isNew,
+  businessUnitOptions,
   initialProfile,
   initialPrivateUser,
 }: ProfileFormProps) {
@@ -81,6 +89,9 @@ export default function ProfileForm({
   );
   const [selectedPrefecture, setSelectedPrefecture] = useState<string>(
     initialProfile?.address_prefecture || "",
+  );
+  const [businessUnitId, setBusinessUnitId] = useState<string>(
+    initialProfile?.business_unit_id ?? "__none",
   );
 
   // 生年月日の状態を追加
@@ -457,6 +468,48 @@ export default function ProfileForm({
               onValueChange={setSelectedPrefecture}
             />
           </div>
+
+          {businessUnitOptions && businessUnitOptions.units.length > 0 && (
+            <div className="space-y-2">
+              <Label htmlFor="business_unit_id">所属事業部</Label>
+              <p className="text-sm text-muted-foreground">
+                任意。マスタに登録された事業部から選べます。
+              </p>
+              <input
+                type="hidden"
+                name="business_unit_id"
+                value={businessUnitId}
+              />
+              <Select
+                value={businessUnitId}
+                onValueChange={setBusinessUnitId}
+                disabled={isSubmitting}
+              >
+                <SelectTrigger id="business_unit_id">
+                  <SelectValue placeholder="未設定" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none">未設定</SelectItem>
+                  {businessUnitOptions.companies.map((company) => {
+                    const companyUnits = businessUnitOptions.units.filter(
+                      (u) => u.company_id === company.id,
+                    );
+                    if (companyUnits.length === 0) return null;
+                    return (
+                      <SelectGroup key={company.id}>
+                        <SelectLabel>{company.name}</SelectLabel>
+                        {companyUnits.map((unit) => (
+                          <SelectItem key={unit.id} value={unit.id}>
+                            {unit.name}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           <div className="space-y-2">
             {/* <div className="flex items-center gap-2">
               <Label htmlFor="x_username">X(旧Twitter)のユーザー名</Label>

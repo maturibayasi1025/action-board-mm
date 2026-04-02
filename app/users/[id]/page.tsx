@@ -1,7 +1,5 @@
 import Levels from "@/components/levels";
-import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { SocialBadge } from "@/components/ui/social-badge";
 import { UserBadges } from "@/components/user-badges/user-badges-server";
 import { UserMissionAchievements } from "@/components/user-mission-achievements";
 import { getUserRepeatableMissionAchievements } from "@/lib/services/userMissionAchievement";
@@ -24,13 +22,21 @@ export default async function UserDetailPage({ params }: Props) {
   const { id } = await params;
   const supabase = await createClient();
 
-  // ユーザー情報取得
+  // ユーザー情報取得（事業部・会社名は join）
   const { data: user } = await supabase
     .from("public_user_profiles")
-    .select("*")
+    .select("*, business_units(name, companies(name))")
     .eq("id", id)
     .single();
   if (!user) return <div>ユーザーが見つかりません</div>;
+
+  const bu = user.business_units as
+    | { name: string; companies: { name: string } | null }
+    | null
+    | undefined;
+  const businessUnitLabel = bu?.companies?.name
+    ? `${bu.companies.name} / ${bu.name}`
+    : (bu?.name ?? null);
 
   // 並列でデータを取得
   const [{ data: timeline }, { count }, missionAchievements] =
@@ -51,6 +57,11 @@ export default async function UserDetailPage({ params }: Props) {
   return (
     <div className="flex flex-col items-stretch w-full max-w-xl gap-4 py-8">
       <Levels userId={user.id} hideProgress />
+      {businessUnitLabel && (
+        <p className="text-center text-sm text-muted-foreground">
+          {businessUnitLabel}
+        </p>
+      )}
       <div className="flex justify-center gap-2">
         {/* {user.x_username && (
           <SocialBadge
