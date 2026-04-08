@@ -116,7 +116,7 @@ export async function createEnpsLateSubmissionGrant(
   }
 
   const secret = generateLateSubmissionSecret();
-  const tokenHash = hashLateSubmissionToken(secret);
+  const tokenHash = await hashLateSubmissionToken(secret);
   const expiresAt = new Date(Date.now() + GRANT_TTL_MS);
 
   const { data: inserted, error: insErr } = await supabase

@@ -22,9 +22,8 @@ export async function validateAwardLateGrantAccess(
   if (!grant || grant.user_id !== sessionUserId) return false;
   if (grant.used_at) return false;
   if (new Date(grant.expires_at) < new Date()) return false;
-  if (
-    !timingSafeEqualHex(grant.token_hash, hashLateSubmissionToken(tokenPlain))
-  ) {
+  const computed = await hashLateSubmissionToken(tokenPlain);
+  if (!timingSafeEqualHex(grant.token_hash, computed)) {
     return false;
   }
 
@@ -65,9 +64,8 @@ export async function validateEnpsLateGrantAccess(
   if (!grant || grant.user_id !== sessionUserId) return false;
   if (grant.used_at) return false;
   if (new Date(grant.expires_at) < new Date()) return false;
-  if (
-    !timingSafeEqualHex(grant.token_hash, hashLateSubmissionToken(tokenPlain))
-  ) {
+  const computed = await hashLateSubmissionToken(tokenPlain);
+  if (!timingSafeEqualHex(grant.token_hash, computed)) {
     return false;
   }
 
