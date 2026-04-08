@@ -41,7 +41,9 @@ export async function getAwardSurveyResponses(surveyId: string) {
   // 回答を取得
   const { data: responses, error } = await supabase
     .from("award_responses")
-    .select("id, question_id, text_value, created_at, user_id")
+    .select(
+      "id, question_id, text_value, created_at, user_id, is_late_submission",
+    )
     .eq("survey_id", surveyId)
     .order("created_at", { ascending: false });
 
@@ -51,6 +53,7 @@ export async function getAwardSurveyResponses(surveyId: string) {
       questions: questions || [],
       responses: [],
       nominationDetails: [] as AwardNominationDetail[],
+      lateNominationDetails: [] as AwardNominationDetail[],
     };
   }
 
@@ -79,41 +82,50 @@ export async function getAwardSurveyResponses(surveyId: string) {
     nominationQuestions.map((q) => [q.id, q.question_group]),
   );
 
-  const aggregate = new Map<
-    string,
-    { total: number; byGroup: Partial<Record<string, number>> }
-  >();
+  function aggregateNominations(
+    source: typeof responsesWithUsers,
+    onlyLate: boolean | null,
+  ): AwardNominationDetail[] {
+    const aggregate = new Map<
+      string,
+      { total: number; byGroup: Partial<Record<string, number>> }
+    >();
 
-  for (const response of responsesWithUsers) {
-    if (
-      !nominationQuestionIds.has(response.question_id) ||
-      !response.text_value?.trim()
-    ) {
-      continue;
-    }
-    const nominee = response.text_value.trim();
-    const group = questionIdToGroup.get(response.question_id);
-    if (!group) continue;
+    for (const response of source) {
+      if (onlyLate === true && !response.is_late_submission) continue;
+      if (onlyLate === false && response.is_late_submission) continue;
+      if (
+        !nominationQuestionIds.has(response.question_id) ||
+        !response.text_value?.trim()
+      ) {
+        continue;
+      }
+      const nominee = response.text_value.trim();
+      const group = questionIdToGroup.get(response.question_id);
+      if (!group) continue;
 
-    let row = aggregate.get(nominee);
-    if (!row) {
-      row = { total: 0, byGroup: {} };
-      aggregate.set(nominee, row);
+      let row = aggregate.get(nominee);
+      if (!row) {
+        row = { total: 0, byGroup: {} };
+        aggregate.set(nominee, row);
+      }
+      row.total += 1;
+      row.byGroup[group] = (row.byGroup[group] || 0) + 1;
     }
-    row.total += 1;
-    row.byGroup[group] = (row.byGroup[group] || 0) + 1;
+
+    return Array.from(aggregate.entries())
+      .map(([name, { total, byGroup }]) => ({ name, total, byGroup }))
+      .sort((a, b) => b.total - a.total);
   }
 
-  const nominationDetails: AwardNominationDetail[] = Array.from(
-    aggregate.entries(),
-  )
-    .map(([name, { total, byGroup }]) => ({ name, total, byGroup }))
-    .sort((a, b) => b.total - a.total);
+  const nominationDetails = aggregateNominations(responsesWithUsers, false);
+  const lateNominationDetails = aggregateNominations(responsesWithUsers, true);
 
   return {
     questions: questions || [],
     responses: responsesWithUsers,
     nominationDetails,
+    lateNominationDetails,
   };
 }
 

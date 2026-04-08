@@ -202,4 +202,29 @@ describe("Award Surveys RLS Policies", () => {
       expect(error).not.toBeNull();
     });
   });
+
+  describe("award_late_submission_grants table", () => {
+    it("should deny anonymous select on late submission grants", async () => {
+      const { error } = await anonClient
+        .from("award_late_submission_grants")
+        .select("id")
+        .limit(1);
+
+      expect(error).not.toBeNull();
+    });
+
+    it("should deny authenticated insert on late submission grants", async () => {
+      const { error } = await authenticatedClient
+        .from("award_late_submission_grants")
+        .insert({
+          survey_id: testSurveyId,
+          user_id: testUserId,
+          token_hash: "a".repeat(64),
+          expires_at: new Date(Date.now() + 86400000).toISOString(),
+          created_by_user_id: testUserId,
+        });
+
+      expect(error).not.toBeNull();
+    });
+  });
 });

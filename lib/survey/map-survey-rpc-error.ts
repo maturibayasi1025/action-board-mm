@@ -15,5 +15,17 @@ export function mapSurveyRpcErrorMessage(message: string): string {
   ) {
     return "送信データが不正です。やり直してください。";
   }
+  if (message.includes("invalid late grant")) {
+    return "期限後回答のリンクが無効か、期限切れです。管理者に再発行を依頼してください。";
+  }
+  if (message.includes("invalid grant parameters")) {
+    return "期限後回答のパラメータが不正です。";
+  }
+  if (message.includes("late grant not allowed: already responded")) {
+    return "すでに回答があるため、期限後回答は利用できません。";
+  }
+  if (message.includes("survey not available for late")) {
+    return "このアンケートは期限後回答の対象外です（終了前、または無効です）。";
+  }
   return "回答の送信に失敗しました";
 }

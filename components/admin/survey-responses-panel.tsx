@@ -6,6 +6,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -205,7 +206,17 @@ function QuestionResponsesBlock({
                 return (
                   <tr key={row.id} className={i % 2 === 0 ? "bg-muted/25" : ""}>
                     <td className="py-2.5 px-3 align-top font-medium whitespace-nowrap">
-                      {row.user_name}
+                      <span className="inline-flex items-center gap-2">
+                        {row.user_name}
+                        {row.is_late_submission ? (
+                          <Badge
+                            variant="outline"
+                            className="text-xs font-normal"
+                          >
+                            期限後
+                          </Badge>
+                        ) : null}
+                      </span>
                     </td>
                     <td className="py-2.5 px-3 align-top text-muted-foreground min-w-[12rem] max-w-[32rem]">
                       {answer &&

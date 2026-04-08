@@ -21,6 +21,8 @@ interface AwardSurveyFormClientProps {
   linkedPostMission: LinkedPostMissionContext | null;
   isFirstTimeResponse: boolean;
   authUser: SerializableAuthUser | null;
+  /** 期限後（管理者承認）提出。指定時は送信に付与トークンを付ける */
+  lateGrant?: { grantId: string; token: string } | null;
 }
 
 export function AwardSurveyFormClient({
@@ -31,6 +33,7 @@ export function AwardSurveyFormClient({
   linkedPostMission,
   isFirstTimeResponse,
   authUser,
+  lateGrant = null,
 }: AwardSurveyFormClientProps) {
   const router = useRouter();
   const isUpdate = Object.keys(existingResponses).length > 0;
@@ -51,11 +54,18 @@ export function AwardSurveyFormClient({
 
   const handleSubmit = async (responses: AwardResponse[]) => {
     const shouldOfferMission =
-      isFirstTimeResponse && linkedPostMission !== null && authUser !== null;
+      !lateGrant &&
+      isFirstTimeResponse &&
+      linkedPostMission !== null &&
+      authUser !== null;
 
     setIsSubmitting(true);
     try {
-      const result = await submitAwardResponse(surveyId, responses);
+      const result = await submitAwardResponse(
+        surveyId,
+        responses,
+        lateGrant ?? undefined,
+      );
       if (!result.ok) {
         toast.error(result.message);
         return;

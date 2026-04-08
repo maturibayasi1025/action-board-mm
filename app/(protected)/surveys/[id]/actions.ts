@@ -80,6 +80,7 @@ export async function submitSurveyResponse(
     score_value?: number | null;
     text_value?: string | null;
   }>,
+  lateGrant?: { grantId: string; token: string } | null,
 ): Promise<SurveySubmitActionResult> {
   const supabase = await createClient();
   const {
@@ -89,6 +90,11 @@ export async function submitSurveyResponse(
   if (!user) {
     return { ok: false, message: "ログインが必要です" };
   }
+
+  const isLatePath =
+    lateGrant != null &&
+    lateGrant.grantId.length > 0 &&
+    lateGrant.token.length > 0;
 
   // アンケートの存在確認と有効性チェック
   const { data: survey, error: surveyError } = await supabase
@@ -110,8 +116,15 @@ export async function submitSurveyResponse(
     return { ok: false, message: "アンケートはまだ開始されていません" };
   }
 
-  if (new Date(survey.end_date) < now) {
-    return { ok: false, message: "アンケートの回答期限が過ぎています" };
+  if (!isLatePath) {
+    if (new Date(survey.end_date) < now) {
+      return { ok: false, message: "アンケートの回答期限が過ぎています" };
+    }
+  } else if (new Date(survey.end_date) >= now) {
+    return {
+      ok: false,
+      message: "期限内の回答は通常の回答画面からお願いします",
+    };
   }
 
   const throttle = await checkSurveySubmitAllowed(supabase, surveyId, user.id);
@@ -149,6 +162,8 @@ export async function submitSurveyResponse(
   const { error: rpcError } = await supabase.rpc("replace_enps_responses", {
     p_survey_id: surveyId,
     p_rows: rpcPayload as Json,
+    p_grant_id: isLatePath ? lateGrant.grantId : null,
+    p_grant_token: isLatePath ? lateGrant.token : null,
   });
 
   if (rpcError) {

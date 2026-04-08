@@ -1,5 +1,7 @@
 import { listGlobalUnansweredExclusions } from "@/app/(protected)/admin/_actions/unanswered-global-exclusions";
+import { listAwardLateSubmissionGrants } from "@/app/(protected)/admin/award-surveys/[id]/late-grant-actions";
 import { AwardNominationSummary } from "@/components/admin/award-nomination-summary";
+import { LateSubmissionGrantPanel } from "@/components/admin/late-submission-grant-panel";
 import { SurveyResponsesPanel } from "@/components/admin/survey-responses-panel";
 import { UnansweredExclusionPanel } from "@/components/admin/unanswered-exclusion-panel";
 import { UnansweredSlackReminder } from "@/components/admin/unanswered-slack-reminder";
@@ -50,10 +52,11 @@ export default async function AwardSurveyDetailPage({
 
   const { id } = await params;
   const survey = await getAwardSurveyDetail(id);
-  const { questions, responses, nominationDetails } =
+  const { questions, responses, nominationDetails, lateNominationDetails } =
     await getAwardSurveyResponses(id);
   const unansweredUsers = await getAwardUnansweredUsers(id);
   const excludedGlobalUsers = await listGlobalUnansweredExclusions();
+  const awardLateGrants = await listAwardLateSubmissionGrants(id);
 
   if (!survey) {
     redirect("/admin/award-surveys");
@@ -93,6 +96,26 @@ export default async function AwardSurveyDetailPage({
           />
         )}
 
+        {lateNominationDetails.length > 0 && (
+          <div className="space-y-2">
+            <h2 className="text-lg font-semibold text-muted-foreground">
+              期限後回答（承認済み）の指名集計
+            </h2>
+            <AwardNominationSummary
+              rows={lateNominationDetails}
+              groupOrder={QUESTION_GROUP_ORDER}
+              groupLabels={QUESTION_GROUP_LABELS}
+            />
+          </div>
+        )}
+
+        <LateSubmissionGrantPanel
+          surveyId={id}
+          kind="award"
+          unansweredCandidates={unansweredUsers}
+          existingGrants={awardLateGrants}
+        />
+
         {/* セクション別回答一覧 */}
         {QUESTION_GROUP_ORDER.map((group) => {
           const groupQuestions = questionsByGroup[group] || [];
@@ -125,6 +148,7 @@ export default async function AwardSurveyDetailPage({
                     created_at: r.created_at,
                     score_value: null,
                     text_value: r.text_value,
+                    is_late_submission: r.is_late_submission,
                   }))}
                 />
               </CardContent>

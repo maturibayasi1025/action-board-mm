@@ -1,4 +1,6 @@
 import { listGlobalUnansweredExclusions } from "@/app/(protected)/admin/_actions/unanswered-global-exclusions";
+import { listEnpsLateSubmissionGrants } from "@/app/(protected)/admin/enps-surveys/[id]/late-grant-actions";
+import { LateSubmissionGrantPanel } from "@/components/admin/late-submission-grant-panel";
 import { SurveyResponsesPanel } from "@/components/admin/survey-responses-panel";
 import { UnansweredExclusionPanel } from "@/components/admin/unanswered-exclusion-panel";
 import { UnansweredSlackReminder } from "@/components/admin/unanswered-slack-reminder";
@@ -37,11 +39,12 @@ export default async function SurveyDetailPage({
 
   const { id } = await params;
   const survey = await getSurveyDetail(id);
-  const { questions, responses, npsData, uniqueRespondentCount } =
+  const { questions, responses, npsData, lateNpsData, uniqueRespondentCount } =
     await getSurveyResponses(id);
   const unansweredUsers = await getUnansweredUsers(id);
   const excludedGlobalUsers = await listGlobalUnansweredExclusions();
   const allSurveysNps = await getAllSurveysNps();
+  const enpsLateGrants = await listEnpsLateSubmissionGrants(id);
 
   if (!survey) {
     redirect("/admin/enps-surveys");
@@ -207,6 +210,77 @@ export default async function SurveyDetailPage({
           </div>
         )}
 
+        {scoreQuestions.some(
+          (q) => (lateNpsData[q.id]?.scores?.length ?? 0) > 0,
+        ) && (
+          <div className="space-y-2">
+            <h2 className="text-lg font-semibold text-muted-foreground">
+              期限後回答（承認済み）のNPS
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {scoreQuestions.map((question) => {
+                const nps = lateNpsData[question.id];
+                if (!nps || !nps.scores || nps.scores.length === 0) {
+                  return null;
+                }
+                return (
+                  <Card key={`late-${question.id}`}>
+                    <CardHeader>
+                      <CardTitle className="text-lg">
+                        {question.question_text}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="text-center">
+                        <div className="text-4xl font-bold">
+                          {nps.nps > 0 ? "+" : ""}
+                          {nps.nps}
+                        </div>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          NPS（期限後のみ）
+                        </p>
+                      </div>
+                      <div className="grid grid-cols-3 gap-4 text-center">
+                        <div>
+                          <div className="text-2xl font-semibold text-green-600">
+                            {nps.promoters}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            推奨者
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-2xl font-semibold text-yellow-600">
+                            {nps.passives}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            中立者
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-2xl font-semibold text-red-600">
+                            {nps.detractors}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            批判者
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        <LateSubmissionGrantPanel
+          surveyId={id}
+          kind="enps"
+          unansweredCandidates={unansweredUsers}
+          existingGrants={enpsLateGrants}
+        />
+
         {/* 月次eNPS推移 */}
         {allSurveysNps.length > 1 && (
           <Card>
@@ -281,6 +355,8 @@ export default async function SurveyDetailPage({
                 created_at: r.created_at,
                 score_value: r.score_value,
                 text_value: r.text_value,
+                is_late_submission: (r as { is_late_submission?: boolean })
+                  .is_late_submission,
               }))}
             />
           </CardContent>

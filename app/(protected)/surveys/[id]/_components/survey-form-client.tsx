@@ -32,6 +32,7 @@ interface SurveyFormClientProps {
   linkedPostMission: LinkedPostMissionContext | null;
   isFirstTimeResponse: boolean;
   authUser: SerializableAuthUser | null;
+  lateGrant?: { grantId: string; token: string } | null;
 }
 
 export function SurveyFormClient({
@@ -41,6 +42,7 @@ export function SurveyFormClient({
   linkedPostMission,
   isFirstTimeResponse,
   authUser,
+  lateGrant = null,
 }: SurveyFormClientProps) {
   const router = useRouter();
   const isUpdate = Object.keys(existingResponses).length > 0;
@@ -67,11 +69,18 @@ export function SurveyFormClient({
     }>,
   ) => {
     const shouldOfferMission =
-      isFirstTimeResponse && linkedPostMission !== null && authUser !== null;
+      !lateGrant &&
+      isFirstTimeResponse &&
+      linkedPostMission !== null &&
+      authUser !== null;
 
     setIsSubmitting(true);
     try {
-      const result = await submitSurveyResponse(surveyId, responses);
+      const result = await submitSurveyResponse(
+        surveyId,
+        responses,
+        lateGrant ?? undefined,
+      );
       if (!result.ok) {
         toast.error(result.message);
         return;

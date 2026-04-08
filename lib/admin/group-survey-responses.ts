@@ -12,6 +12,8 @@ export interface AdminSurveyResponseRow {
   created_at: string;
   score_value: number | null;
   text_value: string | null;
+  /** 期限後（管理者承認）提出 */
+  is_late_submission?: boolean;
 }
 
 function isNewer(a: string, b: string): boolean {

@@ -119,10 +119,44 @@ export type Database = {
         };
         Relationships: [];
       };
+      award_late_submission_grants: {
+        Row: {
+          id: string;
+          survey_id: string;
+          user_id: string;
+          token_hash: string;
+          expires_at: string;
+          used_at: string | null;
+          created_at: string;
+          created_by_user_id: string;
+        };
+        Insert: {
+          id?: string;
+          survey_id: string;
+          user_id: string;
+          token_hash: string;
+          expires_at: string;
+          used_at?: string | null;
+          created_at?: string;
+          created_by_user_id: string;
+        };
+        Update: {
+          id?: string;
+          survey_id?: string;
+          user_id?: string;
+          token_hash?: string;
+          expires_at?: string;
+          used_at?: string | null;
+          created_at?: string;
+          created_by_user_id?: string;
+        };
+        Relationships: [];
+      };
       award_responses: {
         Row: {
           created_at: string;
           id: string;
+          is_late_submission: boolean;
           question_id: string;
           survey_id: string;
           text_value: string | null;
@@ -132,6 +166,7 @@ export type Database = {
         Insert: {
           created_at?: string;
           id?: string;
+          is_late_submission?: boolean;
           question_id: string;
           survey_id: string;
           text_value?: string | null;
@@ -141,6 +176,7 @@ export type Database = {
         Update: {
           created_at?: string;
           id?: string;
+          is_late_submission?: boolean;
           question_id?: string;
           survey_id?: string;
           text_value?: string | null;
@@ -385,10 +421,44 @@ export type Database = {
           },
         ];
       };
+      enps_late_submission_grants: {
+        Row: {
+          id: string;
+          survey_id: string;
+          user_id: string;
+          token_hash: string;
+          expires_at: string;
+          used_at: string | null;
+          created_at: string;
+          created_by_user_id: string;
+        };
+        Insert: {
+          id?: string;
+          survey_id: string;
+          user_id: string;
+          token_hash: string;
+          expires_at: string;
+          used_at?: string | null;
+          created_at?: string;
+          created_by_user_id: string;
+        };
+        Update: {
+          id?: string;
+          survey_id?: string;
+          user_id?: string;
+          token_hash?: string;
+          expires_at?: string;
+          used_at?: string | null;
+          created_at?: string;
+          created_by_user_id?: string;
+        };
+        Relationships: [];
+      };
       enps_responses: {
         Row: {
           created_at: string;
           id: string;
+          is_late_submission: boolean;
           question_id: string;
           score_value: number | null;
           survey_id: string;
@@ -399,6 +469,7 @@ export type Database = {
         Insert: {
           created_at?: string;
           id?: string;
+          is_late_submission?: boolean;
           question_id: string;
           score_value?: number | null;
           survey_id: string;
@@ -409,6 +480,7 @@ export type Database = {
         Update: {
           created_at?: string;
           id?: string;
+          is_late_submission?: boolean;
           question_id?: string;
           score_value?: number | null;
           survey_id?: string;
@@ -2269,11 +2341,21 @@ export type Database = {
         Returns: number;
       };
       replace_award_responses: {
-        Args: { p_rows: Json; p_survey_id: string };
+        Args: {
+          p_grant_id?: string | null;
+          p_grant_token?: string | null;
+          p_rows: Json;
+          p_survey_id: string;
+        };
         Returns: undefined;
       };
       replace_enps_responses: {
-        Args: { p_rows: Json; p_survey_id: string };
+        Args: {
+          p_grant_id?: string | null;
+          p_grant_token?: string | null;
+          p_rows: Json;
+          p_survey_id: string;
+        };
         Returns: undefined;
       };
       get_user_prefecture_ranking: {

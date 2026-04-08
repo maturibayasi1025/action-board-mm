@@ -46,7 +46,8 @@ export async function getSurveyResponses(surveyId: string) {
       score_value,
       text_value,
       created_at,
-      user_id
+      user_id,
+      is_late_submission
     `,
     )
     .eq("survey_id", surveyId)
@@ -58,6 +59,7 @@ export async function getSurveyResponses(surveyId: string) {
       questions: questions || [],
       responses: [],
       npsData: {},
+      lateNpsData: {},
       uniqueRespondentCount: 0,
     };
   }
@@ -87,32 +89,55 @@ export async function getSurveyResponses(surveyId: string) {
     (q) => q.question_type === "score_0_10",
   );
 
-  const npsData: Record<
-    string,
-    {
-      scores: number[];
-      promoters: number; // 9-10点
-      passives: number; // 7-8点
-      detractors: number; // 0-6点
-      nps: number; // (推奨者% - 批判者%)
-    }
-  > = {};
+  type NpsBlock = {
+    scores: number[];
+    promoters: number;
+    passives: number;
+    detractors: number;
+    nps: number;
+  };
+
+  const npsData: Record<string, NpsBlock> = {};
+  const lateNpsData: Record<string, NpsBlock> = {};
 
   for (const question of scoreQuestions) {
-    const questionResponses = responsesWithUsers.filter(
-      (r) => r.question_id === question.id && r.score_value !== null,
+    const onTime = responsesWithUsers.filter(
+      (r) =>
+        r.question_id === question.id &&
+        r.score_value !== null &&
+        !r.is_late_submission,
     );
-    const scores = questionResponses.map((r) => r.score_value as number);
-
+    const scores = onTime.map((r) => r.score_value as number);
     const promoters = scores.filter((s) => s >= 9).length;
     const passives = scores.filter((s) => s >= 7 && s < 9).length;
     const detractors = scores.filter((s) => s < 7).length;
     const total = scores.length;
-
     const nps =
       total > 0 ? Math.round(((promoters - detractors) / total) * 100) : 0;
-
     npsData[question.id] = {
+      scores,
+      promoters,
+      passives,
+      detractors,
+      nps,
+    };
+  }
+
+  for (const question of scoreQuestions) {
+    const late = responsesWithUsers.filter(
+      (r) =>
+        r.question_id === question.id &&
+        r.score_value !== null &&
+        r.is_late_submission,
+    );
+    const scores = late.map((r) => r.score_value as number);
+    const promoters = scores.filter((s) => s >= 9).length;
+    const passives = scores.filter((s) => s >= 7 && s < 9).length;
+    const detractors = scores.filter((s) => s < 7).length;
+    const total = scores.length;
+    const nps =
+      total > 0 ? Math.round(((promoters - detractors) / total) * 100) : 0;
+    lateNpsData[question.id] = {
       scores,
       promoters,
       passives,
@@ -125,6 +150,7 @@ export async function getSurveyResponses(surveyId: string) {
     questions: questions || [],
     responses: responsesWithUsers || [],
     npsData,
+    lateNpsData,
     uniqueRespondentCount,
   };
 }
@@ -196,6 +222,7 @@ export async function getAllSurveysNps() {
         .select("score_value")
         .eq("survey_id", survey.id)
         .eq("question_id", firstScoreQuestion.id)
+        .eq("is_late_submission", false)
         .not("score_value", "is", null);
 
       if (!responses || responses.length === 0) {
