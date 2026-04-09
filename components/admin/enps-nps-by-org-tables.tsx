@@ -112,10 +112,16 @@ export function EnpsNpsByOrgTables(props: {
   scoreQuestions: QuestionMeta[];
   rowsByQuestion: Record<string, EnpsOrgNpsRow[]>;
   variant: "on_time" | "late_only";
+  /** 指定時はそのスコア質問のテーブルのみ表示 */
+  activeQuestionId?: string;
 }) {
-  const { scoreQuestions, rowsByQuestion, variant } = props;
+  const { scoreQuestions, rowsByQuestion, variant, activeQuestionId } = props;
 
-  const hasAny = scoreQuestions.some(
+  const questionsToRender = activeQuestionId
+    ? scoreQuestions.filter((q) => q.id === activeQuestionId)
+    : scoreQuestions;
+
+  const hasAny = questionsToRender.some(
     (q) => (rowsByQuestion[q.id]?.length ?? 0) > 0,
   );
   if (!hasAny) return null;
@@ -132,7 +138,7 @@ export function EnpsNpsByOrgTables(props: {
 
   return (
     <div className="space-y-6">
-      {scoreQuestions.map((q) => {
+      {questionsToRender.map((q) => {
         const rows = rowsByQuestion[q.id] ?? [];
         if (rows.length === 0) return null;
         return (

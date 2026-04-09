@@ -7,6 +7,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -325,11 +326,14 @@ function ExpandableText({ text }: { text: string }) {
 export interface SurveyResponsesPanelProps {
   questions: AdminSurveyQuestion[];
   responses: AdminSurveyResponseRow[];
+  /** single: 質問別タブで1問だけ表示（セレクトで切替） */
+  questionScope?: "accordion" | "single";
 }
 
 export function SurveyResponsesPanel({
   questions,
   responses,
+  questionScope = "accordion",
 }: SurveyResponsesPanelProps) {
   const [respondentSort, setRespondentSort] =
     useState<ResponseSortOrder>("name");
@@ -367,9 +371,45 @@ export function SurveyResponsesPanel({
     [groupedByUser, respondentSort],
   );
 
-  const firstOpenQuestionId = sortedQuestions.find((q) =>
-    scopedDeduped.some((r) => r.question_id === q.id && rowHasAnswer(q, r)),
-  )?.id;
+  const questionsWithAnswers = useMemo(
+    () =>
+      sortedQuestions.filter((q) =>
+        scopedDeduped.some((r) => r.question_id === q.id && rowHasAnswer(q, r)),
+      ),
+    [sortedQuestions, scopedDeduped],
+  );
+
+  const firstOpenQuestionId = questionsWithAnswers[0]?.id;
+
+  const [singleTabQuestionId, setSingleTabQuestionId] = useState<string | null>(
+    null,
+  );
+  const effectiveSingleQuestionId =
+    singleTabQuestionId &&
+    questionsWithAnswers.some((q) => q.id === singleTabQuestionId)
+      ? singleTabQuestionId
+      : (firstOpenQuestionId ?? null);
+
+  const singleModeQuestion = useMemo(() => {
+    if (questionScope !== "single" || !effectiveSingleQuestionId) {
+      return null;
+    }
+    return (
+      questionsWithAnswers.find((q) => q.id === effectiveSingleQuestionId) ??
+      null
+    );
+  }, [questionScope, effectiveSingleQuestionId, questionsWithAnswers]);
+
+  const singleModeRows = useMemo(() => {
+    if (!singleModeQuestion) {
+      return [];
+    }
+    return scopedDeduped.filter(
+      (r) =>
+        r.question_id === singleModeQuestion.id &&
+        rowHasAnswer(singleModeQuestion, r),
+    );
+  }, [scopedDeduped, singleModeQuestion]);
 
   if (scopedDeduped.length === 0) {
     return (
@@ -386,37 +426,95 @@ export function SurveyResponsesPanel({
         <TabsTrigger value="by-respondent">回答者別</TabsTrigger>
       </TabsList>
       <TabsContent value="by-question" className="mt-0">
-        <Accordion
-          type="single"
-          collapsible
-          defaultValue={firstOpenQuestionId}
-          className="w-full"
-        >
-          {sortedQuestions.map((question) => {
-            const rows = scopedDeduped.filter(
-              (r) => r.question_id === question.id && rowHasAnswer(question, r),
-            );
-            if (rows.length === 0) return null;
+        {questionScope === "single" ? (
+          <div className="space-y-4">
+            {questionsWithAnswers.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-6 text-center border border-dashed border-border rounded-md">
+                表示できる回答がありません。
+              </p>
+            ) : (
+              <>
+                <div className="space-y-2 max-w-xl">
+                  <Label htmlFor="survey-responses-question-select">
+                    表示する質問
+                  </Label>
+                  <Select
+                    value={effectiveSingleQuestionId ?? undefined}
+                    onValueChange={(v) => setSingleTabQuestionId(v)}
+                  >
+                    <SelectTrigger
+                      id="survey-responses-question-select"
+                      className="w-full"
+                    >
+                      <SelectValue placeholder="質問を選択" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {questionsWithAnswers.map((q) => {
+                        const n = scopedDeduped.filter(
+                          (r) => r.question_id === q.id && rowHasAnswer(q, r),
+                        ).length;
+                        return (
+                          <SelectItem
+                            key={q.id}
+                            value={q.id}
+                            title={q.question_text}
+                          >
+                            <span className="line-clamp-2 text-left">
+                              {q.question_text}
+                              <span className="text-muted-foreground font-normal">
+                                {" "}
+                                （{n}件）
+                              </span>
+                            </span>
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {singleModeQuestion ? (
+                  <QuestionResponsesBlock
+                    question={singleModeQuestion}
+                    rows={singleModeRows}
+                  />
+                ) : null}
+              </>
+            )}
+          </div>
+        ) : (
+          <Accordion
+            type="single"
+            collapsible
+            defaultValue={firstOpenQuestionId}
+            className="w-full"
+          >
+            {sortedQuestions.map((question) => {
+              const rows = scopedDeduped.filter(
+                (r) =>
+                  r.question_id === question.id && rowHasAnswer(question, r),
+              );
+              if (rows.length === 0) return null;
 
-            return (
-              <AccordionItem key={question.id} value={question.id}>
-                <AccordionTrigger className="text-left text-sm hover:no-underline py-3">
-                  <span className="pr-2">
-                    <span className="font-medium">
-                      {question.question_text}
+              return (
+                <AccordionItem key={question.id} value={question.id}>
+                  <AccordionTrigger className="text-left text-sm hover:no-underline py-3">
+                    <span className="pr-2">
+                      <span className="font-medium">
+                        {question.question_text}
+                      </span>
+                      <span className="ml-2 text-muted-foreground font-normal">
+                        （{rows.length}件）
+                      </span>
                     </span>
-                    <span className="ml-2 text-muted-foreground font-normal">
-                      （{rows.length}件）
-                    </span>
-                  </span>
-                </AccordionTrigger>
-                <AccordionContent>
-                  <QuestionResponsesBlock question={question} rows={rows} />
-                </AccordionContent>
-              </AccordionItem>
-            );
-          })}
-        </Accordion>
+                  </AccordionTrigger>
+                  <AccordionContent>
+                    <QuestionResponsesBlock question={question} rows={rows} />
+                  </AccordionContent>
+                </AccordionItem>
+              );
+            })}
+          </Accordion>
+        )}
       </TabsContent>
       <TabsContent value="by-respondent" className="mt-0">
         <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
