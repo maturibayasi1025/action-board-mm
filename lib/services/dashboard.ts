@@ -4,6 +4,10 @@ import { createClient } from "@/lib/supabase/server";
 
 export type DashboardPeriod = "weekly" | "monthly";
 
+export function resolveDashboardPeriod(period?: string): DashboardPeriod {
+  return period === "monthly" ? "monthly" : "weekly";
+}
+
 type DailyCountRow = {
   count: number | null;
   date: string | null;

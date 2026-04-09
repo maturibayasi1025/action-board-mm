@@ -1,6 +1,9 @@
 // import Activities from "@/components/activities";
+import { DashboardSection } from "@/components/dashboard/dashboard-section";
+import { DashboardSectionSkeleton } from "@/components/dashboard/dashboard-section-skeleton";
 import Hero from "@/components/hero";
 import dynamic from "next/dynamic";
+import { Suspense } from "react";
 
 export const runtime = "edge";
 
@@ -29,6 +32,7 @@ import UserMissionsSection from "@/components/top/user-missions-section";
 // import { Card } from "@/components/ui/card";
 import { generateRootMetadata } from "@/lib/metadata";
 import { checkBadgeNotifications } from "@/lib/services/badgeNotification";
+import { resolveDashboardPeriod } from "@/lib/services/dashboard";
 import { checkLevelUpNotification } from "@/lib/services/levelUpNotification";
 import {
   hasFeaturedMissions,
@@ -45,11 +49,12 @@ export const generateMetadata = generateRootMetadata;
 export default async function Home({
   searchParams,
 }: {
-  searchParams: Promise<{ ref?: string }>;
+  searchParams: Promise<{ period?: string; ref?: string }>;
 }) {
   const supabase = await createClient();
   const params = await searchParams;
   const referralCode = params.ref;
+  const period = resolveDashboardPeriod(params.period);
 
   const {
     data: { user },
@@ -104,6 +109,13 @@ export default async function Home({
       <section>
         <Hero />
       </section>
+
+      {/* ダッシュボード（ログイン時のみ。RPC は authenticated のみ） */}
+      {user && (
+        <Suspense fallback={<DashboardSectionSkeleton />}>
+          <DashboardSection period={period} />
+        </Suspense>
+      )}
 
       {/* MVVバッジ表彰セクション */}
       <MvvBadgeHonorSection />

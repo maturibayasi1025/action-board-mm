@@ -51,10 +51,8 @@ describe("utils", () => {
     });
 
     it("should call redirect with encoded success message", () => {
-      encodedRedirect("success", "/dashboard", "Login successful");
-      expect(redirect).toHaveBeenCalledWith(
-        "/dashboard?success=Login%20successful",
-      );
+      encodedRedirect("success", "/", "Login successful");
+      expect(redirect).toHaveBeenCalledWith("/?success=Login%20successful");
     });
 
     it("should handle special characters in message", () => {
