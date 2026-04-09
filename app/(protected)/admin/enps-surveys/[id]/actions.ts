@@ -1,6 +1,10 @@
 "use server";
 
 import {
+  type EnpsResponseForOrgAggregate,
+  aggregateNpsByBusinessUnitForScoreQuestions,
+} from "@/lib/admin/enps-nps-by-business-unit";
+import {
   type PrivateUserOrgRow,
   companyAndBusinessUnitFromPrivateUserRow,
 } from "@/lib/admin/private-user-org";
@@ -65,6 +69,8 @@ export async function getSurveyResponses(surveyId: string) {
       npsData: {},
       lateNpsData: {},
       uniqueRespondentCount: 0,
+      npsByBusinessUnitOnTime: {},
+      npsByBusinessUnitLate: {},
     };
   }
 
@@ -182,12 +188,37 @@ export async function getSurveyResponses(surveyId: string) {
     };
   }
 
+  const orgSource: EnpsResponseForOrgAggregate[] = responsesWithUsers.map(
+    (r) => ({
+      question_id: r.question_id,
+      user_id: r.user_id,
+      score_value: r.score_value,
+      is_late_submission: r.is_late_submission,
+      created_at: r.created_at,
+      company_name: r.company_name,
+      business_unit_name: r.business_unit_name,
+    }),
+  );
+  const scoreQuestionIds = scoreQuestions.map((q) => q.id);
+  const npsByBusinessUnitOnTime = aggregateNpsByBusinessUnitForScoreQuestions(
+    orgSource,
+    scoreQuestionIds,
+    "on_time",
+  );
+  const npsByBusinessUnitLate = aggregateNpsByBusinessUnitForScoreQuestions(
+    orgSource,
+    scoreQuestionIds,
+    "late_only",
+  );
+
   return {
     questions: questions || [],
     responses: responsesWithUsers || [],
     npsData,
     lateNpsData,
     uniqueRespondentCount,
+    npsByBusinessUnitOnTime,
+    npsByBusinessUnitLate,
   };
 }
 

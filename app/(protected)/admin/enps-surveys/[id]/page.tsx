@@ -1,5 +1,6 @@
 import { listGlobalUnansweredExclusions } from "@/app/(protected)/admin/_actions/unanswered-global-exclusions";
 import { listEnpsLateSubmissionGrants } from "@/app/(protected)/admin/enps-surveys/[id]/late-grant-actions";
+import { EnpsNpsByOrgTables } from "@/components/admin/enps-nps-by-org-tables";
 import { LateSubmissionGrantPanel } from "@/components/admin/late-submission-grant-panel";
 import { SurveyResponsesPanel } from "@/components/admin/survey-responses-panel";
 import { UnansweredExclusionPanel } from "@/components/admin/unanswered-exclusion-panel";
@@ -39,8 +40,15 @@ export default async function SurveyDetailPage({
 
   const { id } = await params;
   const survey = await getSurveyDetail(id);
-  const { questions, responses, npsData, lateNpsData, uniqueRespondentCount } =
-    await getSurveyResponses(id);
+  const {
+    questions,
+    responses,
+    npsData,
+    lateNpsData,
+    uniqueRespondentCount,
+    npsByBusinessUnitOnTime,
+    npsByBusinessUnitLate,
+  } = await getSurveyResponses(id);
   const unansweredUsers = await getUnansweredUsers(id);
   const excludedGlobalUsers = await listGlobalUnansweredExclusions();
   const allSurveysNps = await getAllSurveysNps();
@@ -210,6 +218,17 @@ export default async function SurveyDetailPage({
           </div>
         )}
 
+        {scoreQuestions.length > 0 && (
+          <EnpsNpsByOrgTables
+            variant="on_time"
+            scoreQuestions={scoreQuestions.map((q) => ({
+              id: q.id,
+              question_text: q.question_text,
+            }))}
+            rowsByQuestion={npsByBusinessUnitOnTime}
+          />
+        )}
+
         {scoreQuestions.some(
           (q) => (lateNpsData[q.id]?.scores?.length ?? 0) > 0,
         ) && (
@@ -272,6 +291,17 @@ export default async function SurveyDetailPage({
               })}
             </div>
           </div>
+        )}
+
+        {scoreQuestions.length > 0 && (
+          <EnpsNpsByOrgTables
+            variant="late_only"
+            scoreQuestions={scoreQuestions.map((q) => ({
+              id: q.id,
+              question_text: q.question_text,
+            }))}
+            rowsByQuestion={npsByBusinessUnitLate}
+          />
         )}
 
         <LateSubmissionGrantPanel
