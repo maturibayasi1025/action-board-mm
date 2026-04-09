@@ -1,4 +1,4 @@
-import { redirect } from "next/navigation";
+import { permanentRedirect } from "next/navigation";
 
 export const runtime = "edge";
 
@@ -15,5 +15,5 @@ export default async function DashboardRedirectPage({
     sp.set("period", period);
   }
   const q = sp.toString();
-  redirect(q ? `/?${q}` : "/");
+  permanentRedirect(q ? `/?${q}` : "/");
 }
