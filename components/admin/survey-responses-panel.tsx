@@ -453,13 +453,23 @@ export function SurveyResponsesPanel({
 
             return (
               <AccordionItem key={user.userId} value={user.userId}>
-                <AccordionTrigger className="text-left text-sm hover:no-underline py-3">
-                  <span>
-                    <span className="font-medium">{user.userName}</span>
-                    <span className="ml-2 text-muted-foreground font-normal">
-                      （{answeredInScope.length}問）
-                    </span>
-                  </span>
+                <AccordionTrigger className="text-left text-sm hover:no-underline py-3 items-start gap-2 [&>svg]:shrink-0 [&>svg]:mt-1">
+                  <div className="flex min-w-0 flex-1 flex-col items-start gap-0.5 pr-2">
+                    <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0">
+                      <span className="font-medium">{user.userName}</span>
+                      <span className="text-muted-foreground font-normal">
+                        （{answeredInScope.length}問）
+                      </span>
+                    </div>
+                    <div className="max-w-full truncate text-xs text-muted-foreground">
+                      {user.company_name ? (
+                        <span>{user.company_name} · </span>
+                      ) : null}
+                      <span>
+                        事業部: {orgDisplayLabel(user.business_unit_name)}
+                      </span>
+                    </div>
+                  </div>
                 </AccordionTrigger>
                 <AccordionContent>
                   <ul className="space-y-4 border-l-2 border-muted pl-4 ml-1">
