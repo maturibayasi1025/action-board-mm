@@ -32,7 +32,7 @@ describe("Hero", () => {
       const result = await Hero();
       render(result);
 
-      expect(screen.getByText("チームみらい")).toBeInTheDocument();
+      expect(screen.getByText("MAISON MARC経済圏")).toBeInTheDocument();
       expect(screen.getByText("アクションボード")).toBeInTheDocument();
     });
 
@@ -49,7 +49,7 @@ describe("Hero", () => {
       render(result);
 
       expect(
-        screen.getByText(/テクノロジーで政治をかえる/),
+        screen.getByText(/テクノロジーで経済圏を繋ぐ/),
       ).toBeInTheDocument();
     });
   });
@@ -60,7 +60,7 @@ describe("Hero", () => {
       render(result);
 
       const startButton = screen.getByRole("button", {
-        name: /チームみらいで手を動かす/,
+        name: /MAISON MARC経済圏ともに手を動かす/,
       });
       expect(startButton).toBeInTheDocument();
     });
