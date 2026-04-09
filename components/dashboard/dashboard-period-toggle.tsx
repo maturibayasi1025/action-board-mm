@@ -30,7 +30,7 @@ export function DashboardPeriodToggle({
       const params = new URLSearchParams(searchParams.toString());
       params.set("period", period);
       const query = params.toString();
-      router.push(`${pathname}${query ? `?${query}` : ""}`);
+      router.push(`${pathname}${query ? `?${query}` : ""}`, { scroll: false });
     },
     [pathname, router, searchParams],
   );

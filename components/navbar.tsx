@@ -55,7 +55,7 @@ export default async function Navbar() {
                 </Link>
               </div>
               <div className="font-semibold hidden sm:flex">
-                <Link href="/dashboard">ダッシュボード</Link>
+                <Link href="/#dashboard">ダッシュボード</Link>
               </div>
               <div className="hidden sm:flex">
                 <Button asChild size="sm" variant="default">
@@ -108,7 +108,7 @@ export default async function Navbar() {
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
-                      <Link href="/dashboard">ダッシュボード</Link>
+                      <Link href="/#dashboard">ダッシュボード</Link>
                     </DropdownMenuItem>
                   </DropdownMenuGroup>
                 </DropdownMenuContent>
