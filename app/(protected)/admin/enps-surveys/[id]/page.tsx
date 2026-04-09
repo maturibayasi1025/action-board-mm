@@ -14,6 +14,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import type { EnpsOrgDrilldownSourceRow } from "@/lib/admin/enps-nps-by-business-unit";
 import { isOwner } from "@/lib/utils/isOwner";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -62,6 +63,23 @@ export default async function SurveyDetailPage({
     (q) => q.question_type === "score_0_10",
   );
 
+  const scoreQuestionIdSet = new Set(scoreQuestions.map((q) => q.id));
+  const orgDrilldownRows: EnpsOrgDrilldownSourceRow[] = responses
+    .filter(
+      (r) => r.score_value !== null && scoreQuestionIdSet.has(r.question_id),
+    )
+    .map((r) => ({
+      question_id: r.question_id,
+      user_id: r.user_id,
+      user_name: (r as { user_name?: string }).user_name ?? "不明",
+      score_value: r.score_value as number,
+      company_name: (r as { company_name?: string }).company_name ?? "",
+      business_unit_name:
+        (r as { business_unit_name?: string }).business_unit_name ?? "",
+      is_late_submission: r.is_late_submission,
+      created_at: r.created_at,
+    }));
+
   return (
     <div className="container mx-auto py-8 px-4">
       <div className="max-w-6xl mx-auto space-y-8">
@@ -88,6 +106,7 @@ export default async function SurveyDetailPage({
             lateNpsData={lateNpsData}
             npsByBusinessUnitOnTime={npsByBusinessUnitOnTime}
             npsByBusinessUnitLate={npsByBusinessUnitLate}
+            drilldownSourceRows={orgDrilldownRows}
           />
         )}
 

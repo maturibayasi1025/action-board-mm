@@ -10,7 +10,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { EnpsOrgNpsRow } from "@/lib/admin/enps-nps-by-business-unit";
+import type {
+  EnpsOrgDrilldownSourceRow,
+  EnpsOrgNpsRow,
+} from "@/lib/admin/enps-nps-by-business-unit";
 import { useMemo, useState } from "react";
 
 export type EnpsNpsBlock = {
@@ -29,6 +32,8 @@ export interface EnpsSurveyQuestionAnalyticsProps {
   lateNpsData: Record<string, EnpsNpsBlock>;
   npsByBusinessUnitOnTime: Record<string, EnpsOrgNpsRow[]>;
   npsByBusinessUnitLate: Record<string, EnpsOrgNpsRow[]>;
+  /** 事業部別テーブルのセルから開くユーザー別内訳用 */
+  drilldownSourceRows: EnpsOrgDrilldownSourceRow[];
 }
 
 function NpsSummaryCard({
@@ -207,6 +212,7 @@ export function EnpsSurveyQuestionAnalytics({
   lateNpsData,
   npsByBusinessUnitOnTime,
   npsByBusinessUnitLate,
+  drilldownSourceRows,
 }: EnpsSurveyQuestionAnalyticsProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
@@ -270,6 +276,7 @@ export function EnpsSurveyQuestionAnalytics({
         }))}
         rowsByQuestion={npsByBusinessUnitOnTime}
         activeQuestionId={effectiveId ?? undefined}
+        drilldownSourceRows={drilldownSourceRows}
       />
 
       {hasLateForActive && (
@@ -291,6 +298,7 @@ export function EnpsSurveyQuestionAnalytics({
         }))}
         rowsByQuestion={npsByBusinessUnitLate}
         activeQuestionId={effectiveId ?? undefined}
+        drilldownSourceRows={drilldownSourceRows}
       />
     </div>
   );

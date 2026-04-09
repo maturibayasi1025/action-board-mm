@@ -1,5 +1,7 @@
 import {
   aggregateNpsByBusinessUnitForQuestion,
+  listOrgBucketDrilldown,
+  type EnpsOrgDrilldownSourceRow,
   type EnpsResponseForOrgAggregate,
 } from "@/lib/admin/enps-nps-by-business-unit";
 
@@ -111,5 +113,92 @@ describe("aggregateNpsByBusinessUnitForQuestion", () => {
     expect(
       aggregateNpsByBusinessUnitForQuestion(responses, qid, "late_only"),
     ).toHaveLength(1);
+  });
+});
+
+describe("listOrgBucketDrilldown", () => {
+  const qid = "q1";
+
+  it("バケット内の推奨者のみを返す", () => {
+    const rows: EnpsOrgDrilldownSourceRow[] = [
+      {
+        question_id: qid,
+        user_id: "u1",
+        user_name: "山田",
+        score_value: 10,
+        company_name: "A社",
+        business_unit_name: "営業",
+        is_late_submission: false,
+        created_at: "2026-01-01T00:00:00Z",
+      },
+      {
+        question_id: qid,
+        user_id: "u2",
+        user_name: "佐藤",
+        score_value: 5,
+        company_name: "A社",
+        business_unit_name: "営業",
+        is_late_submission: false,
+        created_at: "2026-01-01T00:00:00Z",
+      },
+    ];
+
+    const out = listOrgBucketDrilldown(
+      rows,
+      qid,
+      "on_time",
+      "A社",
+      "営業",
+      "promoter",
+    );
+    expect(out).toHaveLength(1);
+    expect(out[0]?.user_name).toBe("山田");
+    expect(out[0]?.score_value).toBe(10);
+  });
+
+  it("同一ユーザーの複数行は最新のみドリルダウンに含める", () => {
+    const rows: EnpsOrgDrilldownSourceRow[] = [
+      {
+        question_id: qid,
+        user_id: "u1",
+        user_name: "山田",
+        score_value: 10,
+        company_name: "A社",
+        business_unit_name: "営業",
+        is_late_submission: false,
+        created_at: "2026-01-01T00:00:00Z",
+      },
+      {
+        question_id: qid,
+        user_id: "u1",
+        user_name: "山田",
+        score_value: 4,
+        company_name: "A社",
+        business_unit_name: "営業",
+        is_late_submission: false,
+        created_at: "2026-01-02T00:00:00Z",
+      },
+    ];
+
+    const promoters = listOrgBucketDrilldown(
+      rows,
+      qid,
+      "on_time",
+      "A社",
+      "営業",
+      "promoter",
+    );
+    expect(promoters).toHaveLength(0);
+
+    const detractors = listOrgBucketDrilldown(
+      rows,
+      qid,
+      "on_time",
+      "A社",
+      "営業",
+      "detractor",
+    );
+    expect(detractors).toHaveLength(1);
+    expect(detractors[0]?.score_value).toBe(4);
   });
 });
