@@ -54,7 +54,7 @@ describe("LevelUpDialog", () => {
     it("レベルアップメッセージが表示される", () => {
       render(<LevelUpDialog {...mockProps} />);
 
-      expect(screen.getByText(/サポーターレベルが/)).toBeInTheDocument();
+      expect(screen.getByText(/グッジョブレベルが/)).toBeInTheDocument();
       expect(screen.getByText(/アップしました！/)).toBeInTheDocument();
     });
 

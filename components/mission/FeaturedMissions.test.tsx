@@ -32,7 +32,7 @@ describe("FeaturedMissions", () => {
     const { getByTestId } = render(<FeaturedMissions {...props} />);
 
     expect(getByTestId("filter-featured")).toHaveTextContent("true");
-    expect(getByTestId("title")).toHaveTextContent("📈 重要グッジョブ");
+    expect(getByTestId("title")).toHaveTextContent("📈 共有グッジョブ");
     expect(getByTestId("id")).toHaveTextContent("featured-missions");
     expect(getByTestId("user-id")).toHaveTextContent("test-user-id");
     expect(getByTestId("max-size")).toHaveTextContent("5");
@@ -56,7 +56,7 @@ describe("FeaturedMissions", () => {
 
     const { getByTestId } = render(<FeaturedMissions {...props} />);
 
-    expect(getByTestId("title")).toHaveTextContent("📈 重要グッジョブ");
+    expect(getByTestId("title")).toHaveTextContent("📈 共有グッジョブ");
     expect(getByTestId("id")).toHaveTextContent("featured-missions");
   });
 
