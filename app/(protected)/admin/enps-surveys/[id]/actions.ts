@@ -1,5 +1,9 @@
 "use server";
 
+import {
+  type PrivateUserOrgRow,
+  companyAndBusinessUnitFromPrivateUserRow,
+} from "@/lib/admin/private-user-org";
 import { createServiceClient } from "@/lib/supabase/server";
 import {
   fetchGlobalExcludedUserIds,
@@ -68,21 +72,53 @@ export async function getSurveyResponses(surveyId: string) {
   const userIds = Array.from(new Set((responses || []).map((r) => r.user_id)));
   const uniqueRespondentCount = userIds.length;
 
-  let userMap = new Map<string, string>();
+  type UserFields = {
+    name: string;
+    company_name: string;
+    business_unit_name: string;
+  };
+  let userMap = new Map<string, UserFields>();
   if (userIds.length > 0) {
     const { data: users } = await supabase
       .from("private_users")
-      .select("id, name")
+      .select(
+        `
+        id,
+        name,
+        business_units (
+          name,
+          display_order,
+          companies (
+            name,
+            display_order
+          )
+        )
+      `,
+      )
       .in("id", userIds);
 
-    userMap = new Map((users || []).map((u) => [u.id, u.name]));
+    userMap = new Map(
+      (users || []).map((u) => {
+        const { company_name, business_unit_name } =
+          companyAndBusinessUnitFromPrivateUserRow(u as PrivateUserOrgRow);
+        return [
+          u.id,
+          { name: u.name, company_name, business_unit_name },
+        ] as const;
+      }),
+    );
   }
 
-  // 回答データにユーザー名を追加
-  const responsesWithUsers = (responses || []).map((r) => ({
-    ...r,
-    user_name: userMap.get(r.user_id) || "不明",
-  }));
+  // 回答データにユーザー名・所属を追加
+  const responsesWithUsers = (responses || []).map((r) => {
+    const u = userMap.get(r.user_id);
+    return {
+      ...r,
+      user_name: u?.name ?? "不明",
+      company_name: u?.company_name ?? "",
+      business_unit_name: u?.business_unit_name ?? "",
+    };
+  });
 
   // NPS計算用のデータを準備（スコア質問のみ）
   const scoreQuestions = (questions || []).filter(

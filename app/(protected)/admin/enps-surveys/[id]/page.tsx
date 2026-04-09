@@ -352,6 +352,11 @@ export default async function SurveyDetailPage({
                 question_id: r.question_id,
                 user_id: r.user_id,
                 user_name: (r as { user_name?: string }).user_name ?? "不明",
+                company_name:
+                  (r as { company_name?: string }).company_name ?? "",
+                business_unit_name:
+                  (r as { business_unit_name?: string }).business_unit_name ??
+                  "",
                 created_at: r.created_at,
                 score_value: r.score_value,
                 text_value: r.text_value,
