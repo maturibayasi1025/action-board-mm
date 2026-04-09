@@ -2,7 +2,11 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 
 export function DashboardSectionSkeleton() {
   return (
-    <section className="animate-pulse bg-slate-50 py-12 md:py-16" aria-hidden>
+    <section
+      id="dashboard"
+      className="animate-pulse bg-slate-50 py-12 md:py-16"
+      aria-hidden
+    >
       <div className="mx-auto w-full max-w-6xl space-y-6 px-4">
         <div className="space-y-3 text-center">
           <div className="mx-auto h-9 max-w-md rounded-md bg-muted md:h-10" />
