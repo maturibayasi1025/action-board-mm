@@ -533,7 +533,7 @@ export function SurveyResponsesPanel({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SortOrderSelectItems mode="score" />
+                <SortOrderSelectItems mode="text" />
               </SelectContent>
             </Select>
           </div>
