@@ -90,6 +90,19 @@ Cloudflareダッシュボードでのビルド設定：
 ビルド出力ディレクトリ: .vercel/output/static
 ```
 
+### Worker サイズを抑えたい場合（無料枠の 3 MiB 制限など）
+
+`next-on-pages` が生成する Worker が大きいと、デプロイ時に **「Your Worker exceeded the size limit of 3 MiB」** になることがあります。次のコマンドは **Edge Runtime 指定をビルド時に一括削除**し、**Sentry をビルドから外して**バンドルを小さめにします。
+
+```
+ビルドコマンド: npm run build:pages:cloudflare
+ビルド出力ディレクトリ: .vercel/output/static
+```
+
+`build:pages:cloudflare` は `build:pages:no-edge` と同じです。`remove-edge-runtime.js` が `app/` 以下のソースを書き換えるため、**Git にコミットしない**運用（CI 上だけ実行）か、**ビルド後に `git checkout -- app/` で戻す**のが安全です。
+
+まだ大きい場合は、有料プラン（Worker 10 MiB）への移行や依存関係の整理を検討してください。
+
 ## 5. トラブルシューティング
 
 ### 環境変数が反映されない場合
@@ -101,6 +114,10 @@ Cloudflareダッシュボードでのビルド設定：
 1. すべての必須環境変数が設定されているか確認
 2. シークレット環境変数が暗号化されているか確認
 3. 環境変数の値に特殊文字が含まれていないか確認
+
+### Worker のサイズ制限（3 MiB / 10 MiB）
+- 無料枠で **3 MiB** を超えるとデプロイに失敗します。上記 **「Worker サイズを抑えたい場合」** の `npm run build:pages:cloudflare` を試してください。
+- それでも足りない場合はプランアップまたはバンドル最適化が必要です。
 
 ## 注意事項
 
