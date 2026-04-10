@@ -151,7 +151,7 @@ describe("ArtifactForm", () => {
 
     expect(
       screen.getByText(
-        "ポスターマップ上にデータが見つからないなど、マップで報告できない場合は以下のフォームに入力してください。",
+        "掲示板の情報を入力して送信してください。内容はグッジョブの成果として記録されます。",
       ),
     ).toBeInTheDocument();
     // 詳細はPosterForm.test.tsxで確認

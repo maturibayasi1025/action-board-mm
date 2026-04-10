@@ -1,82 +1,69 @@
 #!/usr/bin/env node
+/**
+ * `app/` 以下の `export const runtime = "edge"` を一括削除する（再帰）。
+ *
+ * 注意: **`@cloudflare/next-on-pages` では非静的ルートに edge が必須**のため、本スクリプトを
+ * デプロイビルドに組み込むと「Please make sure that all your non-static routes export
+ * runtime = 'edge'」で失敗します。Cloudflare Pages 向けの通常デプロイでは使わないでください。
+ *
+ * 用途例: next-on-pages 以外の検証、ローカルでの比較など。
+ */
 const fs = require("node:fs");
 const path = require("node:path");
 
-console.log("Edge Runtime設定を削除中...");
+const appDir = path.join(process.cwd(), "app");
 
-// 特定のファイルリストから削除
-const targetFiles = [
-  "app/page.tsx",
-  "app/not-found.tsx",
-  "app/privacy/page.tsx",
-  "app/terms/page.tsx",
-  "app/missions/[id]/page.tsx",
-  "app/ranking/page.tsx",
-  "app/ranking/ranking-mission/page.tsx",
-  "app/ranking/ranking-prefecture/page.tsx",
-  "app/map/poster/page.tsx",
-  "app/map/poster/[prefecture]/page.tsx",
-  "app/map/posting/page.tsx",
-  "app/users/[id]/page.tsx",
-  "app/(protected)/user-missions/page.tsx",
-  "app/(protected)/user-missions/[id]/page.tsx",
-  "app/(protected)/user-missions/my/page.tsx",
-  "app/(protected)/user-missions/new/page.tsx",
-  "app/(protected)/settings/profile/page.tsx",
-  "app/(protected)/reset-password/page.tsx",
-  "app/(auth-pages)/sign-in/page.tsx",
-  "app/(auth-pages)/sign-up/page.tsx",
-  "app/(auth-pages)/sign-up-email/page.tsx",
-  "app/(auth-pages)/sign-up-success/page.tsx",
-  "app/(auth-pages)/forgot-password/page.tsx",
-  "app/auth/line-callback/page.tsx",
-  "app/auth/callback/route.ts",
-  "app/api/auth/callback/line/route.ts",
-  "app/api/badges/notifications/route.ts",
-  "app/api/batch/backfill-missing-xp/route.ts",
-  "app/api/missions/[id]/og/route.tsx",
-  "app/api/slack-notification/route.ts",
-];
-
-function removeEdgeRuntime() {
-  let removedCount = 0;
-
-  for (const filePath of targetFiles) {
-    const fullPath = path.join(process.cwd(), filePath);
-
-    if (!fs.existsSync(fullPath)) {
-      console.log(`ファイルが見つかりません: ${filePath}`);
-      continue;
-    }
-
-    const content = fs.readFileSync(fullPath, "utf8");
-
-    // Edge runtime設定をチェック
-    if (
-      !content.includes('export const runtime = "edge"') &&
-      !content.includes("export const runtime = 'edge'")
-    ) {
-      continue;
-    }
-
-    // Edge runtime設定を削除（複数のパターンに対応）
-    let newContent = content
-      .replace(/export const runtime = ["']edge["'];\s*/g, "")
-      .replace(/\n\nexport const runtime = ["']edge["'];\n/g, "\n")
-      .replace(/^\s*export const runtime = ["']edge["'];\s*\n/gm, "")
-      .replace(/export const runtime = ["']edge["'];\n/g, "");
-
-    // 余分な改行を整理
-    newContent = newContent.replace(/\n\n\n+/g, "\n\n");
-
-    if (newContent !== content) {
-      fs.writeFileSync(fullPath, newContent, "utf8");
-      console.log(`✓ Edge runtime削除: ${filePath}`);
-      removedCount++;
+function collectTsFiles(dir, out = []) {
+  if (!fs.existsSync(dir)) {
+    return out;
+  }
+  for (const name of fs.readdirSync(dir)) {
+    const full = path.join(dir, name);
+    const st = fs.statSync(full);
+    if (st.isDirectory()) {
+      collectTsFiles(full, out);
+    } else if (/\.(ts|tsx)$/.test(name)) {
+      out.push(full);
     }
   }
-
-  console.log(`Edge runtime削除完了！ (${removedCount}ファイル処理)`);
+  return out;
 }
 
-removeEdgeRuntime();
+function stripEdgeRuntime(content) {
+  let newContent = content
+    .replace(/export const runtime = ["']edge["'];\s*/g, "")
+    .replace(/\n\nexport const runtime = ["']edge["'];\n/g, "\n")
+    .replace(/^\s*export const runtime = ["']edge["'];\s*\n/gm, "")
+    .replace(/export const runtime = ["']edge["'];\n/g, "");
+
+  newContent = newContent.replace(/\n\n\n+/g, "\n\n");
+  return newContent;
+}
+
+function hasEdgeRuntime(content) {
+  return (
+    content.includes('export const runtime = "edge"') ||
+    content.includes("export const runtime = 'edge'")
+  );
+}
+
+console.log("Edge Runtime 設定を app/ 配下から削除中...");
+
+const files = collectTsFiles(appDir);
+let removedCount = 0;
+
+for (const fullPath of files) {
+  const content = fs.readFileSync(fullPath, "utf8");
+  if (!hasEdgeRuntime(content)) {
+    continue;
+  }
+
+  const newContent = stripEdgeRuntime(content);
+  if (newContent !== content) {
+    fs.writeFileSync(fullPath, newContent, "utf8");
+    console.log(`✓ ${path.relative(process.cwd(), fullPath)}`);
+    removedCount++;
+  }
+}
+
+console.log(`Edge runtime 削除完了（${removedCount} ファイル）`);

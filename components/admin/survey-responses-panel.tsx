@@ -7,6 +7,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -17,6 +18,9 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   type AdminSurveyResponseRow,
+  type ResponseSortOrder,
+  compareAdminSurveyRows,
+  compareGroupedRespondents,
   dedupeSurveyResponsesLatestPerQuestion,
   groupDedupedResponsesByUser,
 } from "@/lib/admin/group-survey-responses";
@@ -55,9 +59,11 @@ function formatDateTime(iso: string): string {
   return new Date(iso).toLocaleString("ja-JP");
 }
 
-type NpsSegmentFilter = "all" | "promoter" | "passive" | "detractor";
+function orgDisplayLabel(value: string): string {
+  return value === "" ? "—" : value;
+}
 
-type ScoreSortOrder = "name" | "score_asc" | "score_desc";
+type NpsSegmentFilter = "all" | "promoter" | "passive" | "detractor";
 
 function npsSegmentForScore(score: number): Exclude<NpsSegmentFilter, "all"> {
   if (score >= 9) return "promoter";
@@ -73,6 +79,22 @@ function scoreMatchesNpsSegment(
   return npsSegmentForScore(score) === segment;
 }
 
+function SortOrderSelectItems({ mode }: { mode: "score" | "text" }) {
+  return (
+    <>
+      <SelectItem value="name">氏名（あいうえお順）</SelectItem>
+      <SelectItem value="company">会社名（あいうえお順）</SelectItem>
+      <SelectItem value="business_unit">事業部名（あいうえお順）</SelectItem>
+      {mode === "score" ? (
+        <>
+          <SelectItem value="score_asc">スコア昇順（低→高）</SelectItem>
+          <SelectItem value="score_desc">スコア降順（高→低）</SelectItem>
+        </>
+      ) : null}
+    </>
+  );
+}
+
 function QuestionResponsesBlock({
   question,
   rows,
@@ -81,40 +103,27 @@ function QuestionResponsesBlock({
   rows: AdminSurveyResponseRow[];
 }) {
   const [segment, setSegment] = useState<NpsSegmentFilter>("all");
-  const [sortOrder, setSortOrder] = useState<ScoreSortOrder>("name");
+  const [sortOrder, setSortOrder] = useState<ResponseSortOrder>("name");
 
   const processedRows = useMemo(() => {
     if (question.question_type !== "score_0_10") {
-      return [...rows].sort((a, b) =>
-        a.user_name.localeCompare(b.user_name, "ja"),
-      );
+      return [...rows].sort((a, b) => compareAdminSurveyRows(a, b, sortOrder));
     }
 
-    let list = rows.filter((r) => {
+    const list = rows.filter((r) => {
       const s = r.score_value;
       if (s === null) return false;
       return scoreMatchesNpsSegment(s, segment);
     });
 
-    list = [...list].sort((a, b) => {
-      if (sortOrder === "name") {
-        return a.user_name.localeCompare(b.user_name, "ja");
-      }
-      const sa = a.score_value ?? -1;
-      const sb = b.score_value ?? -1;
-      const cmp = sortOrder === "score_asc" ? sa - sb : sb - sa;
-      if (cmp !== 0) return cmp;
-      return a.user_name.localeCompare(b.user_name, "ja");
-    });
-
-    return list;
+    return [...list].sort((a, b) => compareAdminSurveyRows(a, b, sortOrder));
   }, [rows, question.question_type, segment, sortOrder]);
 
   const showScoreFilters = question.question_type === "score_0_10";
 
   return (
     <>
-      {showScoreFilters && (
+      {showScoreFilters ? (
         <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
           <div className="space-y-1.5 min-w-[12rem] flex-1 sm:max-w-xs">
             <label
@@ -150,7 +159,7 @@ function QuestionResponsesBlock({
             </label>
             <Select
               value={sortOrder}
-              onValueChange={(v) => setSortOrder(v as ScoreSortOrder)}
+              onValueChange={(v) => setSortOrder(v as ResponseSortOrder)}
             >
               <SelectTrigger
                 id={`score-sort-${question.id}`}
@@ -159,14 +168,40 @@ function QuestionResponsesBlock({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="name">氏名（あいうえお順）</SelectItem>
-                <SelectItem value="score_asc">スコア昇順（低→高）</SelectItem>
-                <SelectItem value="score_desc">スコア降順（高→低）</SelectItem>
+                <SortOrderSelectItems mode="score" />
               </SelectContent>
             </Select>
           </div>
           <p className="text-xs text-muted-foreground pb-0.5 sm:ml-auto">
             {processedRows.length}件を表示（全{rows.length}件）
+          </p>
+        </div>
+      ) : (
+        <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
+          <div className="space-y-1.5 min-w-[12rem] flex-1 sm:max-w-xs">
+            <label
+              htmlFor={`text-sort-${question.id}`}
+              className="text-xs font-medium text-muted-foreground"
+            >
+              並び順
+            </label>
+            <Select
+              value={sortOrder}
+              onValueChange={(v) => setSortOrder(v as ResponseSortOrder)}
+            >
+              <SelectTrigger
+                id={`text-sort-${question.id}`}
+                className="h-9 w-full"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SortOrderSelectItems mode="text" />
+              </SelectContent>
+            </Select>
+          </div>
+          <p className="text-xs text-muted-foreground pb-0.5 sm:ml-auto">
+            {processedRows.length}件
           </p>
         </div>
       )}
@@ -185,6 +220,18 @@ function QuestionResponsesBlock({
                   className="sticky top-0 z-[1] bg-muted/95 py-2.5 px-3 text-left font-medium backdrop-blur-sm"
                 >
                   氏名
+                </th>
+                <th
+                  scope="col"
+                  className="sticky top-0 z-[1] bg-muted/95 py-2.5 px-3 text-left font-medium backdrop-blur-sm whitespace-nowrap"
+                >
+                  会社
+                </th>
+                <th
+                  scope="col"
+                  className="sticky top-0 z-[1] bg-muted/95 py-2.5 px-3 text-left font-medium backdrop-blur-sm whitespace-nowrap"
+                >
+                  事業部
                 </th>
                 <th
                   scope="col"
@@ -217,6 +264,12 @@ function QuestionResponsesBlock({
                           </Badge>
                         ) : null}
                       </span>
+                    </td>
+                    <td className="py-2.5 px-3 align-top text-muted-foreground whitespace-nowrap max-w-[10rem] truncate">
+                      {orgDisplayLabel(row.company_name)}
+                    </td>
+                    <td className="py-2.5 px-3 align-top text-muted-foreground whitespace-nowrap max-w-[10rem] truncate">
+                      {orgDisplayLabel(row.business_unit_name)}
                     </td>
                     <td className="py-2.5 px-3 align-top text-muted-foreground min-w-[12rem] max-w-[32rem]">
                       {answer &&
@@ -273,12 +326,18 @@ function ExpandableText({ text }: { text: string }) {
 export interface SurveyResponsesPanelProps {
   questions: AdminSurveyQuestion[];
   responses: AdminSurveyResponseRow[];
+  /** single: 質問別タブで1問だけ表示（セレクトで切替） */
+  questionScope?: "accordion" | "single";
 }
 
 export function SurveyResponsesPanel({
   questions,
   responses,
+  questionScope = "accordion",
 }: SurveyResponsesPanelProps) {
+  const [respondentSort, setRespondentSort] =
+    useState<ResponseSortOrder>("name");
+
   const sortedQuestions = useMemo(
     () => [...questions].sort((a, b) => a.display_order - b.display_order),
     [questions],
@@ -304,9 +363,53 @@ export function SurveyResponsesPanel({
     [scopedDeduped],
   );
 
-  const firstOpenQuestionId = sortedQuestions.find((q) =>
-    scopedDeduped.some((r) => r.question_id === q.id && rowHasAnswer(q, r)),
-  )?.id;
+  const sortedGroupedByUser = useMemo(
+    () =>
+      [...groupedByUser].sort((a, b) =>
+        compareGroupedRespondents(a, b, respondentSort),
+      ),
+    [groupedByUser, respondentSort],
+  );
+
+  const questionsWithAnswers = useMemo(
+    () =>
+      sortedQuestions.filter((q) =>
+        scopedDeduped.some((r) => r.question_id === q.id && rowHasAnswer(q, r)),
+      ),
+    [sortedQuestions, scopedDeduped],
+  );
+
+  const firstOpenQuestionId = questionsWithAnswers[0]?.id;
+
+  const [singleTabQuestionId, setSingleTabQuestionId] = useState<string | null>(
+    null,
+  );
+  const effectiveSingleQuestionId =
+    singleTabQuestionId &&
+    questionsWithAnswers.some((q) => q.id === singleTabQuestionId)
+      ? singleTabQuestionId
+      : (firstOpenQuestionId ?? null);
+
+  const singleModeQuestion = useMemo(() => {
+    if (questionScope !== "single" || !effectiveSingleQuestionId) {
+      return null;
+    }
+    return (
+      questionsWithAnswers.find((q) => q.id === effectiveSingleQuestionId) ??
+      null
+    );
+  }, [questionScope, effectiveSingleQuestionId, questionsWithAnswers]);
+
+  const singleModeRows = useMemo(() => {
+    if (!singleModeQuestion) {
+      return [];
+    }
+    return scopedDeduped.filter(
+      (r) =>
+        r.question_id === singleModeQuestion.id &&
+        rowHasAnswer(singleModeQuestion, r),
+    );
+  }, [scopedDeduped, singleModeQuestion]);
 
   if (scopedDeduped.length === 0) {
     return (
@@ -323,44 +426,123 @@ export function SurveyResponsesPanel({
         <TabsTrigger value="by-respondent">回答者別</TabsTrigger>
       </TabsList>
       <TabsContent value="by-question" className="mt-0">
-        <Accordion
-          type="single"
-          collapsible
-          defaultValue={firstOpenQuestionId}
-          className="w-full"
-        >
-          {sortedQuestions.map((question) => {
-            const rows = scopedDeduped
-              .filter(
+        {questionScope === "single" ? (
+          <div className="space-y-4">
+            {questionsWithAnswers.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-6 text-center border border-dashed border-border rounded-md">
+                表示できる回答がありません。
+              </p>
+            ) : (
+              <>
+                <div className="space-y-2 max-w-xl">
+                  <Label htmlFor="survey-responses-question-select">
+                    表示する質問
+                  </Label>
+                  <Select
+                    value={effectiveSingleQuestionId ?? undefined}
+                    onValueChange={(v) => setSingleTabQuestionId(v)}
+                  >
+                    <SelectTrigger
+                      id="survey-responses-question-select"
+                      className="w-full"
+                    >
+                      <SelectValue placeholder="質問を選択" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {questionsWithAnswers.map((q) => {
+                        const n = scopedDeduped.filter(
+                          (r) => r.question_id === q.id && rowHasAnswer(q, r),
+                        ).length;
+                        return (
+                          <SelectItem
+                            key={q.id}
+                            value={q.id}
+                            title={q.question_text}
+                          >
+                            <span className="line-clamp-2 text-left">
+                              {q.question_text}
+                              <span className="text-muted-foreground font-normal">
+                                {" "}
+                                （{n}件）
+                              </span>
+                            </span>
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {singleModeQuestion ? (
+                  <QuestionResponsesBlock
+                    question={singleModeQuestion}
+                    rows={singleModeRows}
+                  />
+                ) : null}
+              </>
+            )}
+          </div>
+        ) : (
+          <Accordion
+            type="single"
+            collapsible
+            defaultValue={firstOpenQuestionId}
+            className="w-full"
+          >
+            {sortedQuestions.map((question) => {
+              const rows = scopedDeduped.filter(
                 (r) =>
                   r.question_id === question.id && rowHasAnswer(question, r),
-              )
-              .sort((a, b) => a.user_name.localeCompare(b.user_name, "ja"));
-            if (rows.length === 0) return null;
+              );
+              if (rows.length === 0) return null;
 
-            return (
-              <AccordionItem key={question.id} value={question.id}>
-                <AccordionTrigger className="text-left text-sm hover:no-underline py-3">
-                  <span className="pr-2">
-                    <span className="font-medium">
-                      {question.question_text}
+              return (
+                <AccordionItem key={question.id} value={question.id}>
+                  <AccordionTrigger className="text-left text-sm hover:no-underline py-3">
+                    <span className="pr-2">
+                      <span className="font-medium">
+                        {question.question_text}
+                      </span>
+                      <span className="ml-2 text-muted-foreground font-normal">
+                        （{rows.length}件）
+                      </span>
                     </span>
-                    <span className="ml-2 text-muted-foreground font-normal">
-                      （{rows.length}件）
-                    </span>
-                  </span>
-                </AccordionTrigger>
-                <AccordionContent>
-                  <QuestionResponsesBlock question={question} rows={rows} />
-                </AccordionContent>
-              </AccordionItem>
-            );
-          })}
-        </Accordion>
+                  </AccordionTrigger>
+                  <AccordionContent>
+                    <QuestionResponsesBlock question={question} rows={rows} />
+                  </AccordionContent>
+                </AccordionItem>
+              );
+            })}
+          </Accordion>
+        )}
       </TabsContent>
       <TabsContent value="by-respondent" className="mt-0">
+        <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
+          <div className="space-y-1.5 min-w-[12rem] flex-1 sm:max-w-xs">
+            <label
+              htmlFor="respondent-sort"
+              className="text-xs font-medium text-muted-foreground"
+            >
+              回答者の並び順
+            </label>
+            <Select
+              value={respondentSort}
+              onValueChange={(v) => setRespondentSort(v as ResponseSortOrder)}
+            >
+              <SelectTrigger id="respondent-sort" className="h-9 w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SortOrderSelectItems mode="score" />
+              </SelectContent>
+            </Select>
+          </div>
+          <p className="text-xs text-muted-foreground pb-0.5 sm:ml-auto">
+            回答者別では、スコア昇順・降順を選んでも氏名（あいうえお順）として並べます。
+          </p>
+        </div>
         <Accordion type="multiple" className="w-full">
-          {groupedByUser.map((user) => {
+          {sortedGroupedByUser.map((user) => {
             const answeredInScope = sortedQuestions.filter((q) => {
               const r = user.byQuestionId[q.id];
               return r && rowHasAnswer(q, r);
@@ -369,13 +551,23 @@ export function SurveyResponsesPanel({
 
             return (
               <AccordionItem key={user.userId} value={user.userId}>
-                <AccordionTrigger className="text-left text-sm hover:no-underline py-3">
-                  <span>
-                    <span className="font-medium">{user.userName}</span>
-                    <span className="ml-2 text-muted-foreground font-normal">
-                      （{answeredInScope.length}問）
-                    </span>
-                  </span>
+                <AccordionTrigger className="text-left text-sm hover:no-underline py-3 items-start gap-2 [&>svg]:shrink-0 [&>svg]:mt-1">
+                  <div className="flex min-w-0 flex-1 flex-col items-start gap-0.5 pr-2">
+                    <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0">
+                      <span className="font-medium">{user.userName}</span>
+                      <span className="text-muted-foreground font-normal">
+                        （{answeredInScope.length}問）
+                      </span>
+                    </div>
+                    <div className="max-w-full truncate text-xs text-muted-foreground">
+                      {user.company_name ? (
+                        <span>{user.company_name} · </span>
+                      ) : null}
+                      <span>
+                        事業部: {orgDisplayLabel(user.business_unit_name)}
+                      </span>
+                    </div>
+                  </div>
                 </AccordionTrigger>
                 <AccordionContent>
                   <ul className="space-y-4 border-l-2 border-muted pl-4 ml-1">

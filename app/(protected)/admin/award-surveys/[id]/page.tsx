@@ -145,6 +145,8 @@ export default async function AwardSurveyDetailPage({
                     question_id: r.question_id,
                     user_id: r.user_id,
                     user_name: r.user_name,
+                    company_name: r.company_name,
+                    business_unit_name: r.business_unit_name,
                     created_at: r.created_at,
                     score_value: null,
                     text_value: r.text_value,

@@ -33,22 +33,20 @@ describe("HeaderAuth", () => {
       ).toBeInTheDocument();
     });
 
-    it("新規登録リンクが表示される", async () => {
+    it("新規登録リンクは表示されない", async () => {
       render(await HeaderAuth());
 
       expect(
-        screen.getByRole("link", { name: "新規登録" }),
-      ).toBeInTheDocument();
+        screen.queryByRole("link", { name: "新規登録" }),
+      ).not.toBeInTheDocument();
     });
 
     it("適切なリンク先が設定される", async () => {
       render(await HeaderAuth());
 
       const loginLink = screen.getByRole("link", { name: "ログイン" });
-      const signupLink = screen.getByRole("link", { name: "新規登録" });
 
       expect(loginLink).toHaveAttribute("href", "/sign-in");
-      expect(signupLink).toHaveAttribute("href", "/sign-up");
     });
   });
 

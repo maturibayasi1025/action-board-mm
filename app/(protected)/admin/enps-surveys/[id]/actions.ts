@@ -1,5 +1,22 @@
 "use server";
 
+import {
+  type EnpsOrgDrilldownSourceRow,
+  type EnpsResponseForOrgAggregate,
+  aggregateNpsByBusinessUnitForScoreQuestions,
+} from "@/lib/admin/enps-nps-by-business-unit";
+import {
+  buildImputedDrilldownRows,
+  buildImputedOrgAggregateRows,
+  buildPrivateUserOrgMap,
+  isEnpsSurveyEnded,
+  listImputedUserIdsForQuestion,
+  userIdsWithScoreByQuestionId,
+} from "@/lib/admin/enps-unanswered-imputation";
+import {
+  type PrivateUserOrgRow,
+  companyAndBusinessUnitFromPrivateUserRow,
+} from "@/lib/admin/private-user-org";
 import { createServiceClient } from "@/lib/supabase/server";
 import {
   fetchGlobalExcludedUserIds,
@@ -7,6 +24,7 @@ import {
 } from "@/lib/survey/unanswered-candidates";
 import { requireOwner } from "@/lib/utils/isOwner";
 import { revalidatePath } from "next/cache";
+import { getEnpsMonthlyTrendsForQuestion } from "../trends/actions";
 
 export async function getSurveyDetail(surveyId: string) {
   await requireOwner();
@@ -61,28 +79,129 @@ export async function getSurveyResponses(surveyId: string) {
       npsData: {},
       lateNpsData: {},
       uniqueRespondentCount: 0,
+      npsByBusinessUnitOnTime: {},
+      npsByBusinessUnitLate: {},
+      imputedDrilldownRows: [] as EnpsOrgDrilldownSourceRow[],
     };
+  }
+
+  const { data: surveyRow } = await supabase
+    .from("enps_surveys")
+    .select("end_date")
+    .eq("id", surveyId)
+    .single();
+
+  const surveyEnded =
+    surveyRow?.end_date != null &&
+    isEnpsSurveyEnded(surveyRow.end_date, new Date());
+
+  const scoreByQuestionId = userIdsWithScoreByQuestionId(responses || []);
+
+  let eligibleUserIds: Set<string> | null = null;
+  let imputationUserOrgMap = new Map<
+    string,
+    { name: string; company_name: string; business_unit_name: string }
+  >();
+
+  if (surveyEnded) {
+    const excludedUserIds = await fetchGlobalExcludedUserIds(supabase);
+    const { data: allPrivateIds } = await supabase
+      .from("private_users")
+      .select("id");
+    eligibleUserIds = new Set(
+      (allPrivateIds ?? [])
+        .map((r) => r.id)
+        .filter((id) => !excludedUserIds.has(id)),
+    );
+
+    const scoreQuestionsForImpute = (questions || []).filter(
+      (q) => q.question_type === "score_0_10",
+    );
+    const imputedUnion = new Set<string>();
+    for (const q of scoreQuestionsForImpute) {
+      const withScore = scoreByQuestionId.get(q.id) ?? new Set<string>();
+      for (const uid of listImputedUserIdsForQuestion(
+        eligibleUserIds,
+        withScore,
+      )) {
+        imputedUnion.add(uid);
+      }
+    }
+
+    if (imputedUnion.size > 0) {
+      const { data: usersForImpute } = await supabase
+        .from("private_users")
+        .select(
+          `
+        id,
+        name,
+        business_units (
+          name,
+          display_order,
+          companies (
+            name,
+            display_order
+          )
+        )
+      `,
+        )
+        .in("id", Array.from(imputedUnion));
+
+      imputationUserOrgMap = buildPrivateUserOrgMap(usersForImpute ?? []);
+    }
   }
 
   // ユーザー情報を別途取得（RLSをバイパスするため）
   const userIds = Array.from(new Set((responses || []).map((r) => r.user_id)));
   const uniqueRespondentCount = userIds.length;
 
-  let userMap = new Map<string, string>();
+  type UserFields = {
+    name: string;
+    company_name: string;
+    business_unit_name: string;
+  };
+  let userMap = new Map<string, UserFields>();
   if (userIds.length > 0) {
     const { data: users } = await supabase
       .from("private_users")
-      .select("id, name")
+      .select(
+        `
+        id,
+        name,
+        business_units (
+          name,
+          display_order,
+          companies (
+            name,
+            display_order
+          )
+        )
+      `,
+      )
       .in("id", userIds);
 
-    userMap = new Map((users || []).map((u) => [u.id, u.name]));
+    userMap = new Map(
+      (users || []).map((u) => {
+        const { company_name, business_unit_name } =
+          companyAndBusinessUnitFromPrivateUserRow(u as PrivateUserOrgRow);
+        return [
+          u.id,
+          { name: u.name, company_name, business_unit_name },
+        ] as const;
+      }),
+    );
   }
 
-  // 回答データにユーザー名を追加
-  const responsesWithUsers = (responses || []).map((r) => ({
-    ...r,
-    user_name: userMap.get(r.user_id) || "不明",
-  }));
+  // 回答データにユーザー名・所属を追加
+  const responsesWithUsers = (responses || []).map((r) => {
+    const u = userMap.get(r.user_id);
+    return {
+      ...r,
+      user_name: u?.name ?? "不明",
+      company_name: u?.company_name ?? "",
+      business_unit_name: u?.business_unit_name ?? "",
+    };
+  });
 
   // NPS計算用のデータを準備（スコア質問のみ）
   const scoreQuestions = (questions || []).filter(
@@ -99,6 +218,7 @@ export async function getSurveyResponses(surveyId: string) {
 
   const npsData: Record<string, NpsBlock> = {};
   const lateNpsData: Record<string, NpsBlock> = {};
+  const imputedDrilldownRows: EnpsOrgDrilldownSourceRow[] = [];
 
   for (const question of scoreQuestions) {
     const onTime = responsesWithUsers.filter(
@@ -107,7 +227,22 @@ export async function getSurveyResponses(surveyId: string) {
         r.score_value !== null &&
         !r.is_late_submission,
     );
-    const scores = onTime.map((r) => r.score_value as number);
+    let scores = onTime.map((r) => r.score_value as number);
+    if (surveyEnded && eligibleUserIds) {
+      const withScore = scoreByQuestionId.get(question.id) ?? new Set<string>();
+      const imputedIds = listImputedUserIdsForQuestion(
+        eligibleUserIds,
+        withScore,
+      );
+      scores = [...scores, ...Array(imputedIds.length).fill(0)];
+      imputedDrilldownRows.push(
+        ...buildImputedDrilldownRows(
+          question.id,
+          imputedIds,
+          imputationUserOrgMap,
+        ),
+      );
+    }
     const promoters = scores.filter((s) => s >= 9).length;
     const passives = scores.filter((s) => s >= 7 && s < 9).length;
     const detractors = scores.filter((s) => s < 7).length;
@@ -146,12 +281,66 @@ export async function getSurveyResponses(surveyId: string) {
     };
   }
 
+  const orgSource: EnpsResponseForOrgAggregate[] = responsesWithUsers.map(
+    (r) => ({
+      question_id: r.question_id,
+      user_id: r.user_id,
+      score_value: r.score_value,
+      is_late_submission: r.is_late_submission,
+      created_at: r.created_at,
+      company_name: r.company_name,
+      business_unit_name: r.business_unit_name,
+    }),
+  );
+
+  const orgOnlyForImpute = new Map<
+    string,
+    { company_name: string; business_unit_name: string }
+  >();
+  for (const [id, v] of Array.from(imputationUserOrgMap.entries())) {
+    orgOnlyForImpute.set(id, {
+      company_name: v.company_name,
+      business_unit_name: v.business_unit_name,
+    });
+  }
+
+  let orgSourceForOnTime: EnpsResponseForOrgAggregate[] = orgSource;
+  if (surveyEnded && eligibleUserIds) {
+    const extra: EnpsResponseForOrgAggregate[] = [];
+    for (const q of scoreQuestions) {
+      const withScore = scoreByQuestionId.get(q.id) ?? new Set<string>();
+      const imputedIds = listImputedUserIdsForQuestion(
+        eligibleUserIds,
+        withScore,
+      );
+      extra.push(
+        ...buildImputedOrgAggregateRows(q.id, imputedIds, orgOnlyForImpute),
+      );
+    }
+    orgSourceForOnTime = [...orgSource, ...extra];
+  }
+
+  const scoreQuestionIds = scoreQuestions.map((q) => q.id);
+  const npsByBusinessUnitOnTime = aggregateNpsByBusinessUnitForScoreQuestions(
+    orgSourceForOnTime,
+    scoreQuestionIds,
+    "on_time",
+  );
+  const npsByBusinessUnitLate = aggregateNpsByBusinessUnitForScoreQuestions(
+    orgSource,
+    scoreQuestionIds,
+    "late_only",
+  );
+
   return {
     questions: questions || [],
     responses: responsesWithUsers || [],
     npsData,
     lateNpsData,
     uniqueRespondentCount,
+    npsByBusinessUnitOnTime,
+    npsByBusinessUnitLate,
+    imputedDrilldownRows,
   };
 }
 
@@ -185,75 +374,24 @@ export async function getAllSurveysNps() {
   await requireOwner();
   const supabase = await createServiceClient();
 
-  // 全アンケートを取得
-  const { data: surveys } = await supabase
-    .from("enps_surveys")
-    .select("id, title, year_month, created_at")
+  const { data: firstScoreQuestion } = await supabase
+    .from("enps_questions")
+    .select("id")
     .eq("is_active", true)
-    .order("created_at", { ascending: true });
+    .eq("question_type", "score_0_10")
+    .order("display_order", { ascending: true })
+    .limit(1)
+    .maybeSingle();
 
-  if (!surveys || surveys.length === 0) {
+  if (!firstScoreQuestion) {
     return [];
   }
 
-  // 各アンケートのNPSを計算（最初のスコア質問のみ）
-  const surveysNps = await Promise.all(
-    surveys.map(async (survey) => {
-      const { data: firstScoreQuestion } = await supabase
-        .from("enps_questions")
-        .select("id")
-        .eq("is_active", true)
-        .eq("question_type", "score_0_10")
-        .order("display_order", { ascending: true })
-        .limit(1)
-        .single();
-
-      if (!firstScoreQuestion) {
-        return {
-          survey_id: survey.id,
-          year_month: survey.year_month,
-          title: survey.title,
-          nps: null,
-        };
-      }
-
-      const { data: responses } = await supabase
-        .from("enps_responses")
-        .select("score_value")
-        .eq("survey_id", survey.id)
-        .eq("question_id", firstScoreQuestion.id)
-        .eq("is_late_submission", false)
-        .not("score_value", "is", null);
-
-      if (!responses || responses.length === 0) {
-        return {
-          survey_id: survey.id,
-          year_month: survey.year_month,
-          title: survey.title,
-          nps: null,
-        };
-      }
-
-      const scores = responses
-        .filter(
-          (r): r is typeof r & { score_value: number } =>
-            r.score_value !== null,
-        )
-        .map((r) => r.score_value);
-      const promoters = scores.filter((s) => s >= 9).length;
-      const detractors = scores.filter((s) => s < 7).length;
-      const total = scores.length;
-      const nps =
-        total > 0 ? Math.round(((promoters - detractors) / total) * 100) : 0;
-
-      return {
-        survey_id: survey.id,
-        year_month: survey.year_month,
-        title: survey.title,
-        nps,
-      };
-    }),
-  );
-
-  return surveysNps;
+  const series = await getEnpsMonthlyTrendsForQuestion(firstScoreQuestion.id);
+  return series.map((item) => ({
+    survey_id: item.survey_id,
+    year_month: item.year_month,
+    title: item.title,
+    nps: item.nps,
+  }));
 }

@@ -1,5 +1,6 @@
 import { listGlobalUnansweredExclusions } from "@/app/(protected)/admin/_actions/unanswered-global-exclusions";
 import { listEnpsLateSubmissionGrants } from "@/app/(protected)/admin/enps-surveys/[id]/late-grant-actions";
+import { EnpsSurveyQuestionAnalytics } from "@/components/admin/enps-survey-question-analytics";
 import { LateSubmissionGrantPanel } from "@/components/admin/late-submission-grant-panel";
 import { SurveyResponsesPanel } from "@/components/admin/survey-responses-panel";
 import { UnansweredExclusionPanel } from "@/components/admin/unanswered-exclusion-panel";
@@ -13,6 +14,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import type { EnpsOrgDrilldownSourceRow } from "@/lib/admin/enps-nps-by-business-unit";
 import { isOwner } from "@/lib/utils/isOwner";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -39,8 +41,16 @@ export default async function SurveyDetailPage({
 
   const { id } = await params;
   const survey = await getSurveyDetail(id);
-  const { questions, responses, npsData, lateNpsData, uniqueRespondentCount } =
-    await getSurveyResponses(id);
+  const {
+    questions,
+    responses,
+    npsData,
+    lateNpsData,
+    uniqueRespondentCount,
+    npsByBusinessUnitOnTime,
+    npsByBusinessUnitLate,
+    imputedDrilldownRows,
+  } = await getSurveyResponses(id);
   const unansweredUsers = await getUnansweredUsers(id);
   const excludedGlobalUsers = await listGlobalUnansweredExclusions();
   const allSurveysNps = await getAllSurveysNps();
@@ -53,6 +63,26 @@ export default async function SurveyDetailPage({
   const scoreQuestions = questions.filter(
     (q) => q.question_type === "score_0_10",
   );
+
+  const scoreQuestionIdSet = new Set(scoreQuestions.map((q) => q.id));
+  const orgDrilldownRows: EnpsOrgDrilldownSourceRow[] = [
+    ...responses
+      .filter(
+        (r) => r.score_value !== null && scoreQuestionIdSet.has(r.question_id),
+      )
+      .map((r) => ({
+        question_id: r.question_id,
+        user_id: r.user_id,
+        user_name: (r as { user_name?: string }).user_name ?? "不明",
+        score_value: r.score_value as number,
+        company_name: (r as { company_name?: string }).company_name ?? "",
+        business_unit_name:
+          (r as { business_unit_name?: string }).business_unit_name ?? "",
+        is_late_submission: r.is_late_submission,
+        created_at: r.created_at,
+      })),
+    ...imputedDrilldownRows,
+  ];
 
   return (
     <div className="container mx-auto py-8 px-4">
@@ -70,208 +100,18 @@ export default async function SurveyDetailPage({
           </Link>
         </div>
 
-        {/* NPSスコア */}
         {scoreQuestions.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {scoreQuestions.map((question) => {
-              const nps = npsData[question.id];
-              if (!nps || !nps.scores || nps.scores.length === 0) {
-                return (
-                  <Card key={question.id}>
-                    <CardHeader>
-                      <CardTitle className="text-lg">
-                        {question.question_text}
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-sm text-muted-foreground">
-                        まだ回答がありません。
-                      </p>
-                    </CardContent>
-                  </Card>
-                );
-              }
-
-              return (
-                <Card key={question.id}>
-                  <CardHeader>
-                    <CardTitle className="text-lg">
-                      {question.question_text}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="text-center">
-                      <div className="text-4xl font-bold">
-                        {nps.nps > 0 ? "+" : ""}
-                        {nps.nps}
-                      </div>
-                      <p className="text-sm text-muted-foreground mt-1">NPS</p>
-                    </div>
-                    <div className="grid grid-cols-3 gap-4 text-center">
-                      <div>
-                        <div className="text-2xl font-semibold text-green-600">
-                          {nps.promoters}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          推奨者 (9-10点)
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          {nps.scores.length > 0
-                            ? Math.round(
-                                (nps.promoters / nps.scores.length) * 100,
-                              )
-                            : 0}
-                          %
-                        </div>
-                      </div>
-                      <div>
-                        <div className="text-2xl font-semibold text-yellow-600">
-                          {nps.passives}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          中立者 (7-8点)
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          {nps.scores.length > 0
-                            ? Math.round(
-                                (nps.passives / nps.scores.length) * 100,
-                              )
-                            : 0}
-                          %
-                        </div>
-                      </div>
-                      <div>
-                        <div className="text-2xl font-semibold text-red-600">
-                          {nps.detractors}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          批判者 (0-6点)
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          {nps.scores.length > 0
-                            ? Math.round(
-                                (nps.detractors / nps.scores.length) * 100,
-                              )
-                            : 0}
-                          %
-                        </div>
-                      </div>
-                    </div>
-                    {/* スコア分布 */}
-                    {nps.scores.length > 0 && (
-                      <div className="space-y-2">
-                        <div className="text-sm font-medium">スコア分布</div>
-                        <div className="flex items-end gap-1 h-32 border-b border-gray-200 pb-1">
-                          {([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as const).map(
-                            (scoreValue) => {
-                              const count = nps.scores.filter(
-                                (s) => s === scoreValue,
-                              ).length;
-                              const maxCount = Math.max(
-                                ...[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(
-                                  (j) =>
-                                    nps.scores.filter((s) => s === j).length,
-                                ),
-                                1,
-                              );
-                              const height =
-                                maxCount > 0 ? (count / maxCount) * 100 : 0;
-                              return (
-                                <div
-                                  key={`score-${scoreValue}`}
-                                  className="flex-1 flex flex-col items-center gap-1 justify-end"
-                                >
-                                  {count > 0 && (
-                                    <div className="text-xs text-muted-foreground mb-1">
-                                      {count}
-                                    </div>
-                                  )}
-                                  <div
-                                    className="w-full bg-primary rounded-t transition-all min-h-[2px]"
-                                    style={{
-                                      height: `${Math.max(height, count > 0 ? 2 : 0)}%`,
-                                    }}
-                                    title={`スコア ${scoreValue}: ${count}件`}
-                                  />
-                                  <span className="text-xs font-medium">
-                                    {scoreValue}
-                                  </span>
-                                </div>
-                              );
-                            },
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        )}
-
-        {scoreQuestions.some(
-          (q) => (lateNpsData[q.id]?.scores?.length ?? 0) > 0,
-        ) && (
-          <div className="space-y-2">
-            <h2 className="text-lg font-semibold text-muted-foreground">
-              期限後回答（承認済み）のNPS
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {scoreQuestions.map((question) => {
-                const nps = lateNpsData[question.id];
-                if (!nps || !nps.scores || nps.scores.length === 0) {
-                  return null;
-                }
-                return (
-                  <Card key={`late-${question.id}`}>
-                    <CardHeader>
-                      <CardTitle className="text-lg">
-                        {question.question_text}
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="text-center">
-                        <div className="text-4xl font-bold">
-                          {nps.nps > 0 ? "+" : ""}
-                          {nps.nps}
-                        </div>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          NPS（期限後のみ）
-                        </p>
-                      </div>
-                      <div className="grid grid-cols-3 gap-4 text-center">
-                        <div>
-                          <div className="text-2xl font-semibold text-green-600">
-                            {nps.promoters}
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            推奨者
-                          </div>
-                        </div>
-                        <div>
-                          <div className="text-2xl font-semibold text-yellow-600">
-                            {nps.passives}
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            中立者
-                          </div>
-                        </div>
-                        <div>
-                          <div className="text-2xl font-semibold text-red-600">
-                            {nps.detractors}
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            批判者
-                          </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
-          </div>
+          <EnpsSurveyQuestionAnalytics
+            scoreQuestions={scoreQuestions.map((q) => ({
+              id: q.id,
+              question_text: q.question_text,
+            }))}
+            npsData={npsData}
+            lateNpsData={lateNpsData}
+            npsByBusinessUnitOnTime={npsByBusinessUnitOnTime}
+            npsByBusinessUnitLate={npsByBusinessUnitLate}
+            drilldownSourceRows={orgDrilldownRows}
+          />
         )}
 
         <LateSubmissionGrantPanel
@@ -341,6 +181,7 @@ export default async function SurveyDetailPage({
           </CardHeader>
           <CardContent>
             <SurveyResponsesPanel
+              questionScope="single"
               questions={questions.map((q) => ({
                 id: q.id,
                 question_text: q.question_text,
@@ -352,6 +193,11 @@ export default async function SurveyDetailPage({
                 question_id: r.question_id,
                 user_id: r.user_id,
                 user_name: (r as { user_name?: string }).user_name ?? "不明",
+                company_name:
+                  (r as { company_name?: string }).company_name ?? "",
+                business_unit_name:
+                  (r as { business_unit_name?: string }).business_unit_name ??
+                  "",
                 created_at: r.created_at,
                 score_value: r.score_value,
                 text_value: r.text_value,
