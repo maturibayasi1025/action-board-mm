@@ -109,6 +109,10 @@ export async function getEnpsMonthlyTrendsForQuestion(
   });
 
   const userOrgMap = new Map<string, { company: string; bu: string }>();
+  const eligibleOrgMap = new Map<
+    string,
+    { company_name: string; business_unit_name: string }
+  >();
   if (orgFilter) {
     const userIds = Array.from(new Set(onTimeRows.map((r) => r.user_id)));
     if (userIds.length > 0) {
@@ -135,6 +139,35 @@ export async function getEnpsMonthlyTrendsForQuestion(
         userOrgMap.set(u.id, {
           company: company_name.trim(),
           bu: business_unit_name.trim(),
+        });
+      }
+    }
+
+    const eligibleIds = Array.from(eligibleUserIds);
+    if (eligibleIds.length > 0) {
+      const { data: eligibleUsers } = await supabase
+        .from("private_users")
+        .select(
+          `
+        id,
+        business_units (
+          name,
+          display_order,
+          companies (
+            name,
+            display_order
+          )
+        )
+      `,
+        )
+        .in("id", eligibleIds);
+
+      for (const u of eligibleUsers || []) {
+        const { company_name, business_unit_name } =
+          companyAndBusinessUnitFromPrivateUserRow(u as PrivateUserOrgRow);
+        eligibleOrgMap.set(u.id, {
+          company_name: company_name.trim(),
+          business_unit_name: business_unit_name.trim(),
         });
       }
     }
@@ -186,36 +219,12 @@ export async function getEnpsMonthlyTrendsForQuestion(
       );
 
       if (orgFilter && imputedIds.length > 0) {
-        const { data: imputedUsers } = await supabase
-          .from("private_users")
-          .select(
-            `
-          id,
-          business_units (
-            name,
-            display_order,
-            companies (
-              name,
-              display_order
-            )
-          )
-        `,
-          )
-          .in("id", imputedIds);
-
-        const orgMap = new Map<
-          string,
-          { company_name: string; business_unit_name: string }
-        >();
-        for (const u of imputedUsers || []) {
-          const { company_name, business_unit_name } =
-            companyAndBusinessUnitFromPrivateUserRow(u as PrivateUserOrgRow);
-          orgMap.set(u.id, {
-            company_name: company_name.trim(),
-            business_unit_name: business_unit_name.trim(),
-          });
-        }
-        imputedIds = filterUserIdsByOrg(imputedIds, orgMap, targetCo, targetBu);
+        imputedIds = filterUserIdsByOrg(
+          imputedIds,
+          eligibleOrgMap,
+          targetCo,
+          targetBu,
+        );
       }
 
       scores = [...scores, ...Array(imputedIds.length).fill(0)];
