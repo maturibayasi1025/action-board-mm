@@ -83,25 +83,40 @@ FALLBACK_UPDATE_DATE = "2025.01.01 00:00"
 
 ## 4. ビルドコマンド設定
 
-Cloudflareダッシュボードでのビルド設定：
-
-```
-ビルドコマンド: npm run build:cloudflare && npm run pages:build
-ビルド出力ディレクトリ: .vercel/output/static
-```
-
-### Worker サイズを抑えたい場合（無料枠の 3 MiB 制限など）
-
-`next-on-pages` が生成する Worker が大きいと、デプロイ時に **「Your Worker exceeded the size limit of 3 MiB」** になることがあります。次のコマンドは **Edge Runtime 指定をビルド時に一括削除**し、**Sentry をビルドから外して**バンドルを小さめにします。
+Cloudflareダッシュボードでのビルド設定（**`@cloudflare/next-on-pages` 利用時**）：
 
 ```
 ビルドコマンド: npm run build:pages:cloudflare
 ビルド出力ディレクトリ: .vercel/output/static
 ```
 
-`build:pages:cloudflare` は `build:pages:no-edge` と同じです。`remove-edge-runtime.js` が `app/` 以下のソースを書き換えるため、**Git にコミットしない**運用（CI 上だけ実行）か、**ビルド後に `git checkout -- app/` で戻す**のが安全です。
+`build:pages:cloudflare` は `build:pages` と同じで、`clean` → `next build` → `next-on-pages` まで一括実行します。
 
-まだ大きい場合は、有料プラン（Worker 10 MiB）への移行や依存関係の整理を検討してください。
+手書きする場合の例（同等）：
+
+```
+npx next build && npx @cloudflare/next-on-pages
+```
+
+（リポジトリでは `npm run clean` や `NODE_ENV=production` も入るため、**`npm run build:pages`** の利用を推奨します。）
+
+### Edge Runtime について（重要）
+
+`@cloudflare/next-on-pages` は **非静的ルートに `export const runtime = 'edge'` が必要**です。`remove-edge-runtime.js` で Edge 指定を消すビルド（`build:pages:no-edge` など）を使うと、ビルドが次のように失敗します：
+
+- `Please make sure that all your non-static routes export ... runtime = 'edge'`
+
+そのため **Cloudflare Pages の本番デプロイでは `remove-edge-runtime.js` を実行しない**でください。
+
+### Worker サイズ（無料枠 3 MiB など）
+
+Edge を外して小さくする方法は **next-on-pages では使えません**。代替として次を検討できます。
+
+- **`npm run build:pages:no-sentry`** … Sentry をビルドから外し、バンドルが多少小さくなる場合がある（Edge は維持）
+- **有料プラン** … Worker 上限が大きくなる（例: 10 MiB）
+- **依存関係の整理** … サーバー側に載るライブラリの見直し
+
+`build:pages:no-edge` は next-on-pages 向けではなく、別用途の検証用として扱ってください。
 
 ## 5. トラブルシューティング
 
@@ -116,8 +131,10 @@ Cloudflareダッシュボードでのビルド設定：
 3. 環境変数の値に特殊文字が含まれていないか確認
 
 ### Worker のサイズ制限（3 MiB / 10 MiB）
-- 無料枠で **3 MiB** を超えるとデプロイに失敗します。上記 **「Worker サイズを抑えたい場合」** の `npm run build:pages:cloudflare` を試してください。
-- それでも足りない場合はプランアップまたはバンドル最適化が必要です。
+- 無料枠で **3 MiB** を超えるとデプロイに失敗します。Edge は削れないため、**`build:pages:no-sentry`** や依存の見直し、必要に応じて **有料プラン**を検討してください。
+
+### `runtime = 'edge'` が無いとビルドが落ちる
+- `build:pages:no-edge` や `remove-edge-runtime.js` を使っている場合はやめ、**`npm run build:pages`**（または `build:pages:cloudflare`）に戻してください。
 
 ## 注意事項
 

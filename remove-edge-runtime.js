@@ -1,10 +1,12 @@
 #!/usr/bin/env node
 /**
- * Cloudflare Pages（next-on-pages）では `export const runtime = "edge"` が多いと
- * Worker バンドルが肥大化しやすく、無料枠の 3 MiB 制限に引っかかることがある。
- * デプロイ直前のビルドで本スクリプトを走らせ、Edge 指定を外して Node ランタイム側に寄せる。
+ * `app/` 以下の `export const runtime = "edge"` を一括削除する（再帰）。
  *
- * 対象: `app/` 以下の `.ts` / `.tsx`（再帰）。リポジトリのソースは変更せず、CI/ローカルビルド時のみ書き換える運用を想定。
+ * 注意: **`@cloudflare/next-on-pages` では非静的ルートに edge が必須**のため、本スクリプトを
+ * デプロイビルドに組み込むと「Please make sure that all your non-static routes export
+ * runtime = 'edge'」で失敗します。Cloudflare Pages 向けの通常デプロイでは使わないでください。
+ *
+ * 用途例: next-on-pages 以外の検証、ローカルでの比較など。
  */
 const fs = require("node:fs");
 const path = require("node:path");
