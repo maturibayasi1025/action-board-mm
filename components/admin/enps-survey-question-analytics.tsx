@@ -92,7 +92,7 @@ function NpsScoreDistributionChart({ scores }: { scores: number[] }) {
   return (
     <ChartContainer
       config={npsDistributionChartConfig}
-      className="aspect-auto min-h-[240px] w-full"
+      className="block aspect-auto h-[280px] w-full max-w-full [&_.recharts-responsive-container]:h-full"
     >
       <BarChart
         data={chartData}
