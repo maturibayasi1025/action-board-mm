@@ -33,9 +33,14 @@ export default async function EnpsSurveysAdminPage() {
               月次eNPSアンケートの作成・管理を行います。
             </p>
           </div>
-          <Link href="/admin/enps-surveys/questions">
-            <Button variant="outline">質問を管理</Button>
-          </Link>
+          <div className="flex flex-wrap gap-2 justify-end">
+            <Link href="/admin/enps-surveys/trends">
+              <Button variant="default">時系列を見る</Button>
+            </Link>
+            <Link href="/admin/enps-surveys/questions">
+              <Button variant="outline">質問を管理</Button>
+            </Link>
+          </div>
         </div>
 
         <Card>
