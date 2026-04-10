@@ -2,6 +2,12 @@
 
 import { EnpsNpsByOrgTables } from "@/components/admin/enps-nps-by-org-tables";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  type ChartConfig,
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+} from "@/components/ui/chart";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -15,6 +21,15 @@ import type {
   EnpsOrgNpsRow,
 } from "@/lib/admin/enps-nps-by-business-unit";
 import { useMemo, useState } from "react";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  LabelList,
+  XAxis,
+  YAxis,
+} from "recharts";
 
 export type EnpsNpsBlock = {
   scores: number[];
@@ -34,6 +49,99 @@ export interface EnpsSurveyQuestionAnalyticsProps {
   npsByBusinessUnitLate: Record<string, EnpsOrgNpsRow[]>;
   /** 事業部別テーブルのセルから開くユーザー別内訳用 */
   drilldownSourceRows: EnpsOrgDrilldownSourceRow[];
+}
+
+const SCORE_AXIS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as const;
+
+function countScoresByValue(scores: number[]): number[] {
+  const counts = Array.from({ length: 11 }, () => 0);
+  for (const s of scores) {
+    if (s >= 0 && s <= 10) counts[s]++;
+  }
+  return counts;
+}
+
+/** NPS区分に合わせた棒の色（批判者 0–6 / 中立者 7–8 / 推奨者 9–10） */
+function barFillForScore(score: number): string {
+  if (score <= 6) return "hsl(0 72% 51%)";
+  if (score <= 8) return "hsl(32 95% 44%)";
+  return "hsl(142 76% 36%)";
+}
+
+const npsDistributionChartConfig = {
+  count: {
+    color: "hsl(var(--primary))",
+    label: "件数",
+  },
+} satisfies ChartConfig;
+
+function NpsScoreDistributionChart({ scores }: { scores: number[] }) {
+  const counts = useMemo(() => countScoresByValue(scores), [scores]);
+  const chartData = useMemo(
+    () =>
+      SCORE_AXIS.map((score) => ({
+        scoreLabel: String(score),
+        count: counts[score],
+        fill: barFillForScore(score),
+      })),
+    [counts],
+  );
+
+  const maxCount = Math.max(...counts, 1);
+
+  return (
+    <ChartContainer
+      config={npsDistributionChartConfig}
+      className="aspect-auto min-h-[240px] w-full"
+    >
+      <BarChart
+        data={chartData}
+        margin={{ top: 28, right: 8, left: 8, bottom: 4 }}
+      >
+        <CartesianGrid vertical={false} strokeDasharray="3 3" />
+        <XAxis
+          dataKey="scoreLabel"
+          tickLine={false}
+          axisLine={false}
+          tick={{ fontSize: 12 }}
+        />
+        <YAxis
+          allowDecimals={false}
+          domain={[0, maxCount]}
+          tickLine={false}
+          axisLine={false}
+          width={36}
+          tick={{ fontSize: 12 }}
+        />
+        <ChartTooltip
+          cursor={{ fill: "hsl(var(--muted) / 0.35)" }}
+          labelFormatter={(label) => `スコア ${label}`}
+          content={
+            <ChartTooltipContent
+              formatter={(value) => [
+                `${Number(value).toLocaleString()} 件`,
+                "回答数",
+              ]}
+            />
+          }
+        />
+        <Bar dataKey="count" radius={[4, 4, 0, 0]}>
+          {chartData.map((d) => (
+            <Cell key={d.scoreLabel} fill={d.fill} />
+          ))}
+          <LabelList
+            dataKey="count"
+            position="top"
+            fontSize={11}
+            fill="hsl(var(--muted-foreground))"
+            formatter={(v: number | string) =>
+              typeof v === "number" && v > 0 ? v : ""
+            }
+          />
+        </Bar>
+      </BarChart>
+    </ChartContainer>
+  );
 }
 
 function NpsSummaryCard({
@@ -112,42 +220,7 @@ function NpsSummaryCard({
         {nps.scores.length > 0 && (
           <div className="space-y-2">
             <div className="text-sm font-medium">スコア分布</div>
-            <div className="flex items-end gap-1 h-32 border-b border-gray-200 pb-1">
-              {([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as const).map(
-                (scoreValue) => {
-                  const count = nps.scores.filter(
-                    (s) => s === scoreValue,
-                  ).length;
-                  const maxCount = Math.max(
-                    ...[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(
-                      (j) => nps.scores.filter((s) => s === j).length,
-                    ),
-                    1,
-                  );
-                  const height = maxCount > 0 ? (count / maxCount) * 100 : 0;
-                  return (
-                    <div
-                      key={`score-${scoreValue}`}
-                      className="flex-1 flex flex-col items-center gap-1 justify-end"
-                    >
-                      {count > 0 && (
-                        <div className="text-xs text-muted-foreground mb-1">
-                          {count}
-                        </div>
-                      )}
-                      <div
-                        className="w-full bg-primary rounded-t transition-all min-h-[2px]"
-                        style={{
-                          height: `${Math.max(height, count > 0 ? 2 : 0)}%`,
-                        }}
-                        title={`スコア ${scoreValue}: ${count}件`}
-                      />
-                      <span className="text-xs font-medium">{scoreValue}</span>
-                    </div>
-                  );
-                },
-              )}
-            </div>
+            <NpsScoreDistributionChart scores={nps.scores} />
           </div>
         )}
       </CardContent>
