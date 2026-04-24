@@ -26,10 +26,10 @@ function buildCompanyGroups(users: UserWithCompanyRow[]): CompanyGroup[] {
       byKey.set(key, [u]);
     }
   }
-  for (const list of byKey.values()) {
+  for (const list of Array.from(byKey.values())) {
     list.sort((a, b) => a.name.localeCompare(b.name, "ja"));
   }
-  const keys = [...byKey.keys()].sort((a, b) => {
+  const keys = Array.from(byKey.keys()).sort((a, b) => {
     if (a === UNSET_KEY) {
       return 1;
     }
