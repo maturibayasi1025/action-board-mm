@@ -1,5 +1,5 @@
 import "server-only";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 
 /**
  * 現在のユーザーが経営者かどうかを判定する
@@ -50,4 +50,26 @@ export async function requireOwner(): Promise<void> {
   if (!owner) {
     throw new Error("経営者権限が必要です");
   }
+}
+
+/**
+ * 指定 UUID が経営者（OWNER_USER_IDS / OWNER_EMAILS）に該当するか。Auth のメールを照合するためサービスロールを使う。
+ */
+export async function isUserIdOwner(userId: string): Promise<boolean> {
+  const ownerUserIds =
+    process.env.OWNER_USER_IDS?.split(",").map((id) => id.trim()) ?? [];
+  if (ownerUserIds.length > 0 && ownerUserIds.includes(userId)) {
+    return true;
+  }
+  const ownerEmails =
+    process.env.OWNER_EMAILS?.split(",").map((email) => email.trim()) ?? [];
+  if (ownerEmails.length === 0) {
+    return false;
+  }
+  const supabase = await createServiceClient();
+  const { data, error } = await supabase.auth.admin.getUserById(userId);
+  if (error || !data.user?.email) {
+    return false;
+  }
+  return ownerEmails.includes(data.user.email);
 }

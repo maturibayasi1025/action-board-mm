@@ -2,6 +2,8 @@ import {
   type UserWithCompanyRow,
   listUsersWithCompanies,
 } from "@/app/(protected)/admin/users-and-companies/actions";
+import { AdminDeleteUserButton } from "@/components/admin/admin-delete-user-button";
+import { createClient } from "@/lib/supabase/server";
 import { isOwner } from "@/lib/utils/isOwner";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -50,6 +52,12 @@ export default async function UsersAndCompaniesPage() {
     redirect("/");
   }
 
+  const supabase = await createClient();
+  const {
+    data: { user: currentUser },
+  } = await supabase.auth.getUser();
+  const currentUserId = currentUser?.id ?? null;
+
   const result = await listUsersWithCompanies();
   if (!result.success) {
     return (
@@ -70,7 +78,7 @@ export default async function UsersAndCompaniesPage() {
             ユーザー一覧（会社・事業部）
           </h1>
           <p className="text-muted-foreground">
-            登録ユーザーを会社ごとにまとめて表示します。プロフィールに事業部が未設定の場合は「（会社未設定）」に含まれます（経営者のみ）。
+            登録ユーザーを会社ごとにまとめて表示します。プロフィールに事業部が未設定の場合は「（会社未設定）」に含まれます。各行からユーザーを削除できます（経営者のみ。自分自身と経営者アカウントは削除できません）。
           </p>
         </div>
 
@@ -126,6 +134,12 @@ export default async function UsersAndCompaniesPage() {
                           <th className="px-4 py-2 font-medium" scope="col">
                             事業部
                           </th>
+                          <th
+                            className="px-4 py-2 font-medium w-[120px] text-right"
+                            scope="col"
+                          >
+                            操作
+                          </th>
                         </tr>
                       </thead>
                       <tbody>
@@ -144,6 +158,13 @@ export default async function UsersAndCompaniesPage() {
                             </td>
                             <td className="px-4 py-2.5 text-muted-foreground">
                               {u.businessUnitName ?? "—"}
+                            </td>
+                            <td className="px-4 py-2.5 text-right">
+                              <AdminDeleteUserButton
+                                userId={u.id}
+                                userName={u.name}
+                                currentUserId={currentUserId}
+                              />
                             </td>
                           </tr>
                         ))}
