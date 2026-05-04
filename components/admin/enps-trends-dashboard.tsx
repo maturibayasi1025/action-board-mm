@@ -92,10 +92,16 @@ export function EnpsTrendsDashboard({
     );
   }, [units, selectedCompanyId]);
 
-  const selectionValid = useMemo(() => {
-    if (selectedCompanyId === NONE_COMPANY || selectedUnitId === NONE_UNIT) {
-      return false;
-    }
+  /** 会社が選ばれていてマスタ上も有効 */
+  const companySelectionValid = useMemo(() => {
+    if (selectedCompanyId === NONE_COMPANY) return false;
+    const company = companies.find((c) => c.id === selectedCompanyId);
+    return !!company?.is_active;
+  }, [companies, selectedCompanyId]);
+
+  /** 事業部まで選んだときの組み合わせが妥当 */
+  const buSelectionValid = useMemo(() => {
+    if (selectedUnitId === NONE_UNIT) return false;
     const company = companies.find((c) => c.id === selectedCompanyId);
     const unit = units.find((u) => u.id === selectedUnitId);
     return (
@@ -106,6 +112,14 @@ export function EnpsTrendsDashboard({
       unit.company_id === company.id
     );
   }, [companies, units, selectedCompanyId, selectedUnitId]);
+
+  /** 会社のみ、または会社＋事業部のどちらでも適用可 */
+  const canApplyOrgFilter = useMemo(
+    () =>
+      companySelectionValid &&
+      (selectedUnitId === NONE_UNIT || buSelectionValid),
+    [companySelectionValid, buSelectionValid, selectedUnitId],
+  );
 
   const orgFilterBroken = organizationsLoadError != null;
 
@@ -120,10 +134,25 @@ export function EnpsTrendsDashboard({
   };
 
   const onApplyOrgFilter = () => {
-    if (orgFilterBroken || !selectionValid) return;
+    if (orgFilterBroken || !canApplyOrgFilter) return;
     const company = companies.find((c) => c.id === selectedCompanyId);
+    if (!company?.is_active) return;
+
+    if (selectedUnitId === NONE_UNIT) {
+      const org: EnpsOrgFilter = { companyName: company.name.trim() };
+      setAppliedOrg(org);
+      load(questionId, org);
+      return;
+    }
+
     const unit = units.find((u) => u.id === selectedUnitId);
-    if (!company?.is_active || !unit?.is_active) return;
+    if (
+      !unit?.is_active ||
+      unit.company_id !== company.id ||
+      !buSelectionValid
+    ) {
+      return;
+    }
 
     const org: EnpsOrgFilter = {
       companyName: company.name.trim(),
@@ -211,7 +240,7 @@ export function EnpsTrendsDashboard({
       <div className="rounded-lg border border-border p-4 space-y-3">
         <p className="text-sm font-medium">会社・事業部で絞り込み（任意）</p>
         <p className="text-xs text-muted-foreground">
-          会社と事業部の両方を選んで「適用」してください。「絞り込みを解除」で選択をクリアし、全体表示に戻します。
+          会社だけ選んで「適用」するとその会社全体（全事業部）、事業部も選ぶとその事業部のみに絞り込みます。「絞り込みを解除」で全体表示に戻します。
         </p>
         {organizationsLoadError ? (
           <p className="text-xs text-destructive">{organizationsLoadError}</p>
@@ -278,7 +307,7 @@ export function EnpsTrendsDashboard({
             <Button
               type="button"
               variant="secondary"
-              disabled={isPending || orgFilterBroken || !selectionValid}
+              disabled={isPending || orgFilterBroken || !canApplyOrgFilter}
               onClick={onApplyOrgFilter}
             >
               適用
@@ -295,8 +324,10 @@ export function EnpsTrendsDashboard({
         </div>
         {appliedOrg ? (
           <p className="text-xs text-muted-foreground">
-            現在（絞り込み適用）: {appliedOrg.companyName} /{" "}
-            {appliedOrg.businessUnitName}
+            現在（絞り込み適用）: {appliedOrg.companyName}
+            {appliedOrg.businessUnitName
+              ? ` / ${appliedOrg.businessUnitName}`
+              : "（会社全体・全事業部）"}
           </p>
         ) : null}
       </div>

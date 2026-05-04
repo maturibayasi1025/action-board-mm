@@ -131,7 +131,8 @@ export function buildImputedDrilldownRows(
 }
 
 /**
- * 組織フィルタ用: 会社・事業部が一致する eligible ユーザーのみ残す。
+ * 組織フィルタ用: 会社が一致する eligible ユーザーのみ残す。
+ * `businessUnitName` を渡した場合は事業部名も一致させる。
  */
 export function filterUserIdsByOrg(
   userIds: string[],
@@ -140,15 +141,16 @@ export function filterUserIdsByOrg(
     { company_name: string; business_unit_name: string }
   >,
   companyName: string,
-  businessUnitName: string,
+  businessUnitName?: string | null,
 ): string[] {
   const co = companyName.trim();
-  const bu = businessUnitName.trim();
+  const buTrimmed = businessUnitName?.trim() ?? "";
+  const companyOnly = buTrimmed.length === 0;
   return userIds.filter((id) => {
     const org = userOrgById.get(id);
     if (!org) return false;
-    return (
-      org.company_name.trim() === co && org.business_unit_name.trim() === bu
-    );
+    if (org.company_name.trim() !== co) return false;
+    if (companyOnly) return true;
+    return org.business_unit_name.trim() === buTrimmed;
   });
 }

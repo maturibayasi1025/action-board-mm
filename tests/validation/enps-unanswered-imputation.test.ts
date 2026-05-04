@@ -52,6 +52,23 @@ describe("filterUserIdsByOrg", () => {
       filterUserIdsByOrg(["a", "b"], map, "A", "営業"),
     ).toEqual(["a"]);
   });
+
+  it("事業部名を省略すると会社単位ですべて残す", () => {
+    const map = new Map([
+      ["a", { company_name: "A", business_unit_name: "営業" }],
+      ["b", { company_name: "A", business_unit_name: "開発" }],
+      ["c", { company_name: "B", business_unit_name: "開発" }],
+    ]);
+    expect(filterUserIdsByOrg(["a", "b", "c"], map, "A")).toEqual(["a", "b"]);
+    expect(filterUserIdsByOrg(["a", "b", "c"], map, "A", null)).toEqual([
+      "a",
+      "b",
+    ]);
+    expect(filterUserIdsByOrg(["a", "b", "c"], map, "A", "")).toEqual([
+      "a",
+      "b",
+    ]);
+  });
 });
 
 describe("NPS with imputed zeros", () => {
