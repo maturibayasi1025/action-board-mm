@@ -248,3 +248,285 @@ export async function getEnpsMonthlyTrendsForQuestion(
 
   return out;
 }
+
+export type EnpsMonthlyScoreExportRow = {
+  user_id: string;
+  user_name: string;
+  company_name: string;
+  business_unit_name: string;
+  score_0_10: number;
+  row_kind: "on_time" | "imputed_zero";
+  responded_at: string | null;
+};
+
+export type EnpsMonthlyScoreExportResult =
+  | {
+      ok: true;
+      survey: { year_month: string; title: string };
+      rows: EnpsMonthlyScoreExportRow[];
+    }
+  | { ok: false; error: string };
+
+/**
+ * 1ヶ月分のスコア明細CSV用。推移画面と同一の集計前提（期限内の最新1件／終了済みのみ未回答を0として補完）。
+ */
+export async function getEnpsMonthlyScoreExportRows(
+  questionId: string,
+  surveyId: string,
+  orgFilter?: EnpsOrgFilter | null,
+): Promise<EnpsMonthlyScoreExportResult> {
+  await requireOwner();
+  const supabase = await createServiceClient();
+
+  const { data: survey, error: surveyError } = await supabase
+    .from("enps_surveys")
+    .select("id, title, year_month, end_date")
+    .eq("id", surveyId)
+    .eq("is_active", true)
+    .maybeSingle();
+
+  if (surveyError || !survey) {
+    return { ok: false, error: "アンケートが見つからないか、無効です。" };
+  }
+
+  const { data: allResponses, error: respError } = await supabase
+    .from("enps_responses")
+    .select("user_id, score_value, is_late_submission, created_at")
+    .eq("survey_id", surveyId)
+    .eq("question_id", questionId)
+    .not("score_value", "is", null);
+
+  if (respError) {
+    console.error("getEnpsMonthlyScoreExportRows:", respError);
+    return { ok: false, error: "回答の取得に失敗しました。" };
+  }
+
+  const now = new Date();
+  const onTimeRows = (allResponses || []).flatMap((r) => {
+    if (r.score_value === null || r.user_id == null || r.is_late_submission) {
+      return [];
+    }
+    return [
+      {
+        user_id: r.user_id,
+        score_value: r.score_value,
+        created_at: r.created_at,
+      },
+    ];
+  });
+
+  const targetCo = orgFilter?.companyName.trim() ?? "";
+  const targetBu = orgFilter?.businessUnitName?.trim() ?? "";
+  const companyOnlyFilter = Boolean(orgFilter && targetBu.length === 0);
+
+  const userOrgMap = new Map<string, { company: string; bu: string }>();
+  const eligibleOrgMap = new Map<
+    string,
+    { company_name: string; business_unit_name: string }
+  >();
+
+  const excludedUserIds = await fetchGlobalExcludedUserIds(supabase);
+  const { data: allPrivateIds } = await supabase
+    .from("private_users")
+    .select("id");
+  const eligibleUserIds = new Set(
+    (allPrivateIds ?? [])
+      .map((r) => r.id)
+      .filter((id) => !excludedUserIds.has(id)),
+  );
+
+  if (orgFilter) {
+    const userIds = Array.from(new Set(onTimeRows.map((r) => r.user_id)));
+    if (userIds.length > 0) {
+      const { data: users } = await supabase
+        .from("private_users")
+        .select(
+          `
+          id,
+          business_units (
+            name,
+            display_order,
+            companies (
+              name,
+              display_order
+            )
+          )
+        `,
+        )
+        .in("id", userIds);
+
+      for (const u of users || []) {
+        const { company_name, business_unit_name } =
+          companyAndBusinessUnitFromPrivateUserRow(u as PrivateUserOrgRow);
+        userOrgMap.set(u.id, {
+          company: company_name.trim(),
+          bu: business_unit_name.trim(),
+        });
+      }
+    }
+
+    const eligibleIds = Array.from(eligibleUserIds);
+    if (eligibleIds.length > 0) {
+      const { data: eligibleUsers } = await supabase
+        .from("private_users")
+        .select(
+          `
+          id,
+          business_units (
+            name,
+            display_order,
+            companies (
+              name,
+              display_order
+            )
+          )
+        `,
+        )
+        .in("id", eligibleIds);
+
+      for (const u of eligibleUsers || []) {
+        const { company_name, business_unit_name } =
+          companyAndBusinessUnitFromPrivateUserRow(u as PrivateUserOrgRow);
+        eligibleOrgMap.set(u.id, {
+          company_name: company_name.trim(),
+          business_unit_name: business_unit_name.trim(),
+        });
+      }
+    }
+  }
+
+  let scopedOnTime = onTimeRows;
+  if (orgFilter) {
+    scopedOnTime = onTimeRows.filter((r) => {
+      const org = userOrgMap.get(r.user_id);
+      if (!org) return false;
+      if (org.company !== targetCo) return false;
+      if (!companyOnlyFilter && org.bu !== targetBu) return false;
+      return true;
+    });
+  }
+
+  const latestOnTimeByUser = new Map<
+    string,
+    { score_value: number; created_at: string }
+  >();
+  for (const r of scopedOnTime) {
+    const prev = latestOnTimeByUser.get(r.user_id);
+    if (
+      !prev ||
+      new Date(r.created_at).getTime() > new Date(prev.created_at).getTime()
+    ) {
+      latestOnTimeByUser.set(r.user_id, {
+        score_value: r.score_value,
+        created_at: r.created_at,
+      });
+    }
+  }
+
+  const onTimeExports: Omit<EnpsMonthlyScoreExportRow, "user_name">[] =
+    Array.from(latestOnTimeByUser.entries()).map(([user_id, row]) => ({
+      user_id,
+      company_name: "",
+      business_unit_name: "",
+      score_0_10: row.score_value,
+      row_kind: "on_time" as const,
+      responded_at: row.created_at,
+    }));
+
+  const surveyEnded =
+    survey.end_date != null && isEnpsSurveyEnded(survey.end_date, now);
+
+  let imputedIds: string[] = [];
+  if (surveyEnded) {
+    const withScore = new Set<string>();
+    for (const r of allResponses || []) {
+      if (r.score_value !== null && r.user_id) {
+        withScore.add(r.user_id);
+      }
+    }
+    imputedIds = listImputedUserIdsForQuestion(eligibleUserIds, withScore);
+
+    if (orgFilter && imputedIds.length > 0) {
+      imputedIds = filterUserIdsByOrg(
+        imputedIds,
+        eligibleOrgMap,
+        targetCo,
+        companyOnlyFilter ? null : targetBu,
+      );
+    }
+  }
+
+  const imputedExports: Omit<EnpsMonthlyScoreExportRow, "user_name">[] =
+    imputedIds.map((user_id) => ({
+      user_id,
+      company_name: "",
+      business_unit_name: "",
+      score_0_10: 0,
+      row_kind: "imputed_zero" as const,
+      responded_at: null,
+    }));
+
+  const merged = [...onTimeExports, ...imputedExports];
+  const allIds = Array.from(new Set(merged.map((r) => r.user_id)));
+
+  const nameOrgByUser = new Map<
+    string,
+    { user_name: string; company_name: string; business_unit_name: string }
+  >();
+
+  if (allIds.length > 0) {
+    const { data: userRows } = await supabase
+      .from("private_users")
+      .select(
+        `
+        id,
+        name,
+        business_units (
+          name,
+          display_order,
+          companies (
+            name,
+            display_order
+          )
+        )
+      `,
+      )
+      .in("id", allIds);
+
+    for (const u of userRows || []) {
+      const { company_name, business_unit_name } =
+        companyAndBusinessUnitFromPrivateUserRow(u as PrivateUserOrgRow);
+      nameOrgByUser.set(u.id, {
+        user_name: u.name?.trim() ?? "",
+        company_name: company_name.trim(),
+        business_unit_name: business_unit_name.trim(),
+      });
+    }
+  }
+
+  const rows: EnpsMonthlyScoreExportRow[] = merged.map((r) => {
+    const meta = nameOrgByUser.get(r.user_id);
+    return {
+      user_id: r.user_id,
+      user_name: meta?.user_name ?? "",
+      company_name: meta?.company_name ?? r.company_name,
+      business_unit_name: meta?.business_unit_name ?? r.business_unit_name,
+      score_0_10: r.score_0_10,
+      row_kind: r.row_kind,
+      responded_at: r.responded_at,
+    };
+  });
+
+  rows.sort((a, b) => {
+    const kindDiff =
+      (a.row_kind === "on_time" ? 0 : 1) - (b.row_kind === "on_time" ? 0 : 1);
+    if (kindDiff !== 0) return kindDiff;
+    return a.user_id.localeCompare(b.user_id);
+  });
+
+  return {
+    ok: true,
+    survey: { year_month: survey.year_month, title: survey.title },
+    rows,
+  };
+}

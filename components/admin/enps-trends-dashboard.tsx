@@ -7,6 +7,7 @@ import type {
 import {
   type EnpsMonthlyPoint,
   type EnpsOrgFilter,
+  getEnpsMonthlyScoreExportRows,
   getEnpsMonthlyTrendsForQuestion,
 } from "@/app/(protected)/admin/enps-surveys/trends/actions";
 import { Button } from "@/components/ui/button";
@@ -24,8 +25,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useCallback, useMemo, useState, useTransition } from "react";
+import { Download } from "lucide-react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  useTransition,
+} from "react";
 import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
+import { toast } from "sonner";
 
 const NONE_COMPANY = "__none_company";
 const NONE_UNIT = "__none_unit";
@@ -46,6 +55,38 @@ const chartConfig = {
 function formatNps(n: number | null): string {
   if (n === null) return "—";
   return `${n > 0 ? "+" : ""}${n}`;
+}
+
+function escapeCsvCell(value: string | number): string {
+  const str = String(value);
+  if (str.includes(",") || str.includes("\n") || str.includes('"')) {
+    return `"${str.replace(/"/g, '""')}"`;
+  }
+  return str;
+}
+
+function sanitizeFilenameSegment(s: string): string {
+  const t = s.trim().replace(/\s+/g, "_");
+  const cleaned = t.replace(/[/\\:*?"<>|#]+/g, "_").slice(0, 72);
+  return cleaned.length > 0 ? cleaned : "export";
+}
+
+function yyyymmddForFilename(): string {
+  const d = new Date();
+  return `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function downloadUtf8Csv(filename: string, rows: string[]) {
+  const bom = new Uint8Array([0xef, 0xbb, 0xbf]);
+  const blob = new Blob([bom, rows.join("\n")], {
+    type: "text/csv;charset=utf-8",
+  });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
 }
 
 export function EnpsTrendsDashboard({
@@ -69,6 +110,10 @@ export function EnpsTrendsDashboard({
     useState<string>(NONE_COMPANY);
   const [selectedUnitId, setSelectedUnitId] = useState<string>(NONE_UNIT);
   const [appliedOrg, setAppliedOrg] = useState<EnpsOrgFilter | null>(null);
+  const [selectedSurveyIdForCsv, setSelectedSurveyIdForCsv] = useState(() => {
+    return initialSeries.at(-1)?.survey_id ?? "";
+  });
+  const [csvExporting, setCsvExporting] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   const load = useCallback((qid: string, org: EnpsOrgFilter | null) => {
@@ -210,6 +255,121 @@ export function EnpsTrendsDashboard({
     ],
     [],
   );
+
+  const activeQuestionLabel = useMemo(() => {
+    return questions.find((q) => q.id === questionId)?.question_text ?? "";
+  }, [questions, questionId]);
+
+  useEffect(() => {
+    if (series.length === 0) {
+      setSelectedSurveyIdForCsv("");
+      return;
+    }
+    setSelectedSurveyIdForCsv((prev) =>
+      prev && series.some((s) => s.survey_id === prev)
+        ? prev
+        : series[series.length - 1].survey_id,
+    );
+  }, [series]);
+
+  const orgFilenamePart = useMemo(() => {
+    if (!appliedOrg) return "全体";
+    const bu = appliedOrg.businessUnitName?.trim();
+    if (bu) {
+      return `${appliedOrg.companyName}_${bu}`;
+    }
+    return `${appliedOrg.companyName}_会社全体`;
+  }, [appliedOrg]);
+
+  const downloadMatrixCsvCombined = () => {
+    const qSlug = sanitizeFilenameSegment(activeQuestionLabel || "質問");
+    const orgSlug = sanitizeFilenameSegment(orgFilenamePart);
+    const dateSlug = yyyymmddForFilename();
+    const filename = `月次eNPS_まとめて_${orgSlug}_${qSlug}_${dateSlug}.csv`;
+
+    const headerCols = ["指標", ...months.map((m) => escapeCsvCell(m))];
+    const headerLine = headerCols.join(",");
+
+    const dataLines = matrixRows.map((row) => {
+      const cells = [
+        escapeCsvCell(row.label),
+        ...series.map((s) => escapeCsvCell(row.format(s))),
+      ];
+      return cells.join(",");
+    });
+
+    downloadUtf8Csv(filename, [
+      `${escapeCsvCell("スコア質問（表示中）")},${escapeCsvCell(activeQuestionLabel)}`,
+      `${escapeCsvCell("絞り込み")},${escapeCsvCell(appliedOrg ? orgFilenamePart.replace(/_/g, " / ") : "なし（全体）")}`,
+      "",
+      headerLine,
+      ...dataLines,
+    ]);
+  };
+
+  const downloadSingleMonthCsv = async () => {
+    if (!selectedSurveyIdForCsv) {
+      toast.error("対象の月を選んでください。");
+      return;
+    }
+    setCsvExporting(true);
+    try {
+      const result = await getEnpsMonthlyScoreExportRows(
+        questionId,
+        selectedSurveyIdForCsv,
+        appliedOrg,
+      );
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
+      }
+
+      const ymSlug = sanitizeFilenameSegment(
+        result.survey.year_month || "月次",
+      );
+      const qSlug = sanitizeFilenameSegment(activeQuestionLabel || "質問");
+      const orgSlug = sanitizeFilenameSegment(orgFilenamePart);
+      const dateSlug = yyyymmddForFilename();
+      const filename = `月次eNPS_単月_${ymSlug}_${orgSlug}_${qSlug}_${dateSlug}.csv`;
+
+      const headerLine = [
+        "ユーザーID",
+        "氏名",
+        "会社",
+        "事業部",
+        "スコア(0〜10)",
+        "行区分",
+        "期限内回答日時（ISO8601・補完行は空）",
+      ].join(",");
+
+      const kindLabel = (k: string) =>
+        k === "on_time" ? "期限内回答" : "未回答補完(スコア0)";
+
+      const dataLines = result.rows.map((r) =>
+        [
+          escapeCsvCell(r.user_id),
+          escapeCsvCell(r.user_name),
+          escapeCsvCell(r.company_name),
+          escapeCsvCell(r.business_unit_name),
+          escapeCsvCell(r.score_0_10),
+          escapeCsvCell(kindLabel(r.row_kind)),
+          escapeCsvCell(r.responded_at ?? ""),
+        ].join(","),
+      );
+
+      downloadUtf8Csv(filename, [
+        `${escapeCsvCell("対象年月")},${escapeCsvCell(result.survey.year_month)}`,
+        `${escapeCsvCell("サーベイトラック名")},${escapeCsvCell(result.survey.title)}`,
+        `${escapeCsvCell("スコア質問")},${escapeCsvCell(activeQuestionLabel)}`,
+        `${escapeCsvCell("絞り込み")},${escapeCsvCell(appliedOrg ? orgFilenamePart.replace(/_/g, " / ") : "なし（全体）")}`,
+        "",
+        headerLine,
+        ...dataLines,
+      ]);
+    } finally {
+      setCsvExporting(false);
+    }
+  };
 
   if (questions.length === 0) {
     return null;
@@ -386,8 +546,66 @@ export function EnpsTrendsDashboard({
             </ChartContainer>
           </div>
 
-          <div className="space-y-2">
-            <h3 className="text-sm font-medium">月次マトリクス</h3>
+          <div className="space-y-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
+              <h3 className="text-sm font-medium shrink-0">月次マトリクス</h3>
+              <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-end">
+                <div className="space-y-1 min-w-[10rem] sm:max-w-xs">
+                  <Label htmlFor="enps-trends-csv-month" className="text-xs">
+                    単月CSVの対象
+                  </Label>
+                  <Select
+                    value={selectedSurveyIdForCsv || undefined}
+                    onValueChange={setSelectedSurveyIdForCsv}
+                    disabled={isPending || series.length === 0 || csvExporting}
+                  >
+                    <SelectTrigger
+                      id="enps-trends-csv-month"
+                      className="w-full sm:w-[min(22rem,100%)]"
+                    >
+                      <SelectValue placeholder="年月を選択" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {series.map((s) => (
+                        <SelectItem key={s.survey_id} value={s.survey_id}>
+                          {s.year_month}（{s.title}）
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={isPending || series.length === 0 || csvExporting}
+                    onClick={downloadMatrixCsvCombined}
+                  >
+                    <Download className="h-4 w-4 mr-1.5" />
+                    まとめてCSV
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={
+                      isPending ||
+                      csvExporting ||
+                      !selectedSurveyIdForCsv ||
+                      series.length === 0
+                    }
+                    onClick={() => void downloadSingleMonthCsv()}
+                  >
+                    <Download className="h-4 w-4 mr-1.5" />
+                    単月CSV
+                  </Button>
+                </div>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              「まとめて」はグラフ直下のマトリクスと同じ集計（列＝年月）。「単月」はその月のユーザー別スコア（画面上の推移集計と同じく、終了済みのみ未回答を0として補完）。
+            </p>
             <div className="overflow-x-auto rounded-md border border-border">
               <table className="w-full text-sm">
                 <thead>
