@@ -88,6 +88,11 @@ export default async function AuthButton() {
                     ユーザー事業部の割り当て
                   </Link>
                 </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/admin/users-and-companies">
+                    ユーザー一覧（会社・事業部）
+                  </Link>
+                </DropdownMenuItem>
               </DropdownMenuGroup>
             </>
           )}

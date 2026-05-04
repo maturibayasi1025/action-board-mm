@@ -26,9 +26,29 @@ describe("unanswered_survey_global_exclusions RLS", () => {
     }
 
     testUserId = authData.user.id;
+
+    const { error: privateUserError } = await serviceClient
+      .from("private_users")
+      .insert({
+        id: testUserId,
+        name: "未回答除外テストユーザー",
+        address_prefecture: "東京都",
+        date_of_birth: "1990-01-01",
+      });
+
+    if (privateUserError) {
+      throw new Error(
+        `Failed to create private user: ${privateUserError.message}`,
+      );
+    }
   });
 
   afterAll(async () => {
+    if (!serviceClient || !testUserId) {
+      return;
+    }
+
+    await serviceClient.from("private_users").delete().eq("id", testUserId);
     await serviceClient.auth.admin.deleteUser(testUserId);
   });
 
