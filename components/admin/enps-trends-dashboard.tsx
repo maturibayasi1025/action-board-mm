@@ -1,5 +1,9 @@
 "use client";
 
+import type {
+  BusinessUnitRow,
+  CompanyRow,
+} from "@/app/(protected)/admin/business-units/actions";
 import {
   type EnpsMonthlyPoint,
   type EnpsOrgFilter,
@@ -12,7 +16,6 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -23,6 +26,9 @@ import {
 } from "@/components/ui/select";
 import { useCallback, useMemo, useState, useTransition } from "react";
 import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
+
+const NONE_COMPANY = "__none_company";
+const NONE_UNIT = "__none_unit";
 
 type ScoreQuestion = {
   id: string;
@@ -46,15 +52,22 @@ export function EnpsTrendsDashboard({
   questions,
   initialQuestionId,
   initialSeries,
+  companies,
+  units,
+  organizationsLoadError = null,
 }: {
   questions: ScoreQuestion[];
   initialQuestionId: string;
   initialSeries: EnpsMonthlyPoint[];
+  companies: CompanyRow[];
+  units: BusinessUnitRow[];
+  organizationsLoadError?: string | null;
 }) {
   const [questionId, setQuestionId] = useState(initialQuestionId);
   const [series, setSeries] = useState<EnpsMonthlyPoint[]>(initialSeries);
-  const [companyInput, setCompanyInput] = useState("");
-  const [buInput, setBuInput] = useState("");
+  const [selectedCompanyId, setSelectedCompanyId] =
+    useState<string>(NONE_COMPANY);
+  const [selectedUnitId, setSelectedUnitId] = useState<string>(NONE_UNIT);
   const [appliedOrg, setAppliedOrg] = useState<EnpsOrgFilter | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -65,26 +78,64 @@ export function EnpsTrendsDashboard({
     });
   }, []);
 
+  const activeCompanies = useMemo(() => {
+    return companies.filter((c) => {
+      if (!c.is_active) return false;
+      return units.some((u) => u.company_id === c.id && u.is_active);
+    });
+  }, [companies, units]);
+
+  const unitsForSelectedCompany = useMemo(() => {
+    if (selectedCompanyId === NONE_COMPANY) return [];
+    return units.filter(
+      (u) => u.company_id === selectedCompanyId && u.is_active,
+    );
+  }, [units, selectedCompanyId]);
+
+  const selectionValid = useMemo(() => {
+    if (selectedCompanyId === NONE_COMPANY || selectedUnitId === NONE_UNIT) {
+      return false;
+    }
+    const company = companies.find((c) => c.id === selectedCompanyId);
+    const unit = units.find((u) => u.id === selectedUnitId);
+    return (
+      !!company?.is_active &&
+      !!unit?.is_active &&
+      !!company &&
+      !!unit &&
+      unit.company_id === company.id
+    );
+  }, [companies, units, selectedCompanyId, selectedUnitId]);
+
+  const orgFilterBroken = organizationsLoadError != null;
+
+  const onCompanyChange = (value: string) => {
+    setSelectedCompanyId(value);
+    setSelectedUnitId(NONE_UNIT);
+  };
+
   const onQuestionChange = (value: string) => {
     setQuestionId(value);
     load(value, appliedOrg);
   };
 
   const onApplyOrgFilter = () => {
-    const org: EnpsOrgFilter | null =
-      companyInput.trim() && buInput.trim()
-        ? {
-            companyName: companyInput.trim(),
-            businessUnitName: buInput.trim(),
-          }
-        : null;
+    if (orgFilterBroken || !selectionValid) return;
+    const company = companies.find((c) => c.id === selectedCompanyId);
+    const unit = units.find((u) => u.id === selectedUnitId);
+    if (!company?.is_active || !unit?.is_active) return;
+
+    const org: EnpsOrgFilter = {
+      companyName: company.name.trim(),
+      businessUnitName: unit.name.trim(),
+    };
     setAppliedOrg(org);
     load(questionId, org);
   };
 
   const onClearOrgFilter = () => {
-    setCompanyInput("");
-    setBuInput("");
+    setSelectedCompanyId(NONE_COMPANY);
+    setSelectedUnitId(NONE_UNIT);
     setAppliedOrg(null);
     load(questionId, null);
   };
@@ -160,32 +211,74 @@ export function EnpsTrendsDashboard({
       <div className="rounded-lg border border-border p-4 space-y-3">
         <p className="text-sm font-medium">会社・事業部で絞り込み（任意）</p>
         <p className="text-xs text-muted-foreground">
-          両方入力したときのみ適用します。空のまま「絞り込みを解除」で全体に戻します。
+          会社と事業部の両方を選んで「適用」してください。「絞り込みを解除」で選択をクリアし、全体表示に戻します。
         </p>
+        {organizationsLoadError ? (
+          <p className="text-xs text-destructive">{organizationsLoadError}</p>
+        ) : activeCompanies.length === 0 ? (
+          <p className="text-xs text-muted-foreground">
+            有効な会社・事業部マスタがありません。管理画面から登録してください。
+          </p>
+        ) : null}
         <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
           <div className="space-y-1.5 min-w-[10rem] flex-1 sm:max-w-xs">
-            <Label htmlFor="enps-trends-co">会社名（完全一致・trim後）</Label>
-            <Input
-              id="enps-trends-co"
-              value={companyInput}
-              onChange={(e) => setCompanyInput(e.target.value)}
-              placeholder="例: 株式会社Party"
-            />
+            <Label htmlFor="enps-trends-co">会社名（マスタから選択）</Label>
+            <Select
+              value={selectedCompanyId}
+              onValueChange={onCompanyChange}
+              disabled={
+                orgFilterBroken || activeCompanies.length === 0 || isPending
+              }
+            >
+              <SelectTrigger id="enps-trends-co" className="w-full">
+                <SelectValue placeholder="選択してください" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={NONE_COMPANY}>選択してください</SelectItem>
+                {activeCompanies.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="space-y-1.5 min-w-[10rem] flex-1 sm:max-w-xs">
-            <Label htmlFor="enps-trends-bu">事業部名（完全一致・trim後）</Label>
-            <Input
-              id="enps-trends-bu"
-              value={buInput}
-              onChange={(e) => setBuInput(e.target.value)}
-              placeholder="例: epSES"
-            />
+            <Label htmlFor="enps-trends-bu">事業部名（マスタから選択）</Label>
+            <Select
+              value={selectedUnitId}
+              onValueChange={setSelectedUnitId}
+              disabled={
+                orgFilterBroken ||
+                selectedCompanyId === NONE_COMPANY ||
+                unitsForSelectedCompany.length === 0 ||
+                isPending
+              }
+            >
+              <SelectTrigger id="enps-trends-bu" className="w-full">
+                <SelectValue placeholder="まず会社を選択" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={NONE_UNIT}>
+                  {selectedCompanyId === NONE_COMPANY
+                    ? "まず会社を選択"
+                    : unitsForSelectedCompany.length === 0
+                      ? "事業部がありません"
+                      : "選択してください"}
+                </SelectItem>
+                {unitsForSelectedCompany.map((u) => (
+                  <SelectItem key={u.id} value={u.id}>
+                    {u.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="flex gap-2">
             <Button
               type="button"
               variant="secondary"
-              disabled={isPending}
+              disabled={isPending || orgFilterBroken || !selectionValid}
               onClick={onApplyOrgFilter}
             >
               適用
@@ -202,7 +295,8 @@ export function EnpsTrendsDashboard({
         </div>
         {appliedOrg ? (
           <p className="text-xs text-muted-foreground">
-            現在: {appliedOrg.companyName} / {appliedOrg.businessUnitName}
+            現在（絞り込み適用）: {appliedOrg.companyName} /{" "}
+            {appliedOrg.businessUnitName}
           </p>
         ) : null}
       </div>

@@ -1,3 +1,8 @@
+import {
+  type BusinessUnitRow,
+  type CompanyRow,
+  listCompaniesAndUnits,
+} from "@/app/(protected)/admin/business-units/actions";
 import { EnpsTrendsDashboard } from "@/components/admin/enps-trends-dashboard";
 import { Button } from "@/components/ui/button";
 import {
@@ -50,6 +55,18 @@ export default async function EnpsTrendsPage() {
   const initialSeries =
     await getEnpsMonthlyTrendsForQuestion(initialQuestionId);
 
+  const organizationsResult = await listCompaniesAndUnits();
+  let companies: CompanyRow[] = [];
+  let units: BusinessUnitRow[] = [];
+  let organizationsLoadError: string | null = null;
+
+  if (organizationsResult.success) {
+    companies = organizationsResult.companies;
+    units = organizationsResult.units;
+  } else {
+    organizationsLoadError = organizationsResult.error;
+  }
+
   return (
     <div className="container mx-auto py-8 px-4">
       <div className="max-w-6xl mx-auto space-y-8">
@@ -77,6 +94,9 @@ export default async function EnpsTrendsPage() {
               questions={questions}
               initialQuestionId={initialQuestionId}
               initialSeries={initialSeries}
+              companies={companies}
+              units={units}
+              organizationsLoadError={organizationsLoadError}
             />
           </CardContent>
         </Card>
