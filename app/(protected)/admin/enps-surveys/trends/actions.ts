@@ -28,9 +28,10 @@ export type EnpsMonthlyPoint = {
   nps: number | null;
 };
 
+/** `businessUnitName` 省略時は当該会社の全事業部を対象とする */
 export type EnpsOrgFilter = {
   companyName: string;
-  businessUnitName: string;
+  businessUnitName?: string;
 };
 
 export async function getActiveScoreQuestions() {
@@ -174,7 +175,8 @@ export async function getEnpsMonthlyTrendsForQuestion(
   }
 
   const targetCo = orgFilter?.companyName.trim() ?? "";
-  const targetBu = orgFilter?.businessUnitName.trim() ?? "";
+  const targetBu = orgFilter?.businessUnitName?.trim() ?? "";
+  const companyOnlyFilter = Boolean(orgFilter && targetBu.length === 0);
 
   const bySurvey = new Map<
     string,
@@ -185,7 +187,8 @@ export async function getEnpsMonthlyTrendsForQuestion(
     if (orgFilter) {
       const org = userOrgMap.get(r.user_id);
       if (!org) continue;
-      if (org.company !== targetCo || org.bu !== targetBu) continue;
+      if (org.company !== targetCo) continue;
+      if (!companyOnlyFilter && org.bu !== targetBu) continue;
     }
     const list = bySurvey.get(r.survey_id) ?? [];
     list.push({
@@ -223,7 +226,7 @@ export async function getEnpsMonthlyTrendsForQuestion(
           imputedIds,
           eligibleOrgMap,
           targetCo,
-          targetBu,
+          companyOnlyFilter ? null : targetBu,
         );
       }
 
