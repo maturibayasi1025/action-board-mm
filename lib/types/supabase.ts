@@ -1550,7 +1550,15 @@ export type Database = {
           created_at?: string;
           user_id?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "unanswered_survey_global_exclusions_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: true;
+            referencedRelation: "private_users";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       user_badges: {
         Row: {
