@@ -342,7 +342,7 @@ export function EnpsTrendsDashboard({
             <h3 className="text-sm font-medium">eNPS の推移</h3>
             <ChartContainer
               config={chartConfig}
-              className="min-h-[280px] w-full"
+              className="block aspect-auto h-[200px] w-full max-w-full [&_.recharts-responsive-container]:h-full"
             >
               <LineChart data={chartData} margin={{ left: 8, right: 8 }}>
                 <CartesianGrid vertical={false} strokeDasharray="3 3" />
