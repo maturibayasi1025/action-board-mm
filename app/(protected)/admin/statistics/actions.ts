@@ -12,6 +12,7 @@ import {
 } from "@/app/(protected)/admin/enps-surveys/trends/actions";
 import {
   type AwardDashboardSummary,
+  type AwardNominationRankingEntry,
   type EnpsStatisticsSlice,
   type GoodjobDatePreset,
   type GoodjobStatisticsSummary,
@@ -82,6 +83,13 @@ export async function getAwardDashboardSummary(): Promise<AwardDashboardSummary 
     getAwardUnansweredUsers(survey.id),
   ]);
 
+  const { data: masterQuestions } = await supabase
+    .from("award_questions")
+    .select(
+      "id, question_text, question_type, question_group, display_order, is_active",
+    )
+    .order("display_order", { ascending: true });
+
   const uniqueResponders = new Set(
     detail.responses.map((r) => r.user_id).filter(Boolean),
   ).size;
@@ -100,6 +108,46 @@ export async function getAwardDashboardSummary(): Promise<AwardDashboardSummary 
     0,
   );
 
+  const responseRows = detail.responses;
+
+  const nominationRankingsByQuestion = (masterQuestions ?? [])
+    .filter((q) => q.question_type === "text" || q.question_type === "textarea")
+    .map((q) => {
+      const counts = new Map<string, number>();
+      for (const r of responseRows) {
+        if (r.is_late_submission) {
+          continue;
+        }
+        if (r.question_id !== q.id) {
+          continue;
+        }
+        const t = r.text_value?.trim();
+        if (!t) {
+          continue;
+        }
+        counts.set(t, (counts.get(t) || 0) + 1);
+      }
+      const sorted = Array.from(counts.entries())
+        .map(([name, total]) => ({ name, total }))
+        .sort((a, b) => b.total - a.total);
+
+      const topThree: [
+        AwardNominationRankingEntry,
+        AwardNominationRankingEntry,
+        AwardNominationRankingEntry,
+      ] = [sorted[0] ?? null, sorted[1] ?? null, sorted[2] ?? null];
+
+      return {
+        questionId: q.id,
+        questionText: q.question_text,
+        questionGroup: q.question_group ?? "",
+        displayOrder: q.display_order,
+        questionType: q.question_type as "text" | "textarea",
+        isActive: q.is_active,
+        topThree,
+      };
+    });
+
   return {
     surveyId: survey.id,
     title: survey.title,
@@ -107,10 +155,7 @@ export async function getAwardDashboardSummary(): Promise<AwardDashboardSummary 
     uniqueResponders,
     unansweredCount: unansweredUsers.length,
     totalNominations,
-    topNominations: detail.nominationDetails.slice(0, 5).map((n) => ({
-      name: n.name,
-      total: n.total,
-    })),
+    nominationRankingsByQuestion,
     nominationsByGroup,
   };
 }

@@ -5,6 +5,7 @@ import type {
   GoodjobDatePreset,
   StatisticsDashboardData,
 } from "@/app/(protected)/admin/statistics/dashboard-model";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -411,8 +412,8 @@ export function StatisticsDashboard({ initial }: StatisticsDashboardProps) {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid gap-4 lg:grid-cols-2">
-            <Card>
+          <div className="space-y-4">
+            <Card className="max-w-xl">
               <CardHeader>
                 <CardTitle className="text-base">{award.title}</CardTitle>
                 <CardDescription>
@@ -454,36 +455,91 @@ export function StatisticsDashboard({ initial }: StatisticsDashboardProps) {
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">
-                  指名ランキング（上位5件）
+                  設問別ランキング（全設問・1〜3位の枠）
                 </CardTitle>
-                <CardDescription>テキスト指名の集約件数</CardDescription>
+                <CardDescription>
+                  表彰マスタの全設問（短文・長文）を表示順どおり並べ、各設問で期限内回答の同一テキスト
+                  を集計しています。並びは件数の多い順です。
+                </CardDescription>
               </CardHeader>
-              <CardContent>
-                {award.topNominations.length === 0 ? (
+              <CardContent className="space-y-6">
+                {award.nominationRankingsByQuestion.length === 0 ? (
                   <p className="text-sm text-muted-foreground">
-                    指名データがありません。
+                    集計対象の設問がマスタにありません。
                   </p>
                 ) : (
-                  <ol className="space-y-2">
-                    {award.topNominations.map((row, i) => (
-                      <li
-                        key={`${row.name}-${i}`}
-                        className="flex justify-between gap-2 text-sm"
-                      >
-                        <span className="truncate">
-                          {i + 1}. {row.name}
-                        </span>
-                        <span className="shrink-0 font-medium tabular-nums">
-                          {row.total}
-                        </span>
-                      </li>
-                    ))}
-                  </ol>
+                  award.nominationRankingsByQuestion.map((block) => (
+                    <div
+                      key={block.questionId}
+                      className="space-y-2 border-b pb-6 last:border-b-0 last:pb-0"
+                    >
+                      <div className="flex flex-wrap items-start gap-2">
+                        <p className="text-sm font-medium leading-snug flex-1 min-w-0">
+                          {block.questionText}
+                        </p>
+                        <div className="flex shrink-0 flex-wrap gap-1">
+                          {!block.isActive ? (
+                            <Badge variant="secondary" className="text-xs">
+                              無効
+                            </Badge>
+                          ) : null}
+                          <Badge
+                            variant="outline"
+                            className="text-xs font-normal"
+                          >
+                            {block.questionType === "textarea"
+                              ? "長文"
+                              : "短文"}
+                          </Badge>
+                        </div>
+                      </div>
+                      {block.questionGroup ? (
+                        <p className="text-xs text-muted-foreground">
+                          グループ: {block.questionGroup}
+                        </p>
+                      ) : null}
+                      <ul className="grid gap-2 sm:grid-cols-3">
+                        {block.topThree.map((row, i) => (
+                          <li
+                            key={`${block.questionId}-rank-${i + 1}`}
+                            className="flex min-h-[2.75rem] items-center justify-between gap-2 rounded-md border bg-muted/40 px-3 py-2 text-sm"
+                          >
+                            {row ? (
+                              <>
+                                <span
+                                  className="min-w-0 truncate sm:line-clamp-2"
+                                  title={row.name}
+                                >
+                                  <span className="tabular-nums text-muted-foreground">
+                                    {i + 1}.
+                                  </span>{" "}
+                                  {row.name}
+                                </span>
+                                <span className="shrink-0 font-medium tabular-nums">
+                                  {row.total}
+                                </span>
+                              </>
+                            ) : (
+                              <>
+                                <span className="text-muted-foreground">
+                                  <span className="tabular-nums">{i + 1}.</span>{" "}
+                                  —
+                                </span>
+                                <span className="shrink-0 text-muted-foreground tabular-nums">
+                                  —
+                                </span>
+                              </>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))
                 )}
                 {Object.keys(award.nominationsByGroup).length > 0 ? (
-                  <div className="mt-4 space-y-1 border-t pt-4 text-sm">
+                  <div className="space-y-1 border-t pt-4 text-sm">
                     <p className="text-xs font-medium text-muted-foreground">
-                      バリューグループ別（指名件数）
+                      バリューグループ別（指名件数・全体）
                     </p>
                     {Object.entries(award.nominationsByGroup).map(
                       ([group, count]) => (

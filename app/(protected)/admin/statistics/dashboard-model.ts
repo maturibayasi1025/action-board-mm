@@ -15,6 +15,26 @@ export type GoodjobStatisticsSummary = {
   usersReceivedPraise: number;
 };
 
+export type AwardNominationRankingRow = { name: string; total: number };
+
+/** 1位〜3位の枠。該当がないランクは null */
+export type AwardNominationRankingEntry = AwardNominationRankingRow | null;
+
+/** 各設問ごとに常に3枠（並びは回答件数の降順） */
+export type AwardNominationRankingByQuestion = {
+  questionId: string;
+  questionText: string;
+  questionGroup: string;
+  displayOrder: number;
+  questionType: "text" | "textarea";
+  isActive: boolean;
+  topThree: [
+    AwardNominationRankingEntry,
+    AwardNominationRankingEntry,
+    AwardNominationRankingEntry,
+  ];
+};
+
 export type AwardDashboardSummary = {
   surveyId: string;
   title: string;
@@ -22,7 +42,8 @@ export type AwardDashboardSummary = {
   uniqueResponders: number;
   unansweredCount: number;
   totalNominations: number;
-  topNominations: { name: string; total: number }[];
+  /** 全設問（text/textarea）× 常に1〜3位の枠。期限内回答のみ。 */
+  nominationRankingsByQuestion: AwardNominationRankingByQuestion[];
   nominationsByGroup: Record<string, number>;
 };
 
