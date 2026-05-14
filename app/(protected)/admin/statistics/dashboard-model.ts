@@ -42,7 +42,7 @@ export type AwardDashboardSummary = {
   uniqueResponders: number;
   unansweredCount: number;
   totalNominations: number;
-  /** 全設問（text/textarea）× 常に1〜3位の枠。期限内回答のみ。 */
+  /** 4カテゴリの指名設問のみ（夢中／人間関係／幸せの循環／他チーム）・各1〜3位 */
   nominationRankingsByQuestion: AwardNominationRankingByQuestion[];
   nominationsByGroup: Record<string, number>;
 };

@@ -173,19 +173,21 @@ export function StatisticsDashboard({ initial }: StatisticsDashboardProps) {
               </CardHeader>
               <CardContent className="space-y-1 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">情熱遂行</span>
+                  <span className="text-muted-foreground">
+                    夢中になってやり切る
+                  </span>
                   <span className="font-medium tabular-nums">
                     {goodjobBlock.data.totalPassionateExecution}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">最高の関係</span>
+                  <span className="text-muted-foreground">至高な人間関係</span>
                   <span className="font-medium tabular-nums">
                     {goodjobBlock.data.totalSupremeRelationships}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">幸福循環</span>
+                  <span className="text-muted-foreground">幸せの循環</span>
                   <span className="font-medium tabular-nums">
                     {goodjobBlock.data.totalHappinessCirculation}
                   </span>
@@ -455,17 +457,16 @@ export function StatisticsDashboard({ initial }: StatisticsDashboardProps) {
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">
-                  設問別ランキング（全設問・1〜3位の枠）
+                  指名ランキング（4カテゴリ・1〜3位）
                 </CardTitle>
                 <CardDescription>
-                  表彰マスタの全設問（短文・長文）を表示順どおり並べ、各設問で期限内回答の同一テキスト
-                  を集計しています。並びは件数の多い順です。
+                  夢中になってやり切る・至高な人間関係・幸せの循環・他チームのバリュー体現の4設問に限定し、期限内回答の同一表記を集計しています。並びは件数の多い順です。
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 {award.nominationRankingsByQuestion.length === 0 ? (
                   <p className="text-sm text-muted-foreground">
-                    集計対象の設問がマスタにありません。
+                    対象の指名設問がマスタで見つかりません（4カテゴリの短文設問を想定）。
                   </p>
                 ) : (
                   award.nominationRankingsByQuestion.map((block) => (
@@ -483,21 +484,8 @@ export function StatisticsDashboard({ initial }: StatisticsDashboardProps) {
                               無効
                             </Badge>
                           ) : null}
-                          <Badge
-                            variant="outline"
-                            className="text-xs font-normal"
-                          >
-                            {block.questionType === "textarea"
-                              ? "長文"
-                              : "短文"}
-                          </Badge>
                         </div>
                       </div>
-                      {block.questionGroup ? (
-                        <p className="text-xs text-muted-foreground">
-                          グループ: {block.questionGroup}
-                        </p>
-                      ) : null}
                       <ul className="grid gap-2 sm:grid-cols-3">
                         {block.topThree.map((row, i) => (
                           <li

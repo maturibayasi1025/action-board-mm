@@ -22,6 +22,18 @@ import {
 import { createServiceClient } from "@/lib/supabase/server";
 import { requireOwner } from "@/lib/utils/isOwner";
 
+/** 統計ダッシュボードの指名ランキング対象（各バリューの「方／チームを教えてください」の短文＋チーム指名） */
+const AWARD_STATS_NOMINATION_GROUP_ORDER = [
+  "passionate_execution",
+  "supreme_relations",
+  "happiness_cycle",
+  "team_value",
+] as const;
+
+const AWARD_STATS_NOMINATION_QUESTION_GROUPS = new Set(
+  AWARD_STATS_NOMINATION_GROUP_ORDER,
+);
+
 export async function getGoodjobStatisticsSummary(
   startDate: string,
   endDate: string,
@@ -110,8 +122,30 @@ export async function getAwardDashboardSummary(): Promise<AwardDashboardSummary 
 
   const responseRows = detail.responses;
 
-  const nominationRankingsByQuestion = (masterQuestions ?? [])
-    .filter((q) => q.question_type === "text" || q.question_type === "textarea")
+  const textNominationCandidates = (masterQuestions ?? []).filter(
+    (q) =>
+      q.question_type === "text" &&
+      q.question_group != null &&
+      AWARD_STATS_NOMINATION_QUESTION_GROUPS.has(q.question_group),
+  );
+
+  /** グループごとに display_order 最小の1設問だけ（指名が複数ある場合の重複防止） */
+  const questionByGroup = new Map<
+    string,
+    (typeof textNominationCandidates)[number]
+  >();
+  for (const q of textNominationCandidates) {
+    const g = q.question_group as string;
+    const prev = questionByGroup.get(g);
+    if (!prev || q.display_order < prev.display_order) {
+      questionByGroup.set(g, q);
+    }
+  }
+
+  const nominationRankingsByQuestion = AWARD_STATS_NOMINATION_GROUP_ORDER.map(
+    (groupKey) => questionByGroup.get(groupKey),
+  )
+    .filter((q): q is NonNullable<typeof q> => q != null)
     .map((q) => {
       const counts = new Map<string, number>();
       for (const r of responseRows) {
