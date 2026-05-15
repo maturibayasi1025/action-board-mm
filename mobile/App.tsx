@@ -1,8 +1,10 @@
 import Constants from "expo-constants";
 import { StatusBar } from "expo-status-bar";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  BackHandler,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -11,6 +13,7 @@ import {
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import type { WebView as WebViewType } from "react-native-webview";
 import { WebView } from "react-native-webview";
+import type { WebViewNavigation } from "react-native-webview/lib/WebViewTypes";
 
 const safeAreaEdges = ["top", "right", "bottom", "left"] as const;
 
@@ -31,14 +34,45 @@ function getStartUrl(): string {
 
 function WebShell({ uri }: { uri: string }) {
   const webViewRef = useRef<WebViewType>(null);
+  const canGoBackRef = useRef(false);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [canGoBack, setCanGoBack] = useState(false);
+  const [canGoForward, setCanGoForward] = useState(false);
+
+  const onNavigationStateChange = useCallback((nav: WebViewNavigation) => {
+    canGoBackRef.current = nav.canGoBack;
+    setCanGoBack(nav.canGoBack);
+    setCanGoForward(nav.canGoForward);
+  }, []);
+
+  useEffect(() => {
+    if (Platform.OS !== "android") {
+      return;
+    }
+    const sub = BackHandler.addEventListener("hardwareBackPress", () => {
+      if (canGoBackRef.current) {
+        webViewRef.current?.goBack();
+        return true;
+      }
+      return false;
+    });
+    return () => sub.remove();
+  }, []);
 
   const handleRetry = useCallback(() => {
     setError(null);
     setLoading(true);
     webViewRef.current?.reload();
+  }, []);
+
+  const goBack = useCallback(() => {
+    webViewRef.current?.goBack();
+  }, []);
+
+  const goForward = useCallback(() => {
+    webViewRef.current?.goForward();
   }, []);
 
   if (error) {
@@ -67,29 +101,76 @@ function WebShell({ uri }: { uri: string }) {
 
   return (
     <View style={styles.fill}>
-      <WebView
-        ref={webViewRef}
-        source={{ uri }}
-        style={styles.fill}
-        onLoadStart={() => {
-          setLoading(true);
-          setError(null);
-        }}
-        onLoadEnd={() => setLoading(false)}
-        onError={(e) => setError(e.nativeEvent.description || "WebView エラー")}
-        javaScriptEnabled
-        domStorageEnabled
-        sharedCookiesEnabled
-        thirdPartyCookiesEnabled
-        allowsBackForwardNavigationGestures
-        originWhitelist={["*"]}
-        setSupportMultipleWindows={false}
-      />
-      {loading && (
-        <View style={styles.loaderOverlay} pointerEvents="none">
-          <ActivityIndicator size="large" />
-        </View>
-      )}
+      <View style={styles.toolbar} accessibilityRole="toolbar">
+        <Pressable
+          onPress={goBack}
+          disabled={!canGoBack}
+          style={({ pressed }) => [
+            styles.toolbarButton,
+            !canGoBack && styles.toolbarButtonDisabled,
+            pressed && canGoBack && styles.toolbarButtonPressed,
+          ]}
+          accessibilityRole="button"
+          accessibilityLabel="Webページを戻る"
+        >
+          <Text
+            style={[
+              styles.toolbarButtonLabel,
+              !canGoBack && styles.toolbarButtonLabelDisabled,
+            ]}
+          >
+            戻る
+          </Text>
+        </Pressable>
+        <Pressable
+          onPress={goForward}
+          disabled={!canGoForward}
+          style={({ pressed }) => [
+            styles.toolbarButton,
+            !canGoForward && styles.toolbarButtonDisabled,
+            pressed && canGoForward && styles.toolbarButtonPressed,
+          ]}
+          accessibilityRole="button"
+          accessibilityLabel="Webページを進む"
+        >
+          <Text
+            style={[
+              styles.toolbarButtonLabel,
+              !canGoForward && styles.toolbarButtonLabelDisabled,
+            ]}
+          >
+            進む
+          </Text>
+        </Pressable>
+      </View>
+      <View style={styles.webViewWrap}>
+        <WebView
+          ref={webViewRef}
+          source={{ uri }}
+          style={styles.webView}
+          onNavigationStateChange={onNavigationStateChange}
+          onLoadStart={() => {
+            setLoading(true);
+            setError(null);
+          }}
+          onLoadEnd={() => setLoading(false)}
+          onError={(e) =>
+            setError(e.nativeEvent.description || "WebView エラー")
+          }
+          javaScriptEnabled
+          domStorageEnabled
+          sharedCookiesEnabled
+          thirdPartyCookiesEnabled
+          allowsBackForwardNavigationGestures
+          originWhitelist={["*"]}
+          setSupportMultipleWindows={false}
+        />
+        {loading && (
+          <View style={styles.loaderOverlay} pointerEvents="none">
+            <ActivityIndicator size="large" />
+          </View>
+        )}
+      </View>
     </View>
   );
 }
@@ -111,6 +192,49 @@ const styles = StyleSheet.create({
   fill: {
     flex: 1,
     backgroundColor: "#fff",
+  },
+  webView: {
+    flex: 1,
+    backgroundColor: "#fff",
+  },
+  webViewWrap: {
+    flex: 1,
+    position: "relative",
+  },
+  toolbar: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: "#f5f5f5",
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: "#ccc",
+  },
+  toolbarButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 8,
+    backgroundColor: "#fff",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "#bbb",
+  },
+  toolbarButtonPressed: {
+    opacity: 0.85,
+    backgroundColor: "#eee",
+  },
+  toolbarButtonDisabled: {
+    opacity: 0.45,
+    backgroundColor: "#f0f0f0",
+    borderColor: "#ddd",
+  },
+  toolbarButtonLabel: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#111",
+  },
+  toolbarButtonLabelDisabled: {
+    color: "#888",
   },
   errorOuter: {
     flex: 1,
