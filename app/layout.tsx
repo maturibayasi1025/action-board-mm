@@ -56,7 +56,7 @@ export default function RootLayout({
         >
           <SentryInitializer />
           <Navbar />
-          <main className="md:container md:mx-auto flex flex-col items-center">
+          <main className="md:container md:mx-auto flex w-full min-w-0 flex-col items-stretch overflow-x-hidden">
             <Suspense>
               <ReferralCodeHandlerWrapper />
             </Suspense>

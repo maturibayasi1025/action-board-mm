@@ -50,7 +50,7 @@ export default async function Hero() {
               <Link href="/">
                 <Button
                   size="lg"
-                  className="min-w-72 bg-gradient-to-r from-[#F0DC00] via-[#FFE800] to-[#D4C400] hover:from-[#D4C400] hover:via-[#F0DC00] hover:to-[#B8A800] text-gray-900 font-bold py-6 px-8 rounded-full shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300"
+                  className="w-full max-w-full min-w-0 px-6 py-6 sm:min-w-72 sm:max-w-none sm:px-8 bg-gradient-to-r from-[#F0DC00] via-[#FFE800] to-[#D4C400] hover:from-[#D4C400] hover:via-[#F0DC00] hover:to-[#B8A800] text-gray-900 font-bold rounded-full shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300"
                 >
                   <span className="text-lg">
                     🚀 MAISON MARC経済圏ともに手を動かす

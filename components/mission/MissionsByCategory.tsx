@@ -138,8 +138,8 @@ export default async function MissionsByCategory({
             <section
               key={category.category_id}
               className="
-                relative               /* オーバーレイ配置のため */
-                w-screen
+                relative
+                w-full max-w-full overflow-x-hidden
                 md:pl-10
                 py-5
               "

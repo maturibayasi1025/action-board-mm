@@ -94,7 +94,7 @@ export default async function Home({
   const showImportant = await hasImportantMissions();
 
   return (
-    <div className="flex flex-col min-h-screen py-4">
+    <div className="flex min-h-screen w-full min-w-0 flex-col overflow-x-hidden py-4">
       {/* レベルアップ通知 */}
       {levelUpNotification && (
         <LevelUpCheck levelUpData={levelUpNotification} />

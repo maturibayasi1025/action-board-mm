@@ -7,22 +7,12 @@ import {
   StyleSheet,
   Text,
   View,
-  useWindowDimensions,
 } from "react-native";
-import {
-  SafeAreaProvider,
-  SafeAreaView,
-  useSafeAreaInsets,
-} from "react-native-safe-area-context";
+import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import type { WebView as WebViewType } from "react-native-webview";
 import { WebView } from "react-native-webview";
 
 const safeAreaEdges = ["top", "right", "bottom", "left"] as const;
-
-/** 利用可能幅に対する割合（小さいほど左右に余白） */
-const WEBVIEW_WIDTH_RATIO = 0.88;
-/** 大画面で横に伸びすぎないようキャップ（dp） */
-const WEBVIEW_MAX_WIDTH = 400;
 
 function getStartUrl(): string {
   const extra = Constants.expoConfig?.extra as
@@ -41,17 +31,9 @@ function getStartUrl(): string {
 
 function WebShell({ uri }: { uri: string }) {
   const webViewRef = useRef<WebViewType>(null);
-  const { width: screenWidth } = useWindowDimensions();
-  const insets = useSafeAreaInsets();
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  const innerWidth = screenWidth - insets.left - insets.right;
-  const webViewWidth = useMemo(
-    () => Math.min(innerWidth * WEBVIEW_WIDTH_RATIO, WEBVIEW_MAX_WIDTH),
-    [innerWidth],
-  );
 
   const handleRetry = useCallback(() => {
     setError(null);
@@ -61,61 +43,53 @@ function WebShell({ uri }: { uri: string }) {
 
   if (error) {
     return (
-      <View style={styles.webShell}>
-        <View style={[styles.webColumn, { width: webViewWidth }]}>
-          <View style={styles.errorInner}>
-            <Text style={styles.errorTitle}>読み込みに失敗しました</Text>
-            <Text style={styles.errorBody}>{error}</Text>
-            <Text style={styles.urlHint}>URL: {uri}</Text>
-            <Text style={styles.help}>
-              実機からローカル Next.js を見る場合は、PCのLANアドレスを
-              EXPO_PUBLIC_ACTION_BOARD_URL に設定してください。Android
-              エミュレータでは 10.0.2.2:3000 がホストの localhost に相当します。
-            </Text>
-            <Pressable
-              onPress={handleRetry}
-              style={({ pressed }) => [
-                styles.button,
-                pressed && styles.buttonPressed,
-              ]}
-            >
-              <Text style={styles.buttonLabel}>再試行</Text>
-            </Pressable>
-          </View>
-        </View>
+      <View style={styles.errorOuter}>
+        <Text style={styles.errorTitle}>読み込みに失敗しました</Text>
+        <Text style={styles.errorBody}>{error}</Text>
+        <Text style={styles.urlHint}>URL: {uri}</Text>
+        <Text style={styles.help}>
+          実機からローカル Next.js を見る場合は、PCのLANアドレスを
+          EXPO_PUBLIC_ACTION_BOARD_URL に設定してください。Android
+          エミュレータでは 10.0.2.2:3000 がホストの localhost に相当します。
+        </Text>
+        <Pressable
+          onPress={handleRetry}
+          style={({ pressed }) => [
+            styles.button,
+            pressed && styles.buttonPressed,
+          ]}
+        >
+          <Text style={styles.buttonLabel}>再試行</Text>
+        </Pressable>
       </View>
     );
   }
 
   return (
-    <View style={styles.webShell}>
-      <View style={[styles.webColumn, { width: webViewWidth }]}>
-        <WebView
-          ref={webViewRef}
-          source={{ uri }}
-          style={styles.fill}
-          onLoadStart={() => {
-            setLoading(true);
-            setError(null);
-          }}
-          onLoadEnd={() => setLoading(false)}
-          onError={(e) =>
-            setError(e.nativeEvent.description || "WebView エラー")
-          }
-          javaScriptEnabled
-          domStorageEnabled
-          sharedCookiesEnabled
-          thirdPartyCookiesEnabled
-          allowsBackForwardNavigationGestures
-          originWhitelist={["*"]}
-          setSupportMultipleWindows={false}
-        />
-        {loading && (
-          <View style={styles.loaderOverlay} pointerEvents="none">
-            <ActivityIndicator size="large" />
-          </View>
-        )}
-      </View>
+    <View style={styles.fill}>
+      <WebView
+        ref={webViewRef}
+        source={{ uri }}
+        style={styles.fill}
+        onLoadStart={() => {
+          setLoading(true);
+          setError(null);
+        }}
+        onLoadEnd={() => setLoading(false)}
+        onError={(e) => setError(e.nativeEvent.description || "WebView エラー")}
+        javaScriptEnabled
+        domStorageEnabled
+        sharedCookiesEnabled
+        thirdPartyCookiesEnabled
+        allowsBackForwardNavigationGestures
+        originWhitelist={["*"]}
+        setSupportMultipleWindows={false}
+      />
+      {loading && (
+        <View style={styles.loaderOverlay} pointerEvents="none">
+          <ActivityIndicator size="large" />
+        </View>
+      )}
     </View>
   );
 }
@@ -138,22 +112,11 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#fff",
   },
-  webShell: {
-    flex: 1,
-    alignItems: "center",
-    backgroundColor: "#e8e8e8",
-  },
-  webColumn: {
+  errorOuter: {
     flex: 1,
     backgroundColor: "#fff",
-    overflow: "hidden",
-  },
-  errorInner: {
-    flex: 1,
+    paddingHorizontal: 24,
     justifyContent: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 24,
-    backgroundColor: "#fff",
   },
   errorTitle: {
     fontSize: 18,

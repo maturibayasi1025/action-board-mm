@@ -63,12 +63,20 @@
   * {
     @apply border-border;
   }
+
+  html {
+    overflow-x: hidden;
+    max-width: 100%;
+  }
+
   body {
     @apply bg-background text-foreground;
     font-family: var(--font-noto-sans-jp), -apple-system, BlinkMacSystemFont,
       "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif;
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
+    overflow-x: hidden;
+    max-width: 100%;
   }
 
   h1,

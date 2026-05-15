@@ -46,8 +46,8 @@ export function SummaryCards({
   const likesDelta = formatDelta(totalLikes, previousPeriodLikes);
 
   return (
-    <section className="grid gap-4 md:grid-cols-3">
-      <Card className="bg-white">
+    <section className="grid min-w-0 gap-4 md:grid-cols-3">
+      <Card className="min-w-0 bg-white">
         <CardHeader className="pb-2">
           <CardDescription>投稿数（期間合計）</CardDescription>
           <CardTitle>{totalMissions.toLocaleString()} 件</CardTitle>
@@ -57,7 +57,7 @@ export function SummaryCards({
         </CardContent>
       </Card>
 
-      <Card className="bg-white">
+      <Card className="min-w-0 bg-white">
         <CardHeader className="pb-2">
           <CardDescription>いいね数（期間合計）</CardDescription>
           <CardTitle>{totalLikes.toLocaleString()} 件</CardTitle>
@@ -67,7 +67,7 @@ export function SummaryCards({
         </CardContent>
       </Card>
 
-      <Card className="bg-white">
+      <Card className="min-w-0 bg-white">
         <CardHeader className="pb-2">
           <CardDescription>前期比</CardDescription>
           <CardTitle>推移比較</CardTitle>
