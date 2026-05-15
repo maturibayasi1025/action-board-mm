@@ -59,6 +59,9 @@ export default async function AuthButton() {
               <DropdownMenuSeparator />
               <DropdownMenuGroup>
                 <DropdownMenuItem asChild>
+                  <Link href="/admin/statistics">統計ダッシュボード</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
                   <Link href="/admin/important-missions">
                     共有グッジョブを登録する
                   </Link>
