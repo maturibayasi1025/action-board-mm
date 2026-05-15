@@ -280,24 +280,24 @@ async function UserMissionsList() {
       <div className="space-y-6">
         <div className="grid gap-4 px-4 md:gap-6 md:px-0 md:grid-cols-2 lg:grid-cols-3">
           {featuredMissions.map((mission) => (
-            <Card key={mission.id} className="flex flex-col h-full">
-              <CardHeader className="p-4 md:p-6">
-                <CardTitle className="line-clamp-2 text-lg break-words">
+            <Card key={mission.id} className="flex h-full min-w-0 flex-col">
+              <CardHeader className="min-w-0 p-4 md:p-6">
+                <CardTitle className="line-clamp-2 min-w-0 break-words text-lg">
                   {mission.title}
                 </CardTitle>
-                <div className="space-y-1">
-                  <CardDescription className="flex items-center gap-2">
-                    <PenTool className="h-4 w-4 flex-shrink-0" />
-                    <span className="break-words">
+                <div className="min-w-0 space-y-1">
+                  <CardDescription className="flex min-w-0 items-start gap-2">
+                    <PenTool className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                    <span className="min-w-0 break-words">
                       {mission.createdByName}さんがグッジョブしました
                     </span>
                   </CardDescription>
                   {(mission.praisedUsers.length > 0 ||
                     (mission.praisedExternalUsers &&
                       mission.praisedExternalUsers.length > 0)) && (
-                    <CardDescription className="flex items-center gap-2">
-                      <User className="h-4 w-4 flex-shrink-0" />
-                      <span className="break-words">
+                    <CardDescription className="flex min-w-0 items-start gap-2">
+                      <User className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                      <span className="min-w-0 break-words">
                         {[
                           ...mission.praisedUsers,
                           ...(mission.praisedExternalUsers || []),
@@ -307,7 +307,7 @@ async function UserMissionsList() {
                   )}
                 </div>
               </CardHeader>
-              <CardContent className="flex-1 p-4 pt-0 md:p-6 md:pt-0">
+              <CardContent className="min-w-0 flex-1 p-4 pt-0 md:p-6 md:pt-0">
                 {/* 画像表示 */}
                 {mission.imagePaths && mission.imagePaths.length > 0 && (
                   <div className="mb-4 grid grid-cols-3 gap-2">
@@ -326,10 +326,10 @@ async function UserMissionsList() {
                     })}
                   </div>
                 )}
-                <p className="text-sm text-muted-foreground line-clamp-3 break-words">
+                <p className="line-clamp-3 min-w-0 break-words text-sm text-muted-foreground">
                   {mission.content}
                 </p>
-                <div className="mt-4 flex flex-wrap gap-2">
+                <div className="mt-4 flex min-w-0 flex-wrap gap-2">
                   {mission.mvvItems.passionateExecution && (
                     <Badge variant="secondary" className="text-xs">
                       夢中になってやりきる
@@ -347,7 +347,7 @@ async function UserMissionsList() {
                   )}
                 </div>
               </CardContent>
-              <CardFooter className="flex flex-col gap-2 p-4 pt-0 md:flex-row md:justify-between md:items-center md:p-6 md:pt-0">
+              <CardFooter className="flex min-w-0 flex-col gap-2 p-4 pt-0 md:flex-row md:items-center md:justify-between md:p-6 md:pt-0">
                 <LikeButton
                   missionId={mission.id}
                   initialLiked={mission.isLikedByCurrentUser || false}

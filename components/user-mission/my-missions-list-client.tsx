@@ -224,19 +224,19 @@ export function MyMissionsListClient({
     const supabase = createClient();
     const isDeleting = deletingIds.has(mission.id);
     return (
-      <Card key={mission.id} className="flex flex-col">
-        <CardHeader className="p-4 md:p-6">
-          <div className="flex justify-between items-start mb-2 gap-2">
-            <CardTitle className="line-clamp-2 flex-1 break-words">
+      <Card key={mission.id} className="flex min-w-0 flex-col">
+        <CardHeader className="min-w-0 p-4 md:p-6">
+          <div className="mb-2 flex min-w-0 items-start justify-between gap-2">
+            <CardTitle className="line-clamp-2 min-w-0 flex-1 break-words">
               {mission.title}
             </CardTitle>
             <div className="flex-shrink-0">
               {getStatusBadge(mission.status)}
             </div>
           </div>
-          <CardDescription className="flex items-center gap-2">
-            <User className="h-4 w-4 flex-shrink-0" />
-            <span className="break-words">
+          <CardDescription className="flex min-w-0 items-start gap-2">
+            <User className="mt-0.5 h-4 w-4 flex-shrink-0" />
+            <span className="min-w-0 break-words">
               {mission.praisedUsers.length > 0 ||
               (mission.praisedExternalUsers &&
                 mission.praisedExternalUsers.length > 0)
@@ -248,7 +248,7 @@ export function MyMissionsListClient({
             </span>
           </CardDescription>
         </CardHeader>
-        <CardContent className="flex-1 p-4 pt-0 md:p-6 md:pt-0">
+        <CardContent className="min-w-0 flex-1 p-4 pt-0 md:p-6 md:pt-0">
           {/* 画像表示 */}
           {mission.imagePaths && mission.imagePaths.length > 0 && (
             <div className="mb-4 grid grid-cols-3 gap-2">
@@ -267,10 +267,10 @@ export function MyMissionsListClient({
               })}
             </div>
           )}
-          <p className="text-sm text-muted-foreground line-clamp-3 break-words">
+          <p className="line-clamp-3 min-w-0 break-words text-sm text-muted-foreground">
             {mission.content || "（内容未入力）"}
           </p>
-          <div className="mt-4 flex flex-wrap gap-2">
+          <div className="mt-4 flex min-w-0 flex-wrap gap-2">
             {mission.mvvItems.passionateExecution && (
               <Badge variant="outline">夢中になってやりきる</Badge>
             )}
@@ -289,7 +289,7 @@ export function MyMissionsListClient({
               )}
           </div>
         </CardContent>
-        <CardFooter className="flex justify-between items-center p-4 pt-0 md:p-6 md:pt-0">
+        <CardFooter className="flex min-w-0 items-center justify-between p-4 pt-0 md:p-6 md:pt-0">
           {mission.status === "approved" && (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               {mission.likesCount > 10 && (
