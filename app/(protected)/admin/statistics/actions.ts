@@ -122,28 +122,25 @@ export async function getAwardDashboardSummary(): Promise<AwardDashboardSummary 
 
   const responseRows = detail.responses;
 
-  const textNominationCandidates = (masterQuestions ?? []).filter(
-    (q) =>
-      q.question_type === "text" &&
-      q.question_group != null &&
-      AWARD_STATS_NOMINATION_QUESTION_GROUPS.has(q.question_group),
-  );
-
-  /** グループごとに display_order 最小の1設問だけ（指名が複数ある場合の重複防止） */
-  const questionByGroup = new Map<
-    string,
-    (typeof textNominationCandidates)[number]
-  >();
-  for (const q of textNominationCandidates) {
-    const g = q.question_group as string;
-    const prev = questionByGroup.get(g);
-    if (!prev || q.display_order < prev.display_order) {
-      questionByGroup.set(g, q);
+  function pickNominationQuestionForGroup(group: string) {
+    const groupQuestions = (masterQuestions ?? []).filter(
+      (q) =>
+        q.question_group === group &&
+        q.is_active &&
+        AWARD_STATS_NOMINATION_QUESTION_GROUPS.has(q.question_group),
+    );
+    if (group === "team_value") {
+      return groupQuestions
+        .filter((q) => q.question_type === "text")
+        .sort((a, b) => a.display_order - b.display_order)[0];
     }
+    return groupQuestions
+      .filter((q) => q.question_type === "user_select")
+      .sort((a, b) => a.display_order - b.display_order)[0];
   }
 
   const nominationRankingsByQuestion = AWARD_STATS_NOMINATION_GROUP_ORDER.map(
-    (groupKey) => questionByGroup.get(groupKey),
+    (groupKey) => pickNominationQuestionForGroup(groupKey),
   )
     .filter((q): q is NonNullable<typeof q> => q != null)
     .map((q) => {
@@ -155,11 +152,20 @@ export async function getAwardDashboardSummary(): Promise<AwardDashboardSummary 
         if (r.question_id !== q.id) {
           continue;
         }
-        const t = r.text_value?.trim();
-        if (!t) {
+        let name: string | null = null;
+        if (q.question_type === "user_select") {
+          if (r.nominee_user_id) {
+            name = r.nominee_user_name ?? "不明";
+          } else {
+            name = r.text_value?.trim() ?? null;
+          }
+        } else {
+          name = r.text_value?.trim() ?? null;
+        }
+        if (!name) {
           continue;
         }
-        counts.set(t, (counts.get(t) || 0) + 1);
+        counts.set(name, (counts.get(name) || 0) + 1);
       }
       const sorted = Array.from(counts.entries())
         .map(([name, total]) => ({ name, total }))
@@ -176,7 +182,7 @@ export async function getAwardDashboardSummary(): Promise<AwardDashboardSummary 
         questionText: q.question_text,
         questionGroup: q.question_group ?? "",
         displayOrder: q.display_order,
-        questionType: q.question_type as "text" | "textarea",
+        questionType: q.question_type as "text" | "textarea" | "user_select",
         isActive: q.is_active,
         topThree,
       };

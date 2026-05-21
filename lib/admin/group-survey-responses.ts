@@ -16,6 +16,8 @@ export interface AdminSurveyResponseRow {
   created_at: string;
   score_value: number | null;
   text_value: string | null;
+  nominee_user_id?: string | null;
+  nominee_user_name?: string | null;
   /** 期限後（管理者承認）提出 */
   is_late_submission?: boolean;
 }

@@ -4,7 +4,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { requireOwner } from "@/lib/utils/isOwner";
 import { revalidatePath } from "next/cache";
 
-export type AwardQuestionType = "text" | "textarea";
+export type AwardQuestionType = "text" | "textarea" | "user_select";
 export type AwardQuestionGroup =
   | "passionate_execution"
   | "supreme_relations"

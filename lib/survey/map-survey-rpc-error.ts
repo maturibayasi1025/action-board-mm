@@ -27,5 +27,11 @@ export function mapSurveyRpcErrorMessage(message: string): string {
   if (message.includes("survey not available for late")) {
     return "このアンケートは期限後回答の対象外です（終了前、または無効です）。";
   }
+  if (message.includes("cannot nominate yourself")) {
+    return "自分自身を指名することはできません";
+  }
+  if (message.includes("invalid response for question type")) {
+    return "回答形式が正しくありません。やり直してください。";
+  }
   return "回答の送信に失敗しました";
 }

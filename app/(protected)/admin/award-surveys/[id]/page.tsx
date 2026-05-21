@@ -150,6 +150,8 @@ export default async function AwardSurveyDetailPage({
                     created_at: r.created_at,
                     score_value: null,
                     text_value: r.text_value,
+                    nominee_user_id: r.nominee_user_id,
+                    nominee_user_name: r.nominee_user_name,
                     is_late_submission: r.is_late_submission,
                   }))}
                 />

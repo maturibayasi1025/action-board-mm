@@ -12,7 +12,7 @@ import { validateAwardResponses } from "@/lib/survey/validate-survey-responses";
 import type { Json } from "@/lib/types/supabase";
 import { revalidatePath } from "next/cache";
 
-export type AwardQuestionType = "text" | "textarea";
+export type AwardQuestionType = "text" | "textarea" | "user_select";
 export type AwardQuestionGroup =
   | "passionate_execution"
   | "supreme_relations"
@@ -33,6 +33,7 @@ export interface AwardQuestion {
 export interface AwardResponse {
   question_id: string;
   text_value?: string | null;
+  nominee_user_id?: string | null;
 }
 
 export async function submitAwardResponse(
@@ -94,6 +95,7 @@ export async function submitAwardResponse(
   const requiredCheck = validateAwardResponses(
     questions.map((q) => ({
       id: q.id,
+      question_type: q.question_type,
       is_required: q.is_required,
       is_active: true,
     })),
@@ -103,19 +105,15 @@ export async function submitAwardResponse(
     return requiredCheck;
   }
 
-  const responseData = responses
-    .map((r) => {
-      const trimmed = r.text_value?.trim();
-      return {
-        survey_id: surveyId,
-        user_id: user.id,
-        question_id: r.question_id,
-        text_value: trimmed && trimmed.length > 0 ? trimmed : null,
-      };
-    })
-    .filter((row) => row.text_value != null);
+  const hasValidResponse = responses.some((r) => {
+    const trimmed = r.text_value?.trim();
+    const nomineeId = r.nominee_user_id?.trim();
+    return (
+      (trimmed && trimmed.length > 0) || (nomineeId && nomineeId.length > 0)
+    );
+  });
 
-  if (responseData.length === 0) {
+  if (!hasValidResponse) {
     return { ok: false, message: "回答を入力してください" };
   }
 
@@ -130,7 +128,7 @@ export async function submitAwardResponse(
     logPostgrestError("submitAwardResponse replace_award_responses", rpcError, {
       surveyId,
       userId: user.id,
-      rowCount: responseData.length,
+      rowCount: responses.length,
     });
     return { ok: false, message: mapSurveyRpcErrorMessage(rpcError.message) };
   }
@@ -190,7 +188,7 @@ export async function getUserAwardResponses(
 
   const { data: responses, error } = await supabase
     .from("award_responses")
-    .select("question_id, text_value")
+    .select("question_id, text_value, nominee_user_id")
     .eq("survey_id", surveyId)
     .eq("user_id", user.id);
 
@@ -204,6 +202,7 @@ export async function getUserAwardResponses(
     responseMap[r.question_id] = {
       question_id: r.question_id,
       text_value: r.text_value ?? null,
+      nominee_user_id: r.nominee_user_id ?? null,
     };
   }
 
