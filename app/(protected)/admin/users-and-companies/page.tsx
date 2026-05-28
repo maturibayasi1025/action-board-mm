@@ -3,6 +3,7 @@ import {
   listUsersWithCompanies,
 } from "@/app/(protected)/admin/users-and-companies/actions";
 import { AdminDeleteUserButton } from "@/components/admin/admin-delete-user-button";
+import { UsersAndCompaniesCsvDownload } from "@/components/admin/users-and-companies-csv-download";
 import { createClient } from "@/lib/supabase/server";
 import { isOwner } from "@/lib/utils/isOwner";
 import Link from "next/link";
@@ -73,13 +74,16 @@ export default async function UsersAndCompaniesPage() {
   return (
     <div className="container mx-auto py-8 px-4">
       <div className="max-w-6xl mx-auto space-y-8">
-        <div>
-          <h1 className="text-3xl font-bold mb-2">
-            ユーザー一覧（会社・事業部）
-          </h1>
-          <p className="text-muted-foreground">
-            登録ユーザーを会社ごとにまとめて表示します。プロフィールに事業部が未設定の場合は「（会社未設定）」に含まれます。各行からユーザーを削除できます（経営者のみ。自分自身と経営者アカウントは削除できません）。
-          </p>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold mb-2">
+              ユーザー一覧（会社・事業部）
+            </h1>
+            <p className="text-muted-foreground">
+              登録ユーザーを会社ごとにまとめて表示します。プロフィールに事業部が未設定の場合は「（会社未設定）」に含まれます。CSVでは全登録者を会社・表示名順でダウンロードできます。各行からユーザーを削除できます（経営者のみ。自分自身と経営者アカウントは削除できません）。
+            </p>
+          </div>
+          <UsersAndCompaniesCsvDownload users={users} />
         </div>
 
         {byCompany.length > 1 && (
