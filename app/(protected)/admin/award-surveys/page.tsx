@@ -94,8 +94,9 @@ export default async function AwardSurveysAdminPage({
             <div>
               <CardTitle>四半期ランキング（バリュー別トップ5）</CardTitle>
               <CardDescription className="mt-2">
-                暦の四半期（1–3月 / 4–6月 / 7–9月 /
-                10–12月）に含まれる月次アンケートの指名を合算し、各バリューごとに票数の多い順に最大5名を表示します。期限内・期限後の回答を含みます。
+                MVV表彰サイクル（Q1: 4–6月・表彰6月 / Q2: 7–8月・表彰9月 / Q3:
+                9–11月・表彰12月 / Q4:
+                12–2月・表彰3月）に含まれる月次アンケートの指名を合算し、各バリューごとに票数の多い順に最大5名を表示します。期限内・期限後の回答を含みます。
               </CardDescription>
             </div>
             {quarterOptions.length > 0 && selected != null && (

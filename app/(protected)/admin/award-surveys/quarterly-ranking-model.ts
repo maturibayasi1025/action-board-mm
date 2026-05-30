@@ -1,6 +1,14 @@
-export type AwardQuarter = 1 | 2 | 3 | 4;
+import {
+  type MvvAwardQuarter,
+  formatAwardQuarterPeriodLabel,
+  getAwardQuarterYearMonthKeys,
+  getFiscalYearAndQuarterFromMonth,
+} from "@/lib/types/badge";
+
+export type AwardQuarter = MvvAwardQuarter;
 
 export type AwardQuarterOption = {
+  /** Q1 の年度（4月を含む年） */
   year: number;
   quarter: AwardQuarter;
   label: string;
@@ -39,43 +47,46 @@ export const AWARD_QUESTION_GROUP_LABELS: Record<string, string> = {
   team_value: "チーム/組織のバリュー体現",
 };
 
-const QUARTER_MONTH_RANGES: Record<AwardQuarter, [number, number, number]> = {
-  1: [1, 2, 3],
-  2: [4, 5, 6],
-  3: [7, 8, 9],
-  4: [10, 11, 12],
-};
-
-export function monthToQuarter(month: number): AwardQuarter {
-  if (month >= 1 && month <= 3) return 1;
-  if (month >= 4 && month <= 6) return 2;
-  if (month >= 7 && month <= 9) return 3;
-  return 4;
+export function fiscalYearAndQuarterFromYearMonth(
+  year: number,
+  month: number,
+): { fiscalYear: number; quarter: AwardQuarter } {
+  return getFiscalYearAndQuarterFromMonth(year, month);
 }
 
 export function getMonthsForQuarter(quarter: AwardQuarter): number[] {
-  return [...QUARTER_MONTH_RANGES[quarter]];
+  switch (quarter) {
+    case 1:
+      return [4, 5, 6];
+    case 2:
+      return [7, 8];
+    case 3:
+      return [9, 10, 11];
+    case 4:
+      return [12, 1, 2];
+    default: {
+      const _exhaustive: never = quarter;
+      return _exhaustive;
+    }
+  }
 }
 
 export function formatQuarterLabel(
-  year: number,
+  fiscalYear: number,
   quarter: AwardQuarter,
 ): string {
-  const months = QUARTER_MONTH_RANGES[quarter];
-  return `${year}年 ${months[0]}–${months[2]}月`;
+  return formatAwardQuarterPeriodLabel(fiscalYear, quarter);
 }
 
 export function yearMonthKeysForQuarter(
-  year: number,
+  fiscalYear: number,
   quarter: AwardQuarter,
 ): string[] {
-  return getMonthsForQuarter(quarter).map(
-    (m) => `${year}-${String(m).padStart(2, "0")}`,
-  );
+  return getAwardQuarterYearMonthKeys(fiscalYear, quarter);
 }
 
-export function quarterKey(year: number, quarter: AwardQuarter): string {
-  return `${year}-Q${quarter}`;
+export function quarterKey(fiscalYear: number, quarter: AwardQuarter): string {
+  return `${fiscalYear}-Q${quarter}`;
 }
 
 export function parseQuarterKey(

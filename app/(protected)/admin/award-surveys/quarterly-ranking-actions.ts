@@ -8,8 +8,8 @@ import {
   type AwardQuarterOption,
   type AwardQuarterRankingRow,
   type AwardQuarterlyRankingResult,
+  fiscalYearAndQuarterFromYearMonth,
   formatQuarterLabel,
-  monthToQuarter,
   parseYearMonth,
   quarterKey,
   yearMonthKeysForQuarter,
@@ -110,14 +110,17 @@ export async function getAvailableAwardQuarters(): Promise<
   for (const row of surveys ?? []) {
     const parsed = parseYearMonth(row.year_month);
     if (!parsed) continue;
-    const quarter = monthToQuarter(parsed.month);
-    const key = quarterKey(parsed.year, quarter);
+    const { fiscalYear, quarter } = fiscalYearAndQuarterFromYearMonth(
+      parsed.year,
+      parsed.month,
+    );
+    const key = quarterKey(fiscalYear, quarter);
     if (seen.has(key)) continue;
     seen.add(key);
     options.push({
-      year: parsed.year,
+      year: fiscalYear,
       quarter,
-      label: formatQuarterLabel(parsed.year, quarter),
+      label: formatQuarterLabel(fiscalYear, quarter),
     });
   }
 
