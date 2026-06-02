@@ -1,6 +1,7 @@
 import { listGlobalUnansweredExclusions } from "@/app/(protected)/admin/_actions/unanswered-global-exclusions";
 import { listAwardLateSubmissionGrants } from "@/app/(protected)/admin/award-surveys/[id]/late-grant-actions";
 import { AwardNominationSummary } from "@/components/admin/award-nomination-summary";
+import { AwardWinnerCommentSummary } from "@/components/admin/award-winner-comment-summary";
 import { LateSubmissionGrantPanel } from "@/components/admin/late-submission-grant-panel";
 import { SurveyResponsesPanel } from "@/components/admin/survey-responses-panel";
 import { UnansweredExclusionPanel } from "@/components/admin/unanswered-exclusion-panel";
@@ -52,8 +53,13 @@ export default async function AwardSurveyDetailPage({
 
   const { id } = await params;
   const survey = await getAwardSurveyDetail(id);
-  const { questions, responses, nominationDetails, lateNominationDetails } =
-    await getAwardSurveyResponses(id);
+  const {
+    questions,
+    responses,
+    nominationDetails,
+    lateNominationDetails,
+    winnerComments,
+  } = await getAwardSurveyResponses(id);
   const unansweredUsers = await getAwardUnansweredUsers(id);
   const excludedGlobalUsers = await listGlobalUnansweredExclusions();
   const awardLateGrants = await listAwardLateSubmissionGrants(id);
@@ -107,6 +113,13 @@ export default async function AwardSurveyDetailPage({
               groupLabels={QUESTION_GROUP_LABELS}
             />
           </div>
+        )}
+
+        {winnerComments.length > 0 && (
+          <AwardWinnerCommentSummary
+            groups={winnerComments}
+            surveyTitle={survey.title}
+          />
         )}
 
         <LateSubmissionGrantPanel

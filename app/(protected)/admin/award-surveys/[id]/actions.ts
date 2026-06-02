@@ -9,8 +9,26 @@ import {
   fetchGlobalExcludedUserIds,
   filterUnansweredPrivateUsers,
 } from "@/lib/survey/unanswered-candidates";
-import type { AwardNominationDetail } from "@/lib/types/award-nomination";
+import type {
+  AwardGroupSummary,
+  AwardNominationDetail,
+} from "@/lib/types/award-nomination";
 import { requireOwner } from "@/lib/utils/isOwner";
+
+const WINNER_COMMENT_GROUPS = [
+  "passionate_execution",
+  "supreme_relations",
+  "happiness_cycle",
+] as const;
+
+const WINNER_COMMENT_GROUP_LABELS: Record<
+  (typeof WINNER_COMMENT_GROUPS)[number],
+  string
+> = {
+  passionate_execution: "夢中になってやり切る賞",
+  supreme_relations: "至高な人間関係を賞",
+  happiness_cycle: "幸せの循環賞",
+};
 
 export async function getAwardSurveyDetail(surveyId: string) {
   await requireOwner();
@@ -56,6 +74,7 @@ export async function getAwardSurveyResponses(surveyId: string) {
       responses: [],
       nominationDetails: [] as AwardNominationDetail[],
       lateNominationDetails: [] as AwardNominationDetail[],
+      winnerComments: [] as AwardGroupSummary[],
     };
   }
 
@@ -181,11 +200,90 @@ export async function getAwardSurveyResponses(surveyId: string) {
   const nominationDetails = aggregateNominations(responsesWithUsers, false);
   const lateNominationDetails = aggregateNominations(responsesWithUsers, true);
 
+  const activeQuestions = questions || [];
+  const regularResponses = responsesWithUsers.filter(
+    (r) => !r.is_late_submission,
+  );
+
+  function aggregateWinnerComments(): AwardGroupSummary[] {
+    return WINNER_COMMENT_GROUPS.map((group) => {
+      const groupQuestions = activeQuestions.filter(
+        (q) => q.question_group === group,
+      );
+      const nominationQuestion = groupQuestions.find(
+        (q) => q.question_type === "user_select",
+      );
+      const reasonQuestion = groupQuestions.find(
+        (q) =>
+          q.question_type === "textarea" &&
+          nominationQuestion != null &&
+          q.display_order > nominationQuestion.display_order,
+      );
+
+      const reasonByUserId = new Map<string, string>();
+      if (reasonQuestion) {
+        for (const response of regularResponses) {
+          if (response.question_id !== reasonQuestion.id) continue;
+          const comment = response.text_value?.trim();
+          if (comment) {
+            reasonByUserId.set(response.user_id, comment);
+          }
+        }
+      }
+
+      const winnerMap = new Map<
+        string,
+        {
+          name: string;
+          total: number;
+          recommenders: { recommenderName: string; comment: string }[];
+        }
+      >();
+
+      if (nominationQuestion) {
+        for (const response of regularResponses) {
+          if (response.question_id !== nominationQuestion.id) continue;
+
+          const nominee = resolveNomineeKey(response);
+          if (!nominee) continue;
+
+          let row = winnerMap.get(nominee.key);
+          if (!row) {
+            row = { name: nominee.name, total: 0, recommenders: [] };
+            winnerMap.set(nominee.key, row);
+          }
+          row.total += 1;
+          row.recommenders.push({
+            recommenderName: response.user_name,
+            comment: reasonByUserId.get(response.user_id) ?? "",
+          });
+        }
+      }
+
+      const winners = Array.from(winnerMap.values())
+        .map(({ name, total, recommenders }) => ({
+          name,
+          total,
+          recommenders,
+        }))
+        .sort((a, b) => b.total - a.total);
+
+      return {
+        group,
+        label: WINNER_COMMENT_GROUP_LABELS[group],
+        winners,
+      };
+    }).filter((summary) => summary.winners.length > 0);
+  }
+
+  const winnerComments = aggregateWinnerComments();
+
   return {
     questions: questions || [],
     responses: responsesWithUsers,
     nominationDetails,
     lateNominationDetails,
+    winnerComments,
   };
 }
 
