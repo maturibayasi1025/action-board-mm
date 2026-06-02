@@ -22,7 +22,7 @@ function escapeCsvCell(value: string): string {
 }
 
 function buildCsvContent(groups: AwardGroupSummary[]): string {
-  const headers = ["賞", "受賞者", "票数", "推薦者", "コメント"];
+  const headers = ["賞", "該当者", "票数", "推薦者", "コメント"];
   const lines: string[] = [];
 
   for (const { label, winners } of groups) {
@@ -63,21 +63,42 @@ export function AwardWinnerCommentSummary({
   const hasAnyWinner = groups.some((g) => g.winners.length > 0);
   if (!hasAnyWinner) return null;
 
-  const handleDownload = () => {
-    const csvContent = buildCsvContent(groups);
-    const bom = new Uint8Array([0xef, 0xbb, 0xbf]);
-    const blob = new Blob([bom, csvContent], {
-      type: "text/csv;charset=utf-8",
-    });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
+  const filenameBase = () => {
     const titlePart = surveyTitle
       ? `${surveyTitle.replace(/[/\\?%*:|"<>]/g, "_")}_`
       : "";
-    link.download = `${titlePart}表彰集計_${yyyymmddForFilename()}.csv`;
+    return `${titlePart}表彰集計_${yyyymmddForFilename()}`;
+  };
+
+  const triggerDownload = (blob: Blob, filename: string) => {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
     link.click();
     URL.revokeObjectURL(url);
+  };
+
+  const handleExcelDownload = async () => {
+    const { buildAwardWinnerExcelBuffer } = await import(
+      "@/lib/award/build-award-winner-excel"
+    );
+    const buffer = await buildAwardWinnerExcelBuffer(groups);
+    triggerDownload(
+      new Blob([buffer], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      }),
+      `${filenameBase()}.xlsx`,
+    );
+  };
+
+  const handleCsvDownload = () => {
+    const csvContent = buildCsvContent(groups);
+    const bom = new Uint8Array([0xef, 0xbb, 0xbf]);
+    triggerDownload(
+      new Blob([bom, csvContent], { type: "text/csv;charset=utf-8" }),
+      `${filenameBase()}.csv`,
+    );
   };
 
   return (
@@ -88,19 +109,30 @@ export function AwardWinnerCommentSummary({
             表彰集計（推薦コメント付き）
           </CardTitle>
           <CardDescription className="text-base leading-relaxed">
-            各賞ごとに受賞者・票数・推薦者・コメントを一覧表示します。CSVはスプレッドシートに貼り付けやすい形式です。
+            各賞ごとに受賞者・票数・推薦者・コメントを一覧表示します。Excel
+            出力は賞ごとの表組み（該当者・票数の結合セル、行の色分け）付きです。
           </CardDescription>
         </div>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={handleDownload}
-          className="shrink-0"
-        >
-          <Download className="h-4 w-4 mr-1.5" />
-          CSVダウンロード
-        </Button>
+        <div className="flex flex-wrap gap-2 shrink-0">
+          <Button
+            type="button"
+            variant="default"
+            size="sm"
+            onClick={() => void handleExcelDownload()}
+          >
+            <Download className="h-4 w-4 mr-1.5" />
+            Excelダウンロード
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleCsvDownload}
+          >
+            <Download className="h-4 w-4 mr-1.5" />
+            CSVダウンロード
+          </Button>
+        </div>
       </CardHeader>
       <CardContent className="space-y-8">
         {groups.map((groupSummary) => (
