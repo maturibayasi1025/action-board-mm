@@ -5,6 +5,10 @@ import {
   getAwardQuarterlyNominationRanking,
 } from "@/app/(protected)/admin/award-surveys/quarterly-ranking-actions";
 import type { AwardQuarter } from "@/app/(protected)/admin/award-surveys/quarterly-ranking-model";
+import {
+  AwardSelfEvalCsvDownload,
+  AwardSelfEvalCsvDownloadAll,
+} from "@/components/admin/award-self-eval-csv-download";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -97,20 +101,28 @@ export default async function AwardSurveysAdminPage({
                 MVV表彰サイクル（Q1: 4–6月・表彰6月 / Q2: 7–8月・表彰9月 / Q3:
                 9–11月・表彰12月 / Q4:
                 12–2月・表彰3月）に含まれる月次アンケートの指名を合算し、各バリューごとに票数の多い順に最大5名を表示します。期限内・期限後の回答を含みます。
+                「自己評価CSV」は選択中の四半期に含まれる月の、各メンバーのバリュー別自己評価本文を出力します。
               </CardDescription>
             </div>
             {quarterOptions.length > 0 && selected != null && (
-              <Suspense
-                fallback={
-                  <div className="h-10 w-full max-w-xs animate-pulse rounded-md bg-muted" />
-                }
-              >
-                <QuarterSelector
-                  options={quarterOptions}
-                  selectedYear={selected.year}
-                  selectedQuarter={selected.quarter}
+              <div className="flex flex-wrap items-end gap-3">
+                <Suspense
+                  fallback={
+                    <div className="h-10 w-full max-w-xs animate-pulse rounded-md bg-muted" />
+                  }
+                >
+                  <QuarterSelector
+                    options={quarterOptions}
+                    selectedYear={selected.year}
+                    selectedQuarter={selected.quarter}
+                  />
+                </Suspense>
+                <AwardSelfEvalCsvDownload
+                  year={selected.year}
+                  quarter={selected.quarter}
+                  disabled={ranking == null || ranking.surveyCount === 0}
                 />
-              </Suspense>
+              </div>
             )}
           </CardHeader>
           <CardContent>
@@ -125,9 +137,12 @@ export default async function AwardSurveysAdminPage({
         </Card>
 
         <Card>
-          <CardHeader>
-            <CardTitle>アンケート一覧</CardTitle>
-            <CardDescription>全ユーザー数: {totalUsers}人</CardDescription>
+          <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
+            <div>
+              <CardTitle>アンケート一覧</CardTitle>
+              <CardDescription>全ユーザー数: {totalUsers}人</CardDescription>
+            </div>
+            {surveys.length > 0 && <AwardSelfEvalCsvDownloadAll />}
           </CardHeader>
           <CardContent>
             {surveys.length === 0 ? (
