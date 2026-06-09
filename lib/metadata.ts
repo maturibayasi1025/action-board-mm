@@ -22,7 +22,7 @@ export const config = {
       { url: "/favicon.ico", sizes: "any" },
       { url: "/img/icon.png", type: "image/png", sizes: "32x32" },
     ],
-    apple: "/img/apple-icon.png",
+    apple: [{ url: "/img/apple-icon.png", sizes: "180x180" }],
   },
 };
 
@@ -66,6 +66,13 @@ export function createDefaultMetadata(): Metadata {
   return {
     title: config.title,
     description: config.description,
+    applicationName: "アクションボード",
+    manifest: "/manifest.webmanifest",
+    appleWebApp: {
+      capable: true,
+      title: "アクションボード",
+      statusBarStyle: "default",
+    },
     openGraph: {
       title: config.title,
       description: config.description,
