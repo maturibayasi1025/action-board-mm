@@ -54,6 +54,19 @@ export function ServiceWorkerRegister() {
           promptUpdate(registration.waiting);
         }
 
+        // 既にインストール中の SW がいれば statechange を監視
+        if (registration.installing) {
+          const installing = registration.installing;
+          installing.addEventListener("statechange", () => {
+            if (
+              installing.state === "installed" &&
+              navigator.serviceWorker.controller
+            ) {
+              promptUpdate(installing);
+            }
+          });
+        }
+
         // 以降の更新を検知
         registration.addEventListener("updatefound", () => {
           const installing = registration.installing;
