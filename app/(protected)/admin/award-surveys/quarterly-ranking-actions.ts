@@ -63,9 +63,11 @@ function resolveNomineeKey(
     if (response.nominee_user_id) {
       return `uid:${response.nominee_user_id}`;
     }
-    return response.text_value?.trim() ?? null;
+    const textValue = response.text_value?.trim();
+    return textValue ? `text:${textValue}` : null;
   }
-  return response.text_value?.trim() ?? null;
+  const textValue = response.text_value?.trim();
+  return textValue ? `text:${textValue}` : null;
 }
 
 function resolveNomineeDisplay(
@@ -102,6 +104,8 @@ function aggregateTopFiveForQuestion(
       if (key.startsWith("uid:")) {
         const userId = key.slice(4);
         name = userNameById.get(userId) ?? "不明";
+      } else if (key.startsWith("text:")) {
+        name = key.slice(5);
       } else {
         name = key;
       }
