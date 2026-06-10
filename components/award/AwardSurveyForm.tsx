@@ -136,11 +136,7 @@ function AwardNomineeSelect({
         )}
       </div>
 
-      <input
-        type="hidden"
-        name={`nominee-${questionId}`}
-        value={value}
-      />
+      <input type="hidden" name={`nominee-${questionId}`} value={value} />
     </div>
   );
 }

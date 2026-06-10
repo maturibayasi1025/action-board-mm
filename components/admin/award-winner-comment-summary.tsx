@@ -149,7 +149,7 @@ export function AwardWinnerCommentSummary({
               >
                 {groupSummary.winners.map((winner) => (
                   <li
-                    key={`${groupSummary.group}-${winner.name}`}
+                    key={`${groupSummary.group}-${winner.key}`}
                     className="rounded-lg border border-border overflow-hidden"
                   >
                     <div className="flex flex-wrap items-center gap-3 bg-muted/40 px-4 py-3 border-b border-border">
@@ -173,7 +173,7 @@ export function AwardWinnerCommentSummary({
                         <tbody>
                           {winner.recommenders.map((rec, idx) => (
                             <tr
-                              key={`${winner.name}-${rec.recommenderName}-${idx}`}
+                              key={`${winner.key}-${rec.recommenderName}-${idx}`}
                               className="border-b last:border-b-0 even:bg-muted/20"
                             >
                               <td className="px-4 py-3 align-top font-medium whitespace-nowrap">

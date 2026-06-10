@@ -137,9 +137,22 @@ export async function getAwardSurveyResponses(surveyId: string) {
     };
   });
 
-  const nominationQuestions = (questions || []).filter(
-    (q) => q.question_type === "user_select" || q.question_type === "text",
-  );
+  const NOMINATION_GROUPS = new Set([
+    "passionate_execution",
+    "supreme_relations",
+    "happiness_cycle",
+    "team_value",
+  ]);
+
+  const nominationQuestions = (questions || []).filter((q) => {
+    if (!q.question_group || !NOMINATION_GROUPS.has(q.question_group)) {
+      return false;
+    }
+    if (q.question_group === "team_value") {
+      return q.question_type === "text";
+    }
+    return q.question_type === "user_select";
+  });
   const nominationQuestionIds = new Set(nominationQuestions.map((q) => q.id));
   const questionIdToGroup = new Map(
     nominationQuestions.map((q) => [q.id, q.question_group]),
@@ -213,14 +226,12 @@ export async function getAwardSurveyResponses(surveyId: string) {
       const nominationQuestion = groupQuestions.find(
         (q) => q.question_type === "user_select",
       );
-      const reasonQuestion = groupQuestions
-        .filter(
-          (q) =>
-            q.question_type === "textarea" &&
-            nominationQuestion != null &&
-            q.display_order > nominationQuestion.display_order,
-        )
-        .sort((a, b) => b.display_order - a.display_order)[0];
+      const reasonQuestion = groupQuestions.find(
+        (q) =>
+          q.question_type === "textarea" &&
+          nominationQuestion != null &&
+          q.display_order > nominationQuestion.display_order,
+      );
 
       const reasonByUserId = new Map<string, string>();
       if (reasonQuestion) {
@@ -236,6 +247,7 @@ export async function getAwardSurveyResponses(surveyId: string) {
       const winnerMap = new Map<
         string,
         {
+          key: string;
           name: string;
           total: number;
           recommenders: { recommenderName: string; comment: string }[];
@@ -251,7 +263,12 @@ export async function getAwardSurveyResponses(surveyId: string) {
 
           let row = winnerMap.get(nominee.key);
           if (!row) {
-            row = { name: nominee.name, total: 0, recommenders: [] };
+            row = {
+              key: nominee.key,
+              name: nominee.name,
+              total: 0,
+              recommenders: [],
+            };
             winnerMap.set(nominee.key, row);
           }
           row.total += 1;
@@ -263,7 +280,8 @@ export async function getAwardSurveyResponses(surveyId: string) {
       }
 
       const winners = Array.from(winnerMap.values())
-        .map(({ name, total, recommenders }) => ({
+        .map(({ key, name, total, recommenders }) => ({
+          key,
           name,
           total,
           recommenders,

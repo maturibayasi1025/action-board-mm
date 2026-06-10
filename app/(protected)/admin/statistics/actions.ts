@@ -159,17 +159,17 @@ export async function getAwardDashboardSummary(): Promise<AwardDashboardSummary 
             key = `uid:${r.nominee_user_id}`;
             name = r.nominee_user_name ?? "不明";
           } else {
-            const text = r.text_value?.trim();
-            if (text) {
-              key = `text:${text}`;
-              name = text;
+            const textValue = r.text_value?.trim() ?? null;
+            if (textValue) {
+              key = `text:${textValue}`;
+              name = textValue;
             }
           }
         } else {
-          const text = r.text_value?.trim();
-          if (text) {
-            key = `text:${text}`;
-            name = text;
+          const textValue = r.text_value?.trim() ?? null;
+          if (textValue) {
+            key = `text:${textValue}`;
+            name = textValue;
           }
         }
         if (!key || !name) {
@@ -183,6 +183,7 @@ export async function getAwardDashboardSummary(): Promise<AwardDashboardSummary 
         }
       }
       const sorted = Array.from(counts.values())
+        .map(({ name, total }) => ({ name, total }))
         .sort((a, b) => b.total - a.total);
 
       const topThree: [
