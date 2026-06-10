@@ -55,6 +55,19 @@ function pickNominationQuestionForGroup(
     .sort((a, b) => a.display_order - b.display_order)[0];
 }
 
+function resolveNomineeKey(
+  response: ResponseRow,
+  question: MasterQuestion,
+): string | null {
+  if (question.question_type === "user_select") {
+    if (response.nominee_user_id) {
+      return `uid:${response.nominee_user_id}`;
+    }
+    return response.text_value?.trim() ?? null;
+  }
+  return response.text_value?.trim() ?? null;
+}
+
 function resolveNomineeDisplay(
   response: ResponseRow,
   question: MasterQuestion,
@@ -78,13 +91,22 @@ function aggregateTopFiveForQuestion(
 
   for (const r of responses) {
     if (r.question_id !== question.id) continue;
-    const name = resolveNomineeDisplay(r, question, userNameById);
-    if (!name) continue;
-    counts.set(name, (counts.get(name) || 0) + 1);
+    const key = resolveNomineeKey(r, question);
+    if (!key) continue;
+    counts.set(key, (counts.get(key) || 0) + 1);
   }
 
   return Array.from(counts.entries())
-    .map(([name, votes]) => ({ name, votes }))
+    .map(([key, votes]) => {
+      let name: string;
+      if (key.startsWith("uid:")) {
+        const userId = key.slice(4);
+        name = userNameById.get(userId) ?? "不明";
+      } else {
+        name = key;
+      }
+      return { name, votes };
+    })
     .sort((a, b) => b.votes - a.votes)
     .slice(0, 5);
 }
