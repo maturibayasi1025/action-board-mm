@@ -32,7 +32,13 @@ const envSchema = z.object({
 export type Env = z.infer<typeof envSchema>;
 
 function parseEnv(): Env {
-  const parsed = envSchema.safeParse(process.env);
+  const preprocessed = { ...process.env };
+  for (const key of Object.keys(preprocessed)) {
+    if (preprocessed[key] === "") {
+      preprocessed[key] = undefined;
+    }
+  }
+  const parsed = envSchema.safeParse(preprocessed);
   if (!parsed.success) {
     const missing = parsed.error.errors.map((e) => e.path.join(".")).join(", ");
     throw new Error(`Invalid environment variables: ${missing}`);
