@@ -69,11 +69,11 @@ function resolveNomineeKey(
     if (legacy) {
       return { key: `text:${legacy}`, name: legacy };
     }
-    return null;
-  }
-  const text = response.text_value?.trim();
-  if (text) {
-    return { key: `text:${text}`, name: text };
+  } else {
+    const textValue = response.text_value?.trim();
+    if (textValue) {
+      return { key: `text:${textValue}`, name: textValue };
+    }
   }
   return null;
 }
@@ -89,7 +89,7 @@ function aggregateTopFiveForQuestion(
     if (r.question_id !== question.id) continue;
     const nominee = resolveNomineeKey(r, question, userNameById);
     if (!nominee) continue;
-    
+
     const existing = counts.get(nominee.key);
     if (existing) {
       existing.votes += 1;

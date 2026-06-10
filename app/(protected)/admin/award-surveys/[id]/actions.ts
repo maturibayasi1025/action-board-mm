@@ -139,8 +139,9 @@ export async function getAwardSurveyResponses(surveyId: string) {
 
   const nominationQuestions = (questions || []).filter(
     (q) =>
-      q.question_type === "user_select" ||
-      (q.question_type === "text" && q.question_group === "team_value"),
+      (q.question_type === "user_select" ||
+        (q.question_type === "text" && q.question_group === "team_value")) &&
+      q.question_group != null,
   );
   const nominationQuestionIds = new Set(nominationQuestions.map((q) => q.id));
   const questionIdToGroup = new Map(
