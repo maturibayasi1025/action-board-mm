@@ -1,10 +1,10 @@
-import { getPublicEnv } from "@/lib/env";
+import { getEnv } from "@/lib/env";
 import type { Database } from "@/lib/types/supabase";
 import { createServerClient } from "@supabase/ssr";
 import { createClient as createClientSupabase } from "@supabase/supabase-js";
 
 export const createServiceClient = async () => {
-  const { supabaseUrl } = getPublicEnv();
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!supabaseUrl || !supabaseServiceRoleKey) {
@@ -14,10 +14,13 @@ export const createServiceClient = async () => {
 };
 
 export const createClient = async () => {
-  const { supabaseUrl, supabaseAnonKey } = getPublicEnv();
+  // Check for Supabase credentials before full env validation
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   if (!supabaseUrl || !supabaseAnonKey) {
-    if (process.env.NODE_ENV !== "production") {
+    const nodeEnv = process.env.NODE_ENV || "development";
+    if (nodeEnv !== "production") {
       return createClientSupabase<Database>(
         "https://dummy.supabase.co",
         "dummy-key",
@@ -25,6 +28,9 @@ export const createClient = async () => {
     }
     throw new Error("Supabase environment variables are required");
   }
+
+  // Validate all env vars - errors from optional fields will propagate
+  const env = getEnv();
 
   try {
     const { cookies } = await import("next/headers");
