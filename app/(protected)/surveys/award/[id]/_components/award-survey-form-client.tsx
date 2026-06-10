@@ -97,6 +97,7 @@ export function AwardSurveyFormClient({
         questions={questions}
         existingResponses={existingResponses}
         userName={userName}
+        currentUserId={authUser?.id ?? null}
         onSubmit={handleSubmit}
         disabled={isSubmitting}
         isUpdate={isUpdate}

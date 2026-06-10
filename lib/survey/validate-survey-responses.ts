@@ -10,6 +10,7 @@ export type EnpsQuestionForValidation = {
 
 export type AwardQuestionForValidation = {
   id: string;
+  question_type: "text" | "textarea" | "user_select";
   is_required: boolean;
   is_active: boolean;
 };
@@ -62,7 +63,11 @@ export function validateEnpsResponses(
 
 export function validateAwardResponses(
   questions: AwardQuestionForValidation[],
-  responses: Array<{ question_id: string; text_value?: string | null }>,
+  responses: Array<{
+    question_id: string;
+    text_value?: string | null;
+    nominee_user_id?: string | null;
+  }>,
 ): { ok: true } | { ok: false; message: string } {
   const byId = new Map(responses.map((r) => [r.question_id, r]));
 
@@ -71,7 +76,11 @@ export function validateAwardResponses(
       continue;
     }
     const r = byId.get(q.id);
-    if (!r?.text_value?.trim()) {
+    if (q.question_type === "user_select") {
+      if (!r?.nominee_user_id?.trim()) {
+        return { ok: false, message: REQUIRED_MESSAGE };
+      }
+    } else if (!r?.text_value?.trim()) {
       return { ok: false, message: REQUIRED_MESSAGE };
     }
   }

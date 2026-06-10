@@ -26,7 +26,7 @@ export type AwardNominationRankingByQuestion = {
   questionText: string;
   questionGroup: string;
   displayOrder: number;
-  questionType: "text" | "textarea";
+  questionType: "text" | "textarea" | "user_select";
   isActive: boolean;
   topThree: [
     AwardNominationRankingEntry,

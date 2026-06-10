@@ -41,6 +41,9 @@ function rowHasAnswer(
   if (question.question_type === "score_0_10") {
     return row.score_value !== null;
   }
+  if (question.question_type === "user_select") {
+    return Boolean(row.nominee_user_id) || Boolean(row.text_value?.trim());
+  }
   return Boolean(row.text_value?.trim());
 }
 
@@ -50,6 +53,14 @@ function formatAnswerCell(
 ): string | null {
   if (question.question_type === "score_0_10" && row.score_value !== null) {
     return `${row.score_value}点`;
+  }
+  if (question.question_type === "user_select") {
+    if (row.nominee_user_name) {
+      return row.nominee_user_name;
+    }
+    if (row.nominee_user_id) {
+      return row.nominee_user_id;
+    }
   }
   const t = row.text_value?.trim();
   return t || null;

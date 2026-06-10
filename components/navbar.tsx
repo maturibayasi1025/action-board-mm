@@ -21,22 +21,25 @@ export default async function Navbar() {
   } = await supabase.auth.getUser();
 
   return (
-    <nav className="sticky top-0 z-50 w-full flex justify-center bg-white border-b border-b-foreground/10 h-16">
-      <div className="px-4 md:container md:mx-auto w-full flex justify-between items-center text-sm">
-        <div className="flex gap-5 items-center font-semibold min-w-[60px]">
-          <Link href="/" className="flex items-center gap-4">
+    <nav className="sticky top-0 z-50 flex h-16 w-full max-w-full justify-center overflow-x-hidden border-b border-b-foreground/10 bg-white">
+      <div className="flex w-full min-w-0 max-w-full items-center justify-between gap-2 px-4 text-sm md:container md:mx-auto">
+        <div className="flex min-w-0 flex-1 items-center gap-2 font-semibold sm:gap-5">
+          <Link href="/" className="flex min-w-0 items-center gap-2 sm:gap-4">
             <Image
               src="/img/MMHD_symbol.png"
               alt="MMHD_symbol"
               width={57}
               height={48}
+              className="shrink-0"
             />
-            <div className="text-lg">アクションボード</div>
+            <div className="min-w-0 truncate text-base sm:text-lg">
+              アクションボード
+            </div>
           </Link>
         </div>
         {user ? (
           <>
-            <div className="flex gap-6 items-center">
+            <div className="flex shrink-0 items-center gap-4 sm:gap-6">
               <div className="font-semibold hidden sm:flex">
                 <Link href="/">ホーム</Link>
               </div>
@@ -117,11 +120,11 @@ export default async function Navbar() {
           </>
         ) : (
           <>
-            <div className="gap-6 items-center font-semibold hidden sm:flex">
+            <div className="hidden items-center gap-6 font-semibold sm:flex">
               <Link href="/">ホーム</Link>
               <HeaderAuth />
             </div>
-            <div className="flex gap-6 items-center font-semibold sm:hidden">
+            <div className="flex shrink-0 items-center gap-6 font-semibold sm:hidden">
               <DropdownMenu>
                 <DropdownMenuTrigger
                   aria-label="ナビゲーションメニューを開く"

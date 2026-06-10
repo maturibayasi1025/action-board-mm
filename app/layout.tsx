@@ -3,8 +3,10 @@ import { notoSansJP } from "@/lib/metadata";
 import { ThemeProvider } from "next-themes";
 import Footer from "./footer";
 import "./globals.css";
+import { AddToHomeScreenGuide } from "@/components/AddToHomeScreenGuide";
 import { ReferralCodeHandlerWrapper } from "@/components/ReferralCodeHandlerWrapper";
 import { SentryInitializer } from "@/components/SentryInitializer";
+import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 import { Toaster } from "@/components/ui/sonner";
 import { generateRootMetadata } from "@/lib/metadata";
 import Script from "next/script";
@@ -21,6 +23,7 @@ export const viewport = {
   initialScale: 1.0,
   maximumScale: 1.0,
   userScalable: false,
+  themeColor: "#F0D800",
 };
 
 export default function RootLayout({
@@ -56,7 +59,7 @@ export default function RootLayout({
         >
           <SentryInitializer />
           <Navbar />
-          <main className="md:container md:mx-auto flex flex-col items-center">
+          <main className="md:container md:mx-auto flex w-full min-w-0 flex-col items-stretch overflow-x-hidden">
             <Suspense>
               <ReferralCodeHandlerWrapper />
             </Suspense>
@@ -64,6 +67,8 @@ export default function RootLayout({
           </main>
           <Footer />
           <Toaster />
+          <ServiceWorkerRegister />
+          <AddToHomeScreenGuide />
         </ThemeProvider>
       </body>
     </html>

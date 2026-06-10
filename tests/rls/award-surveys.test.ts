@@ -11,6 +11,8 @@ describe("Award Surveys RLS Policies", () => {
   let serviceClient: SupabaseClient;
   let testSurveyId: string;
   let testQuestionId: string;
+  let testUserSelectQuestionId: string;
+  let testNomineeUserId: string;
   let testUserId: string;
   let testUserEmail: string;
 
@@ -90,6 +92,44 @@ describe("Award Surveys RLS Policies", () => {
     }
 
     testQuestionId = question.id;
+
+    const { data: userSelectQuestion, error: userSelectQuestionError } =
+      await serviceClient
+        .from("award_questions")
+        .insert({
+          question_text: "テスト指名質問",
+          question_type: "user_select",
+          question_group: "supreme_relations",
+          display_order: 2,
+          is_required: true,
+          is_active: true,
+        })
+        .select()
+        .single();
+
+    if (userSelectQuestionError || !userSelectQuestion) {
+      throw new Error(
+        `Failed to create user_select question: ${userSelectQuestionError?.message}`,
+      );
+    }
+
+    testUserSelectQuestionId = userSelectQuestion.id;
+
+    const nomineeEmail = `test-award-nominee-${Date.now()}@example.com`;
+    const { data: nomineeAuth, error: nomineeAuthError } =
+      await serviceClient.auth.admin.createUser({
+        email: nomineeEmail,
+        password: "test-password-123",
+        email_confirm: true,
+      });
+
+    if (nomineeAuthError || !nomineeAuth.user) {
+      throw new Error(
+        `Failed to create nominee user: ${nomineeAuthError?.message}`,
+      );
+    }
+
+    testNomineeUserId = nomineeAuth.user.id;
   });
 
   describe("award_surveys table", () => {
@@ -156,6 +196,32 @@ describe("Award Surveys RLS Policies", () => {
   });
 
   describe("award_responses table", () => {
+    it("should allow authenticated users to create responses with nominee_user_id", async () => {
+      const { error } = await authenticatedClient
+        .from("award_responses")
+        .insert({
+          survey_id: testSurveyId,
+          user_id: testUserId,
+          question_id: testUserSelectQuestionId,
+          nominee_user_id: testNomineeUserId,
+        });
+
+      expect(error).toBeNull();
+    });
+
+    it("should allow authenticated users to view nominee_user_id on their responses", async () => {
+      const { data, error } = await authenticatedClient
+        .from("award_responses")
+        .select("nominee_user_id")
+        .eq("survey_id", testSurveyId)
+        .eq("user_id", testUserId)
+        .eq("question_id", testUserSelectQuestionId)
+        .maybeSingle();
+
+      expect(error).toBeNull();
+      expect(data?.nominee_user_id).toBe(testNomineeUserId);
+    });
+
     it("should allow authenticated users to create their own responses", async () => {
       const { error } = await authenticatedClient
         .from("award_responses")

@@ -29,22 +29,26 @@ export default async function Levels({
 
   const cardContent = (
     <div
-      className={`w-full flex flex-col items-stretch bg-white rounded-md p-6 ${clickable ? "hover:bg-gray-50 transition-colors max-w-xl" : "max-w-md"}`}
+      className={`flex w-full min-w-0 max-w-full flex-col items-stretch overflow-hidden bg-white rounded-md p-4 sm:p-6 ${clickable ? "hover:bg-gray-50 transition-colors max-w-xl" : "max-w-md"}`}
     >
-      <div className="flex items-center">
+      <div className="flex min-w-0 items-start gap-3 sm:items-center sm:gap-4">
         <UserAvatar userProfile={profile} size="lg" />
-        <div className="flex flex-col ml-6">
-          <div className="text-lg font-bold leading-none">{profile.name}</div>
-          <div className="flex items-center mt-2">
-            <div className="flex items-baseline">
+        <div className="flex min-w-0 flex-1 flex-col">
+          <div className="break-words text-lg font-bold leading-snug">
+            {profile.name}
+          </div>
+          <div className="mt-2 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+            <div className="flex shrink-0 items-baseline">
               <div className="text-sm font-bold">LV.</div>
               <div className="text-xxl font-bold ml-1 leading-none">
                 {userLevel ? userLevel.level : "1"}
               </div>
             </div>
-            <div className="flex ml-4 text-sm items-center">
-              <MapPin className="w-4 h-4 mr-0.5" />
-              {profile.address_prefecture}
+            <div className="flex min-w-0 items-center">
+              <MapPin className="mr-0.5 h-4 w-4 shrink-0" />
+              <span className="min-w-0 break-words">
+                {profile.address_prefecture}
+              </span>
             </div>
           </div>
         </div>
@@ -64,11 +68,11 @@ export default async function Levels({
 
   if (clickable) {
     return (
-      <section className="bg-gradient-hero flex justify-center py-6 px-4">
+      <section className="bg-gradient-hero flex w-full min-w-0 max-w-full justify-center overflow-x-hidden py-6 px-4">
         <Link
           href={`/users/${userId}`}
           aria-label={`${profile.name}さんのプロフィールへ`}
-          className="w-full max-w-xl"
+          className="w-full min-w-0 max-w-xl"
         >
           {cardContent}
         </Link>
@@ -77,7 +81,7 @@ export default async function Levels({
   }
 
   return (
-    <section className="bg-gradient-hero flex justify-center py-6 px-4">
+    <section className="bg-gradient-hero flex w-full min-w-0 max-w-full justify-center overflow-x-hidden py-6 px-4">
       {cardContent}
     </section>
   );

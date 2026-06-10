@@ -96,6 +96,9 @@ export function AwardQuestionForm() {
             <SelectContent>
               <SelectItem value="textarea">長文入力 (textarea)</SelectItem>
               <SelectItem value="text">短文入力 (text)</SelectItem>
+              <SelectItem value="user_select">
+                メンバー選択 (user_select)
+              </SelectItem>
             </SelectContent>
           </Select>
         </div>

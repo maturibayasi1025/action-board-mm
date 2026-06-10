@@ -157,6 +157,7 @@ export type Database = {
           created_at: string;
           id: string;
           is_late_submission: boolean;
+          nominee_user_id: string | null;
           question_id: string;
           survey_id: string;
           text_value: string | null;
@@ -167,6 +168,7 @@ export type Database = {
           created_at?: string;
           id?: string;
           is_late_submission?: boolean;
+          nominee_user_id?: string | null;
           question_id: string;
           survey_id: string;
           text_value?: string | null;
@@ -177,6 +179,7 @@ export type Database = {
           created_at?: string;
           id?: string;
           is_late_submission?: boolean;
+          nominee_user_id?: string | null;
           question_id?: string;
           survey_id?: string;
           text_value?: string | null;

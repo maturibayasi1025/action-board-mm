@@ -1,3 +1,14 @@
+import { QuarterSelector } from "@/app/(protected)/admin/award-surveys/_components/quarter-selector";
+import { QuarterlyRanking } from "@/app/(protected)/admin/award-surveys/_components/quarterly-ranking";
+import {
+  getAvailableAwardQuarters,
+  getAwardQuarterlyNominationRanking,
+} from "@/app/(protected)/admin/award-surveys/quarterly-ranking-actions";
+import type { AwardQuarter } from "@/app/(protected)/admin/award-surveys/quarterly-ranking-model";
+import {
+  AwardSelfEvalCsvDownload,
+  AwardSelfEvalCsvDownloadAll,
+} from "@/components/admin/award-self-eval-csv-download";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,18 +21,62 @@ import {
 import { isOwner } from "@/lib/utils/isOwner";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { Suspense } from "react";
 import { getAwardSurveys, getTotalUsers } from "./actions";
 
 export const runtime = "edge";
 
-export default async function AwardSurveysAdminPage() {
+function isValidQuarter(q: number): q is AwardQuarter {
+  return q === 1 || q === 2 || q === 3 || q === 4;
+}
+
+function resolveSelectedQuarter(
+  searchParams: { year?: string; q?: string },
+  options: { year: number; quarter: AwardQuarter }[],
+): { year: number; quarter: AwardQuarter } | null {
+  const yearParam = searchParams.year;
+  const qParam = searchParams.q;
+  if (yearParam && qParam) {
+    const year = Number(yearParam);
+    const quarter = Number(qParam);
+    if (
+      Number.isFinite(year) &&
+      isValidQuarter(quarter) &&
+      options.some((o) => o.year === year && o.quarter === quarter)
+    ) {
+      return { year, quarter };
+    }
+  }
+  return options[0] ?? null;
+}
+
+type PageProps = {
+  searchParams: Promise<{ year?: string; q?: string }>;
+};
+
+export default async function AwardSurveysAdminPage({
+  searchParams,
+}: PageProps) {
   const owner = await isOwner();
   if (!owner) {
     redirect("/");
   }
 
-  const surveys = await getAwardSurveys();
-  const totalUsers = await getTotalUsers();
+  const params = await searchParams;
+  const [surveys, totalUsers, quarterOptions] = await Promise.all([
+    getAwardSurveys(),
+    getTotalUsers(),
+    getAvailableAwardQuarters(),
+  ]);
+
+  const selected = resolveSelectedQuarter(params, quarterOptions);
+  const ranking =
+    selected != null
+      ? await getAwardQuarterlyNominationRanking(
+          selected.year,
+          selected.quarter,
+        )
+      : null;
 
   return (
     <div className="container mx-auto py-8 px-4">
@@ -39,9 +94,55 @@ export default async function AwardSurveysAdminPage() {
         </div>
 
         <Card>
-          <CardHeader>
-            <CardTitle>アンケート一覧</CardTitle>
-            <CardDescription>全ユーザー数: {totalUsers}人</CardDescription>
+          <CardHeader className="space-y-4">
+            <div>
+              <CardTitle>四半期ランキング（バリュー別トップ5）</CardTitle>
+              <CardDescription className="mt-2">
+                MVV表彰サイクル（Q1: 4–6月・表彰6月 / Q2: 7–8月・表彰9月 / Q3:
+                9–11月・表彰12月 / Q4:
+                12–2月・表彰3月）に含まれる月次アンケートの指名を合算し、各バリューごとに票数の多い順に最大5名を表示します。期限内・期限後の回答を含みます。
+                「自己評価CSV」は選択中の四半期に含まれる月の、各メンバーのバリュー別自己評価本文を出力します。
+              </CardDescription>
+            </div>
+            {quarterOptions.length > 0 && selected != null && (
+              <div className="flex flex-wrap items-end gap-3">
+                <Suspense
+                  fallback={
+                    <div className="h-10 w-full max-w-xs animate-pulse rounded-md bg-muted" />
+                  }
+                >
+                  <QuarterSelector
+                    options={quarterOptions}
+                    selectedYear={selected.year}
+                    selectedQuarter={selected.quarter}
+                  />
+                </Suspense>
+                <AwardSelfEvalCsvDownload
+                  year={selected.year}
+                  quarter={selected.quarter}
+                  disabled={ranking == null || ranking.surveyCount === 0}
+                />
+              </div>
+            )}
+          </CardHeader>
+          <CardContent>
+            {ranking != null ? (
+              <QuarterlyRanking data={ranking} />
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                月次アンケートが作成されると、四半期ごとのランキングを表示できます。
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
+            <div>
+              <CardTitle>アンケート一覧</CardTitle>
+              <CardDescription>全ユーザー数: {totalUsers}人</CardDescription>
+            </div>
+            {surveys.length > 0 && <AwardSelfEvalCsvDownloadAll />}
           </CardHeader>
           <CardContent>
             {surveys.length === 0 ? (

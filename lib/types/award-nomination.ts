@@ -3,3 +3,20 @@ export type AwardNominationDetail = {
   total: number;
   byGroup: Partial<Record<string, number>>;
 };
+
+export type AwardCommentRow = {
+  recommenderName: string;
+  comment: string;
+};
+
+export type AwardWinnerDetail = {
+  name: string;
+  total: number;
+  recommenders: AwardCommentRow[];
+};
+
+export type AwardGroupSummary = {
+  group: string;
+  label: string;
+  winners: AwardWinnerDetail[];
+};

@@ -131,6 +131,9 @@ export function AwardQuestionList({
                               長文 (textarea)
                             </SelectItem>
                             <SelectItem value="text">短文 (text)</SelectItem>
+                            <SelectItem value="user_select">
+                              メンバー選択 (user_select)
+                            </SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
@@ -264,7 +267,9 @@ export function AwardQuestionList({
                           <Badge variant="outline">
                             {question.question_type === "textarea"
                               ? "長文"
-                              : "短文"}
+                              : question.question_type === "user_select"
+                                ? "メンバー選択"
+                                : "短文"}
                           </Badge>
                           <Badge variant="outline">
                             {QUESTION_GROUP_LABELS[question.question_group]}

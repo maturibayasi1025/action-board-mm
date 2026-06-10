@@ -42,6 +42,7 @@
     "poster:mask-names": "tsx poster_data/mask-names.ts",
     "calculate-badges": "tsx scripts/calculate-badges.ts",
     "generate-award-survey": "tsx scripts/generate-award-survey.ts",
+    "export-award-self-eval": "tsx scripts/export-award-self-eval.ts",
     "generate-enps-survey": "tsx scripts/generate-enps-survey.ts",
     "clean": "rm -rf .next && rm -rf out && rm -rf .vercel",
     "clean-cache": "rm -rf .next/cache && rm -rf .next/trace"
@@ -77,6 +78,7 @@
     "date-fns": "^4.1.0",
     "date-fns-tz": "^3.2.0",
     "embla-carousel-react": "^8.6.0",
+    "exceljs": "^4.4.0",
     "form-data": "^4.0.3",
     "glob": "^11.0.3",
     "js-yaml": "^4.1.0",

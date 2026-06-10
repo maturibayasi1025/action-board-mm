@@ -1,28 +1,21 @@
 import Constants from "expo-constants";
 import { StatusBar } from "expo-status-bar";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  BackHandler,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
   View,
-  useWindowDimensions,
 } from "react-native";
-import {
-  SafeAreaProvider,
-  SafeAreaView,
-  useSafeAreaInsets,
-} from "react-native-safe-area-context";
+import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import type { WebView as WebViewType } from "react-native-webview";
 import { WebView } from "react-native-webview";
+import type { WebViewNavigation } from "react-native-webview/lib/WebViewTypes";
 
 const safeAreaEdges = ["top", "right", "bottom", "left"] as const;
-
-/** 利用可能幅に対する割合（小さいほど左右に余白） */
-const WEBVIEW_WIDTH_RATIO = 0.88;
-/** 大画面で横に伸びすぎないようキャップ（dp） */
-const WEBVIEW_MAX_WIDTH = 400;
 
 function getStartUrl(): string {
   const extra = Constants.expoConfig?.extra as
@@ -41,17 +34,28 @@ function getStartUrl(): string {
 
 function WebShell({ uri }: { uri: string }) {
   const webViewRef = useRef<WebViewType>(null);
-  const { width: screenWidth } = useWindowDimensions();
-  const insets = useSafeAreaInsets();
+  const canGoBackRef = useRef(false);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const innerWidth = screenWidth - insets.left - insets.right;
-  const webViewWidth = useMemo(
-    () => Math.min(innerWidth * WEBVIEW_WIDTH_RATIO, WEBVIEW_MAX_WIDTH),
-    [innerWidth],
-  );
+  const onNavigationStateChange = useCallback((nav: WebViewNavigation) => {
+    canGoBackRef.current = nav.canGoBack;
+  }, []);
+
+  useEffect(() => {
+    if (Platform.OS !== "android") {
+      return;
+    }
+    const sub = BackHandler.addEventListener("hardwareBackPress", () => {
+      if (canGoBackRef.current) {
+        webViewRef.current?.goBack();
+        return true;
+      }
+      return false;
+    });
+    return () => sub.remove();
+  }, []);
 
   const handleRetry = useCallback(() => {
     setError(null);
@@ -61,39 +65,36 @@ function WebShell({ uri }: { uri: string }) {
 
   if (error) {
     return (
-      <View style={styles.webShell}>
-        <View style={[styles.webColumn, { width: webViewWidth }]}>
-          <View style={styles.errorInner}>
-            <Text style={styles.errorTitle}>読み込みに失敗しました</Text>
-            <Text style={styles.errorBody}>{error}</Text>
-            <Text style={styles.urlHint}>URL: {uri}</Text>
-            <Text style={styles.help}>
-              実機からローカル Next.js を見る場合は、PCのLANアドレスを
-              EXPO_PUBLIC_ACTION_BOARD_URL に設定してください。Android
-              エミュレータでは 10.0.2.2:3000 がホストの localhost に相当します。
-            </Text>
-            <Pressable
-              onPress={handleRetry}
-              style={({ pressed }) => [
-                styles.button,
-                pressed && styles.buttonPressed,
-              ]}
-            >
-              <Text style={styles.buttonLabel}>再試行</Text>
-            </Pressable>
-          </View>
-        </View>
+      <View style={styles.errorOuter}>
+        <Text style={styles.errorTitle}>読み込みに失敗しました</Text>
+        <Text style={styles.errorBody}>{error}</Text>
+        <Text style={styles.urlHint}>URL: {uri}</Text>
+        <Text style={styles.help}>
+          実機からローカル Next.js を見る場合は、PCのLANアドレスを
+          EXPO_PUBLIC_ACTION_BOARD_URL に設定してください。Android
+          エミュレータでは 10.0.2.2:3000 がホストの localhost に相当します。
+        </Text>
+        <Pressable
+          onPress={handleRetry}
+          style={({ pressed }) => [
+            styles.button,
+            pressed && styles.buttonPressed,
+          ]}
+        >
+          <Text style={styles.buttonLabel}>再試行</Text>
+        </Pressable>
       </View>
     );
   }
 
   return (
-    <View style={styles.webShell}>
-      <View style={[styles.webColumn, { width: webViewWidth }]}>
+    <View style={styles.fill}>
+      <View style={styles.webViewWrap}>
         <WebView
           ref={webViewRef}
           source={{ uri }}
-          style={styles.fill}
+          style={styles.webView}
+          onNavigationStateChange={onNavigationStateChange}
           onLoadStart={() => {
             setLoading(true);
             setError(null);
@@ -138,22 +139,19 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#fff",
   },
-  webShell: {
-    flex: 1,
-    alignItems: "center",
-    backgroundColor: "#e8e8e8",
-  },
-  webColumn: {
+  webView: {
     flex: 1,
     backgroundColor: "#fff",
-    overflow: "hidden",
   },
-  errorInner: {
+  webViewWrap: {
     flex: 1,
+    position: "relative",
+  },
+  errorOuter: {
+    flex: 1,
+    backgroundColor: "#fff",
+    paddingHorizontal: 24,
     justifyContent: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 24,
-    backgroundColor: "#fff",
   },
   errorTitle: {
     fontSize: 18,

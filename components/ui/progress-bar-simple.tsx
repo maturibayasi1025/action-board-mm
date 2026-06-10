@@ -20,9 +20,9 @@ export function ProgressBarSimple({
   return (
     <div className={cn("w-full", className)}>
       {showText && (
-        <div className="flex text-sm mb-2">
-          <span>次のレベルまで</span>
-          <span className="font-bold">
+        <div className="mb-2 flex min-w-0 flex-wrap items-baseline gap-x-1 text-sm">
+          <span className="shrink-0">次のレベルまで</span>
+          <span className="min-w-0 break-words font-bold">
             {Math.round(xpToNextLevel).toLocaleString()}
             ポイント🔥
           </span>

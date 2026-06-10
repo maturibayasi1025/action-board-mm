@@ -127,6 +127,85 @@ export function getBadgeRankingUrl(badge: UserBadge): string | null {
   }
 }
 
+/** MVV表彰サイクルの四半期（Q1: 4–6月 … Q4: 12–2月） */
+export type MvvAwardQuarter = 1 | 2 | 3 | 4;
+
+/**
+ * 暦年月から MVV 表彰四半期（年度・Q）を求める
+ * Q1: 4月〜6月（表彰: 6月）
+ * Q2: 7月〜8月（表彰: 9月）
+ * Q3: 9月〜11月（表彰: 12月）
+ * Q4: 12月〜2月（表彰: 3月）
+ */
+export function getFiscalYearAndQuarterFromMonth(
+  year: number,
+  month: number,
+): { fiscalYear: number; quarter: MvvAwardQuarter } {
+  if (month >= 4 && month <= 6) {
+    return { fiscalYear: year, quarter: 1 };
+  }
+  if (month >= 7 && month <= 8) {
+    return { fiscalYear: year, quarter: 2 };
+  }
+  if (month >= 9 && month <= 11) {
+    return { fiscalYear: year, quarter: 3 };
+  }
+  return {
+    fiscalYear: month === 12 ? year : year - 1,
+    quarter: 4,
+  };
+}
+
+/** 表彰四半期に含まれる月次アンケートの year_month キー（YYYY-MM） */
+export function getAwardQuarterYearMonthKeys(
+  fiscalYear: number,
+  quarter: MvvAwardQuarter,
+): string[] {
+  switch (quarter) {
+    case 1:
+      return [4, 5, 6].map(
+        (m) => `${fiscalYear}-${String(m).padStart(2, "0")}`,
+      );
+    case 2:
+      return [7, 8].map((m) => `${fiscalYear}-${String(m).padStart(2, "0")}`);
+    case 3:
+      return [9, 10, 11].map(
+        (m) => `${fiscalYear}-${String(m).padStart(2, "0")}`,
+      );
+    case 4:
+      return [
+        `${fiscalYear}-12`,
+        `${fiscalYear + 1}-01`,
+        `${fiscalYear + 1}-02`,
+      ];
+    default: {
+      const _exhaustive: never = quarter;
+      return _exhaustive;
+    }
+  }
+}
+
+/** 表彰四半期の表示ラベル（年度は Q1 の年＝4月を含む年） */
+export function formatAwardQuarterPeriodLabel(
+  fiscalYear: number,
+  quarter: MvvAwardQuarter,
+): string {
+  switch (quarter) {
+    case 1:
+      return `${fiscalYear}年 Q1（4–6月・表彰: 6月）`;
+    case 2:
+      return `${fiscalYear}年 Q2（7–8月・表彰: 9月）`;
+    case 3:
+      return `${fiscalYear}年 Q3（9–11月・表彰: 12月）`;
+    case 4:
+      return `${fiscalYear}年 Q4（12–2月・表彰: 3月）`;
+    default: {
+      const _exhaustive: never = quarter;
+      return _exhaustive;
+    }
+  }
+}
+
 /**
  * 四半期を計算する
  * Q1: 4月〜6月
@@ -144,28 +223,7 @@ export function getQuarterPeriod(date?: Date): string {
   );
   const year = jstDate.getFullYear();
   const month = jstDate.getMonth() + 1; // 0-indexedなので+1
-
-  let quarter: number;
-  let fiscalYear: number;
-
-  if (month >= 4 && month <= 6) {
-    // Q1: 4月〜6月
-    quarter = 1;
-    fiscalYear = year;
-  } else if (month >= 7 && month <= 8) {
-    // Q2: 7月〜8月
-    quarter = 2;
-    fiscalYear = year;
-  } else if (month >= 9 && month <= 11) {
-    // Q3: 9月〜11月
-    quarter = 3;
-    fiscalYear = year;
-  } else {
-    // Q4: 12月〜2月（次の年度）
-    quarter = 4;
-    fiscalYear = month === 12 ? year : year - 1;
-  }
-
+  const { fiscalYear, quarter } = getFiscalYearAndQuarterFromMonth(year, month);
   return `${fiscalYear}-Q${quarter}`;
 }
 
