@@ -1,6 +1,6 @@
+import { grantXp } from "@/lib/services/userLevel";
 import { isLikeExpired } from "@/lib/utils/user-mission-likes";
 import { createClient } from "@supabase/supabase-js";
-// app/api/user-missions/toggle-like/route.ts
 import { type NextRequest, NextResponse } from "next/server";
 
 export const runtime = "edge";
@@ -9,7 +9,6 @@ export async function POST(request: NextRequest) {
   try {
     const { missionId } = await request.json();
 
-    // リクエストヘッダーから認証情報を取得
     const authorization = request.headers.get("authorization");
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -21,7 +20,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Edgeで動作するクライアント
     const supabase = createClient(supabaseUrl, supabaseAnonKey, {
       global: {
         headers: {
@@ -34,7 +32,6 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // 認証情報を確認
     const {
       data: { user },
       error: authError,
@@ -44,7 +41,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "認証が必要です" }, { status: 401 });
     }
 
-    // グッジョブの作成者とタイトルを確認
     const { data: mission } = await supabase
       .from("user_missions")
       .select("created_by, title, published_at")
@@ -65,51 +61,64 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 既存のいいねをチェック
     const { data: existingLike } = await supabase
       .from("user_mission_likes")
       .select()
       .eq("user_mission_id", missionId)
       .eq("user_id", user.id)
-      .maybeSingle(); // single()ではなくmaybeSingle()を使用
+      .maybeSingle();
 
     if (existingLike) {
-      // いいね削除
       await supabase
         .from("user_mission_likes")
         .delete()
         .eq("id", existingLike.id);
 
-      // いいね取り消し時のXP減算
-      await supabase.from("xp_transactions").insert({
-        user_id: user.id,
-        xp_amount: -1,
-        source_type: "USER_MISSION_LIKE_GIVEN",
-        source_id: missionId,
-        description: "ユーザーグッジョブのいいねを取り消しました",
-      });
+      await grantXp(
+        user.id,
+        -1,
+        "USER_MISSION_LIKE_GIVEN",
+        missionId,
+        "ユーザーグッジョブのいいねを取り消しました",
+      );
+
+      if (mission) {
+        await grantXp(
+          mission.created_by,
+          -1,
+          "USER_MISSION_LIKES",
+          `${missionId}:${user.id}`,
+          `ユーザーグッジョブ「${mission.title}」のいいねが取り消されました`,
+        );
+      }
 
       return NextResponse.json({ liked: false });
     }
 
-    // いいね追加
     await supabase.from("user_mission_likes").insert({
       user_mission_id: missionId,
       user_id: user.id,
     });
 
-    // いいね時のXP付与
-    await supabase.from("xp_transactions").insert({
-      user_id: user.id,
-      xp_amount: 1,
-      source_type: "USER_MISSION_LIKE_GIVEN",
-      source_id: missionId,
-      description: "ユーザーグッジョブにいいねしました",
-    });
+    await grantXp(
+      user.id,
+      1,
+      "USER_MISSION_LIKE_GIVEN",
+      missionId,
+      "ユーザーグッジョブにいいねしました",
+    );
 
-    // Slack通知を非同期で送信（Webhook URLが設定されている場合）
+    if (mission) {
+      await grantXp(
+        mission.created_by,
+        1,
+        "USER_MISSION_LIKES",
+        `${missionId}:${user.id}`,
+        `ユーザーグッジョブ「${mission.title}」がいいねを獲得`,
+      );
+    }
+
     if (process.env.SLACK_WEBHOOK_URL && mission) {
-      // ユーザー情報を取得
       const { data: likerData } = await supabase
         .from("private_users")
         .select("name")
@@ -122,7 +131,6 @@ export async function POST(request: NextRequest) {
         .eq("id", mission.created_by)
         .single();
 
-      // 非同期でSlack通知を送信（レスポンスを待たない）
       fetch(new URL("/api/slack-notification", request.url).toString(), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
