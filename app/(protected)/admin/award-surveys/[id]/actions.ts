@@ -30,6 +30,15 @@ const WINNER_COMMENT_GROUP_LABELS: Record<
   happiness_cycle: "幸せの循環賞",
 };
 
+const NOMINATION_QUESTION_GROUPS = [
+  "passionate_execution",
+  "supreme_relations",
+  "happiness_cycle",
+  "team_value",
+] as const;
+
+const NOMINATION_GROUP_SET = new Set<string>(NOMINATION_QUESTION_GROUPS);
+
 export async function getAwardSurveyDetail(surveyId: string) {
   await requireOwner();
   const supabase = await createServiceClient();
@@ -137,9 +146,26 @@ export async function getAwardSurveyResponses(surveyId: string) {
     };
   });
 
-  const nominationQuestions = (questions || []).filter(
-    (q) => q.question_type === "user_select" || q.question_type === "text",
-  );
+  function pickNominationQuestionForGroup(group: string) {
+    const groupQuestions = (questions || []).filter(
+      (q) =>
+        q.question_group === group &&
+        q.is_active &&
+        NOMINATION_GROUP_SET.has(q.question_group),
+    );
+    if (group === "team_value") {
+      return groupQuestions
+        .filter((q) => q.question_type === "text")
+        .sort((a, b) => a.display_order - b.display_order)[0];
+    }
+    return groupQuestions
+      .filter((q) => q.question_type === "user_select")
+      .sort((a, b) => a.display_order - b.display_order)[0];
+  }
+
+  const nominationQuestions = NOMINATION_QUESTION_GROUPS.map((group) =>
+    pickNominationQuestionForGroup(group),
+  ).filter((q): q is NonNullable<typeof q> => q != null);
   const nominationQuestionIds = new Set(nominationQuestions.map((q) => q.id));
   const questionIdToGroup = new Map(
     nominationQuestions.map((q) => [q.id, q.question_group]),
