@@ -1,5 +1,5 @@
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { beforeAll, describe, expect, it } from "@jest/globals";
+import { type SupabaseClient, createClient } from "@supabase/supabase-js";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
@@ -157,15 +157,13 @@ describe("Award Surveys RLS Policies", () => {
     });
 
     it("should not allow authenticated users to create surveys", async () => {
-      const { error } = await authenticatedClient
-        .from("award_surveys")
-        .insert({
-          title: "不正アンケート",
-          year_month: "2099-03",
-          period_number: 1001,
-          start_date: new Date().toISOString(),
-          end_date: new Date().toISOString(),
-        });
+      const { error } = await authenticatedClient.from("award_surveys").insert({
+        title: "不正アンケート",
+        year_month: "2099-03",
+        period_number: 1001,
+        start_date: new Date().toISOString(),
+        end_date: new Date().toISOString(),
+      });
 
       expect(error).not.toBeNull();
     });

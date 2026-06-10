@@ -1,8 +1,8 @@
 import {
-  aggregateNpsByBusinessUnitForQuestion,
-  listOrgBucketDrilldown,
   type EnpsOrgDrilldownSourceRow,
   type EnpsResponseForOrgAggregate,
+  aggregateNpsByBusinessUnitForQuestion,
+  listOrgBucketDrilldown,
 } from "@/lib/admin/enps-nps-by-business-unit";
 
 describe("aggregateNpsByBusinessUnitForQuestion", () => {

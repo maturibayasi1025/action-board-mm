@@ -1,7 +1,7 @@
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/types/supabase";
-import { describe, it, expect, beforeAll, afterAll } from "@jest/globals";
-import { adminClient, createTestUser, cleanupTestUser } from "./utils";
+import { afterAll, beforeAll, describe, expect, it } from "@jest/globals";
+import { type SupabaseClient, createClient } from "@supabase/supabase-js";
+import { adminClient, cleanupTestUser, createTestUser } from "./utils";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
@@ -77,7 +77,10 @@ describe("Companies and business_units RLS", () => {
 
   afterAll(async () => {
     await cleanupTestUser(testUserId);
-    await adminClient.from("business_units").delete().eq("company_id", activeCompanyId);
+    await adminClient
+      .from("business_units")
+      .delete()
+      .eq("company_id", activeCompanyId);
     await adminClient.from("companies").delete().eq("id", activeCompanyId);
     await adminClient.from("companies").delete().eq("id", inactiveCompanyId);
   });

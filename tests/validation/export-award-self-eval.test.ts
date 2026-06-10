@@ -41,7 +41,9 @@ describe("export-award-self-eval", () => {
 
   describe("serializeCsvRow", () => {
     it("joins fields with commas", () => {
-      expect(serializeCsvRow(["氏名", "会社", "部署"])).toBe("氏名,会社,部署\n");
+      expect(serializeCsvRow(["氏名", "会社", "部署"])).toBe(
+        "氏名,会社,部署\n",
+      );
     });
   });
 
@@ -51,7 +53,9 @@ describe("export-award-self-eval", () => {
       { id: "s2", year_month: "2026-04", title: "4月" },
       { id: "s3", year_month: "2026-05", title: "5月" },
     ];
-    const surveyIdToYearMonth = new Map(surveys.map((s) => [s.id, s.year_month]));
+    const surveyIdToYearMonth = new Map(
+      surveys.map((s) => [s.id, s.year_month]),
+    );
 
     it("joins monthly self-eval text with month labels", () => {
       const responseIndex = new Map([

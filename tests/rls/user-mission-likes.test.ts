@@ -87,7 +87,11 @@ describe("user_mission_likes テーブルのRLSテスト（7日制限）", () =>
     await adminClient
       .from("user_mission_likes")
       .delete()
-      .in("user_mission_id", [recentMissionId, expiredMissionId, legacyMissionId]);
+      .in("user_mission_id", [
+        recentMissionId,
+        expiredMissionId,
+        legacyMissionId,
+      ]);
     await adminClient
       .from("user_missions")
       .delete()
@@ -112,10 +116,12 @@ describe("user_mission_likes テーブルのRLSテスト（7日制限）", () =>
   });
 
   test("認証済みユーザーは公開から7日を超えたグッジョブにいいねできない", async () => {
-    const { data, error } = await likerUser.client.from("user_mission_likes").insert({
-      user_mission_id: expiredMissionId,
-      user_id: likerUser.user.userId,
-    });
+    const { data, error } = await likerUser.client
+      .from("user_mission_likes")
+      .insert({
+        user_mission_id: expiredMissionId,
+        user_id: likerUser.user.userId,
+      });
 
     expect(error).toBeTruthy();
     expect(data).toBeNull();
@@ -144,11 +150,13 @@ describe("user_mission_likes テーブルのRLSテスト（7日制限）", () =>
 
   test("認証済みユーザーは公開から7日以内の自分のいいねを取り消せる", async () => {
     const likeId = crypto.randomUUID();
-    const { error: seedError } = await adminClient.from("user_mission_likes").insert({
-      id: likeId,
-      user_mission_id: recentMissionId,
-      user_id: likerUser.user.userId,
-    });
+    const { error: seedError } = await adminClient
+      .from("user_mission_likes")
+      .insert({
+        id: likeId,
+        user_mission_id: recentMissionId,
+        user_id: likerUser.user.userId,
+      });
     if (seedError) {
       throw new Error(`いいねのシード作成エラー: ${seedError.message}`);
     }
@@ -168,11 +176,13 @@ describe("user_mission_likes テーブルのRLSテスト（7日制限）", () =>
 
   test("認証済みユーザーは公開から7日を超えたグッジョブのいいねを取り消せない", async () => {
     const likeId = crypto.randomUUID();
-    const { error: seedError } = await adminClient.from("user_mission_likes").insert({
-      id: likeId,
-      user_mission_id: expiredMissionId,
-      user_id: likerUser.user.userId,
-    });
+    const { error: seedError } = await adminClient
+      .from("user_mission_likes")
+      .insert({
+        id: likeId,
+        user_mission_id: expiredMissionId,
+        user_id: likerUser.user.userId,
+      });
     if (seedError) {
       throw new Error(`いいねのシード作成エラー: ${seedError.message}`);
     }
