@@ -34,7 +34,10 @@ VALUES
   ('00000000-0000-0000-0000-000000000000', '99001122-3344-5566-aa77-bb8899001122', 'authenticated', 'authenticated', 'test-user-29@example.com', crypt('TestPassword123!', gen_salt('bf')), now(), now(), '{"provider": "email", "providers": ["email"]}', '{"email_verified": true}', '', '', '', '', now(), now(), now()),
   ('00000000-0000-0000-0000-000000000000', '00112233-4455-6677-aa88-bb9900112233', 'authenticated', 'authenticated', 'test-user-30@example.com', crypt('TestPassword123!', gen_salt('bf')), now(), now(), '{"provider": "email", "providers": ["email"]}', '{"email_verified": true}', '', '', '', '', now(), now(), now()),
   ('00000000-0000-0000-0000-000000000000', '00112233-4455-6677-aa89-bb9900112233', 'authenticated', 'authenticated', 'test-user-31@example.com', crypt('TestPassword123!', gen_salt('bf')), now(), now(), '{"provider": "email", "providers": ["email"]}', '{"email_verified": true}', '', '', '', '', now(), now(), now())
-ON CONFLICT (id) DO NOTHING;
+ON CONFLICT (id) DO UPDATE SET
+  email = EXCLUDED.email,
+  encrypted_password = EXCLUDED.encrypted_password,
+  updated_at = now();
 -- ユーザー
 INSERT INTO private_users (id, name, address_prefecture, date_of_birth, x_username)
 VALUES
