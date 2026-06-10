@@ -69,22 +69,50 @@ function resolveNomineeDisplay(
   return response.text_value?.trim() ?? null;
 }
 
+function resolveNomineeKey(
+  response: ResponseRow,
+  question: MasterQuestion,
+  userNameById: Map<string, string>,
+): { key: string; name: string } | null {
+  if (question.question_type === "user_select") {
+    if (response.nominee_user_id) {
+      const name =
+        userNameById.get(response.nominee_user_id) ?? "不明";
+      return { key: `uid:${response.nominee_user_id}`, name };
+    }
+    const legacy = response.text_value?.trim();
+    if (legacy) {
+      return { key: `text:${legacy}`, name: legacy };
+    }
+    return null;
+  }
+  const textValue = response.text_value?.trim();
+  if (textValue) {
+    return { key: `text:${textValue}`, name: textValue };
+  }
+  return null;
+}
+
 function aggregateTopFiveForQuestion(
   responses: ResponseRow[],
   question: MasterQuestion,
   userNameById: Map<string, string>,
 ): AwardQuarterRankingRow[] {
-  const counts = new Map<string, number>();
+  const counts = new Map<string, { name: string; votes: number }>();
 
   for (const r of responses) {
     if (r.question_id !== question.id) continue;
-    const name = resolveNomineeDisplay(r, question, userNameById);
-    if (!name) continue;
-    counts.set(name, (counts.get(name) || 0) + 1);
+    const nominee = resolveNomineeKey(r, question, userNameById);
+    if (!nominee) continue;
+    const existing = counts.get(nominee.key);
+    if (existing) {
+      existing.votes += 1;
+    } else {
+      counts.set(nominee.key, { name: nominee.name, votes: 1 });
+    }
   }
 
-  return Array.from(counts.entries())
-    .map(([name, votes]) => ({ name, votes }))
+  return Array.from(counts.values())
     .sort((a, b) => b.votes - a.votes)
     .slice(0, 5);
 }
