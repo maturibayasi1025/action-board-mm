@@ -30,15 +30,6 @@ const WINNER_COMMENT_GROUP_LABELS: Record<
   happiness_cycle: "幸せの循環賞",
 };
 
-const NOMINATION_QUESTION_GROUPS = [
-  "passionate_execution",
-  "supreme_relations",
-  "happiness_cycle",
-  "team_value",
-] as const;
-
-const NOMINATION_GROUP_SET = new Set<string>(NOMINATION_QUESTION_GROUPS);
-
 export async function getAwardSurveyDetail(surveyId: string) {
   await requireOwner();
   const supabase = await createServiceClient();
@@ -146,26 +137,22 @@ export async function getAwardSurveyResponses(surveyId: string) {
     };
   });
 
-  function pickNominationQuestionForGroup(group: string) {
-    const groupQuestions = (questions || []).filter(
-      (q) =>
-        q.question_group === group &&
-        q.is_active &&
-        NOMINATION_GROUP_SET.has(q.question_group),
-    );
-    if (group === "team_value") {
-      return groupQuestions
-        .filter((q) => q.question_type === "text")
-        .sort((a, b) => a.display_order - b.display_order)[0];
-    }
-    return groupQuestions
-      .filter((q) => q.question_type === "user_select")
-      .sort((a, b) => a.display_order - b.display_order)[0];
-  }
+  const NOMINATION_GROUPS = new Set([
+    "passionate_execution",
+    "supreme_relations",
+    "happiness_cycle",
+    "team_value",
+  ]);
 
-  const nominationQuestions = NOMINATION_QUESTION_GROUPS.map((group) =>
-    pickNominationQuestionForGroup(group),
-  ).filter((q): q is NonNullable<typeof q> => q != null);
+  const nominationQuestions = (questions || []).filter((q) => {
+    if (!q.question_group || !NOMINATION_GROUPS.has(q.question_group)) {
+      return false;
+    }
+    if (q.question_group === "team_value") {
+      return q.question_type === "text";
+    }
+    return q.question_type === "user_select";
+  });
   const nominationQuestionIds = new Set(nominationQuestions.map((q) => q.id));
   const questionIdToGroup = new Map(
     nominationQuestions.map((q) => [q.id, q.question_group]),
@@ -260,6 +247,7 @@ export async function getAwardSurveyResponses(surveyId: string) {
       const winnerMap = new Map<
         string,
         {
+          key: string;
           name: string;
           total: number;
           recommenders: { recommenderName: string; comment: string }[];
@@ -275,7 +263,12 @@ export async function getAwardSurveyResponses(surveyId: string) {
 
           let row = winnerMap.get(nominee.key);
           if (!row) {
-            row = { name: nominee.name, total: 0, recommenders: [] };
+            row = {
+              key: nominee.key,
+              name: nominee.name,
+              total: 0,
+              recommenders: [],
+            };
             winnerMap.set(nominee.key, row);
           }
           row.total += 1;
@@ -287,7 +280,8 @@ export async function getAwardSurveyResponses(surveyId: string) {
       }
 
       const winners = Array.from(winnerMap.values())
-        .map(({ name, total, recommenders }) => ({
+        .map(({ key, name, total, recommenders }) => ({
+          key,
           name,
           total,
           recommenders,

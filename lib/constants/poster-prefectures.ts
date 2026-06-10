@@ -63,7 +63,6 @@ export const POSTER_PREFECTURE_MAP = {
 
 export type PosterPrefectureKey = keyof typeof POSTER_PREFECTURE_MAP;
 
-// Reverse mapping for data loading
 export const JP_TO_EN_PREFECTURE: Record<string, PosterPrefectureKey> =
   Object.entries(POSTER_PREFECTURE_MAP).reduce(
     (acc, [key, value]) => {
@@ -73,17 +72,14 @@ export const JP_TO_EN_PREFECTURE: Record<string, PosterPrefectureKey> =
     {} as Record<string, PosterPrefectureKey>,
   );
 
-// Get all valid Japanese prefecture names
 export const VALID_JP_PREFECTURES = Object.values(POSTER_PREFECTURE_MAP).map(
   (p) => p.jp,
 );
 
-// Get all valid English prefecture keys
 export const VALID_EN_PREFECTURES = Object.keys(
   POSTER_PREFECTURE_MAP,
 ) as PosterPrefectureKey[];
 
-// Helper function to get default zoom for a prefecture
 export function getPrefectureDefaultZoom(
   prefectureKey: PosterPrefectureKey,
 ): number {

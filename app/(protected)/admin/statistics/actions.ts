@@ -159,14 +159,14 @@ export async function getAwardDashboardSummary(): Promise<AwardDashboardSummary 
             key = `uid:${r.nominee_user_id}`;
             name = r.nominee_user_name ?? "不明";
           } else {
-            const textValue = r.text_value?.trim();
+            const textValue = r.text_value?.trim() ?? null;
             if (textValue) {
               key = `text:${textValue}`;
               name = textValue;
             }
           }
         } else {
-          const textValue = r.text_value?.trim();
+          const textValue = r.text_value?.trim() ?? null;
           if (textValue) {
             key = `text:${textValue}`;
             name = textValue;
