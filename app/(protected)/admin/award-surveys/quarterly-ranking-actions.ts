@@ -55,18 +55,27 @@ function pickNominationQuestionForGroup(
     .sort((a, b) => a.display_order - b.display_order)[0];
 }
 
-function resolveNomineeDisplay(
+function resolveNomineeKey(
   response: ResponseRow,
   question: MasterQuestion,
   userNameById: Map<string, string>,
-): string | null {
+): { key: string; name: string } | null {
   if (question.question_type === "user_select") {
     if (response.nominee_user_id) {
-      return userNameById.get(response.nominee_user_id) ?? "不明";
+      const name = userNameById.get(response.nominee_user_id) ?? "不明";
+      return { key: `uid:${response.nominee_user_id}`, name };
     }
-    return response.text_value?.trim() ?? null;
+    const legacy = response.text_value?.trim();
+    if (legacy) {
+      return { key: `text:${legacy}`, name: legacy };
+    }
+  } else {
+    const textValue = response.text_value?.trim();
+    if (textValue) {
+      return { key: `text:${textValue}`, name: textValue };
+    }
   }
-  return response.text_value?.trim() ?? null;
+  return null;
 }
 
 function aggregateTopFiveForQuestion(
@@ -78,32 +87,14 @@ function aggregateTopFiveForQuestion(
 
   for (const r of responses) {
     if (r.question_id !== question.id) continue;
+    const nominee = resolveNomineeKey(r, question, userNameById);
+    if (!nominee) continue;
 
-    let key: string;
-    let name: string;
-
-    if (question.question_type === "user_select") {
-      if (r.nominee_user_id) {
-        key = `uid:${r.nominee_user_id}`;
-        name = userNameById.get(r.nominee_user_id) ?? "不明";
-      } else {
-        const text = r.text_value?.trim();
-        if (!text) continue;
-        key = `text:${text}`;
-        name = text;
-      }
-    } else {
-      const text = r.text_value?.trim();
-      if (!text) continue;
-      key = `text:${text}`;
-      name = text;
-    }
-
-    const existing = counts.get(key);
+    const existing = counts.get(nominee.key);
     if (existing) {
       existing.votes += 1;
     } else {
-      counts.set(key, { name, votes: 1 });
+      counts.set(nominee.key, { name: nominee.name, votes: 1 });
     }
   }
 
