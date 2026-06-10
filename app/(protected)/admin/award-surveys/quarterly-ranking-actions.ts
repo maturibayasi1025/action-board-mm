@@ -69,11 +69,13 @@ function resolveNomineeKey(
     if (legacy) {
       return { key: `text:${legacy}`, name: legacy };
     }
-    return null;
+  } else {
+    const textValue = response.text_value?.trim();
+    if (textValue) {
+      return { key: `text:${textValue}`, name: textValue };
+    }
   }
-  const text = response.text_value?.trim();
-  if (!text) return null;
-  return { key: `text:${text}`, name: text };
+  return null;
 }
 
 function aggregateTopFiveForQuestion(
