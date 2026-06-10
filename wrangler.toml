@@ -1,27 +1,16 @@
 # Cloudflare Pages用設定
 name = "action-board-mm"
-compatibility_date = "2025-08-28"  
+compatibility_date = "2025-08-28"
 compatibility_flags = ["nodejs_compat"]
 pages_build_output_dir = ".vercel/output/static"
 
-# 自動検出によるビルド設定
-# [build]
-#command = "npm run build"
-
-# Edge Runtime対応
 [env.production]
 NODE_ENV = "production"
-CF_PAGES = "true"
 
-# 環境変数（Public環境変数のみ）
-# シークレット環境変数はCloudflareダッシュボードで設定してください
+# Public vars only — secrets (SUPABASE_SERVICE_ROLE_KEY, etc.) via Cloudflare dashboard
 [vars]
-NEXT_PUBLIC_SUPABASE_URL = "https://plzqywjvkteyxsdqmred.supabase.co"
-NEXT_PUBLIC_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBsenF5d2p2a3RleXhzZHFtcmVkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTIxNDIyNDIsImV4cCI6MjA2NzcxODI0Mn0.06LfW1-YbyOR0Kijuy9a5bda46BQZAkctQYaAnMJcGY"
 NEXT_PUBLIC_SITE_URL = "https://mm-actionboard.jp"
 NEXT_PUBLIC_APP_ORIGIN = "https://mm-actionboard.jp"
-CF_PAGES = "true"
 
-# ビルド時の環境変数
 [build.environment]
 NODE_ENV = "production"
