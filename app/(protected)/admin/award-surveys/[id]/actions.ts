@@ -137,9 +137,22 @@ export async function getAwardSurveyResponses(surveyId: string) {
     };
   });
 
-  const nominationQuestions = (questions || []).filter(
-    (q) => q.question_type === "user_select",
-  );
+  const NOMINATION_GROUPS = new Set([
+    "passionate_execution",
+    "supreme_relations",
+    "happiness_cycle",
+    "team_value",
+  ]);
+
+  const nominationQuestions = (questions || []).filter((q) => {
+    if (!q.question_group || !NOMINATION_GROUPS.has(q.question_group)) {
+      return false;
+    }
+    if (q.question_group === "team_value") {
+      return q.question_type === "text";
+    }
+    return q.question_type === "user_select";
+  });
   const nominationQuestionIds = new Set(nominationQuestions.map((q) => q.id));
   const questionIdToGroup = new Map(
     nominationQuestions.map((q) => [q.id, q.question_group]),

@@ -74,17 +74,40 @@ function aggregateTopFiveForQuestion(
   question: MasterQuestion,
   userNameById: Map<string, string>,
 ): AwardQuarterRankingRow[] {
-  const counts = new Map<string, number>();
+  const counts = new Map<string, { name: string; votes: number }>();
 
   for (const r of responses) {
     if (r.question_id !== question.id) continue;
-    const name = resolveNomineeDisplay(r, question, userNameById);
-    if (!name) continue;
-    counts.set(name, (counts.get(name) || 0) + 1);
+
+    let key: string;
+    let name: string;
+
+    if (question.question_type === "user_select") {
+      if (r.nominee_user_id) {
+        key = `uid:${r.nominee_user_id}`;
+        name = userNameById.get(r.nominee_user_id) ?? "不明";
+      } else {
+        const text = r.text_value?.trim();
+        if (!text) continue;
+        key = `text:${text}`;
+        name = text;
+      }
+    } else {
+      const text = r.text_value?.trim();
+      if (!text) continue;
+      key = `text:${text}`;
+      name = text;
+    }
+
+    const existing = counts.get(key);
+    if (existing) {
+      existing.votes += 1;
+    } else {
+      counts.set(key, { name, votes: 1 });
+    }
   }
 
-  return Array.from(counts.entries())
-    .map(([name, votes]) => ({ name, votes }))
+  return Array.from(counts.values())
     .sort((a, b) => b.votes - a.votes)
     .slice(0, 5);
 }
