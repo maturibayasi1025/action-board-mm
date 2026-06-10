@@ -48,6 +48,9 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Build for Cloudflare Pages
+        run: npm run build:pages
+
       # Supabaseの起動を待機
       - name: Wait for Supabase
         run: |
