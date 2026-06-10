@@ -11,6 +11,7 @@ import type { Tables } from "@/lib/types/supabase";
 import { useState } from "react";
 import { GeolocationInput } from "./GeolocationInput";
 import { ImageUploader } from "./ImageUploader";
+import { PosterForm } from "./PosterForm";
 
 type ArtifactFormProps = {
   mission: Tables<"missions">;
@@ -154,6 +155,11 @@ export function ArtifactForm({
               </p>
             </div>
           </div>
+        )}
+
+        {/* ポスター入力フォーム */}
+        {artifactConfig.key === ARTIFACT_TYPES.POSTER.key && (
+          <PosterForm disabled={disabled} />
         )}
 
         {/* 画像アップロードフォーム */}
