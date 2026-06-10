@@ -15,10 +15,11 @@ export const createServiceClient = async () => {
 };
 
 export const createClient = async () => {
-  let env;
-  try {
-    env = getEnv();
-  } catch (error) {
+  // Check for Supabase credentials before full env validation
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseAnonKey) {
     const nodeEnv = process.env.NODE_ENV || "development";
     if (nodeEnv !== "production") {
       return createClientSupabase<Database>(
@@ -26,21 +27,11 @@ export const createClient = async () => {
         "dummy-key",
       );
     }
-    throw error;
-  }
-
-  const supabaseUrl = env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!supabaseUrl || !supabaseAnonKey) {
-    if (env.NODE_ENV !== "production") {
-      return createClientSupabase<Database>(
-        "https://dummy.supabase.co",
-        "dummy-key",
-      );
-    }
     throw new Error("Supabase environment variables are required");
   }
+
+  // Validate all env vars - errors from optional fields will propagate
+  const env = getEnv();
 
   try {
     const { cookies } = await import("next/headers");
