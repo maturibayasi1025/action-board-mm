@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
           mission.created_by,
           -1,
           "USER_MISSION_LIKES",
-          `${missionId}:${user.id}:${Date.now()}`,
+          `${missionId}:${user.id}`,
           `ユーザーグッジョブ「${mission.title}」のいいねが取り消されました`,
         );
       }
@@ -113,7 +113,7 @@ export async function POST(request: NextRequest) {
         mission.created_by,
         1,
         "USER_MISSION_LIKES",
-        `${missionId}:${user.id}:${Date.now()}`,
+        `${missionId}:${user.id}`,
         `ユーザーグッジョブ「${mission.title}」がいいねを獲得`,
       );
     }
