@@ -152,25 +152,27 @@ export async function getAwardDashboardSummary(): Promise<AwardDashboardSummary 
         if (r.question_id !== q.id) {
           continue;
         }
-        let key: string;
+        let key: string | null = null;
         let name: string | null = null;
         if (q.question_type === "user_select") {
           if (r.nominee_user_id) {
             key = `uid:${r.nominee_user_id}`;
             name = r.nominee_user_name ?? "不明";
           } else {
-            const textVal = r.text_value?.trim();
-            if (!textVal) continue;
-            key = `text:${textVal}`;
-            name = textVal;
+            const textValue = r.text_value?.trim() ?? null;
+            if (textValue) {
+              key = `text:${textValue}`;
+              name = textValue;
+            }
           }
         } else {
-          const textVal = r.text_value?.trim();
-          if (!textVal) continue;
-          key = `text:${textVal}`;
-          name = textVal;
+          const textValue = r.text_value?.trim() ?? null;
+          if (textValue) {
+            key = `text:${textValue}`;
+            name = textValue;
+          }
         }
-        if (!name) {
+        if (!key || !name) {
           continue;
         }
         const existing = counts.get(key);
@@ -181,6 +183,7 @@ export async function getAwardDashboardSummary(): Promise<AwardDashboardSummary 
         }
       }
       const sorted = Array.from(counts.values())
+        .map(({ name, total }) => ({ name, total }))
         .sort((a, b) => b.total - a.total);
 
       const topThree: [

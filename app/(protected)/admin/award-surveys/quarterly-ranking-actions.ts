@@ -55,20 +55,6 @@ function pickNominationQuestionForGroup(
     .sort((a, b) => a.display_order - b.display_order)[0];
 }
 
-function resolveNomineeDisplay(
-  response: ResponseRow,
-  question: MasterQuestion,
-  userNameById: Map<string, string>,
-): string | null {
-  if (question.question_type === "user_select") {
-    if (response.nominee_user_id) {
-      return userNameById.get(response.nominee_user_id) ?? "不明";
-    }
-    return response.text_value?.trim() ?? null;
-  }
-  return response.text_value?.trim() ?? null;
-}
-
 function resolveNomineeKey(
   response: ResponseRow,
   question: MasterQuestion,
@@ -76,19 +62,18 @@ function resolveNomineeKey(
 ): { key: string; name: string } | null {
   if (question.question_type === "user_select") {
     if (response.nominee_user_id) {
-      const name =
-        userNameById.get(response.nominee_user_id) ?? "不明";
+      const name = userNameById.get(response.nominee_user_id) ?? "不明";
       return { key: `uid:${response.nominee_user_id}`, name };
     }
     const legacy = response.text_value?.trim();
     if (legacy) {
       return { key: `text:${legacy}`, name: legacy };
     }
-    return null;
-  }
-  const textValue = response.text_value?.trim();
-  if (textValue) {
-    return { key: `text:${textValue}`, name: textValue };
+  } else {
+    const textValue = response.text_value?.trim();
+    if (textValue) {
+      return { key: `text:${textValue}`, name: textValue };
+    }
   }
   return null;
 }
@@ -104,6 +89,7 @@ function aggregateTopFiveForQuestion(
     if (r.question_id !== question.id) continue;
     const nominee = resolveNomineeKey(r, question, userNameById);
     if (!nominee) continue;
+
     const existing = counts.get(nominee.key);
     if (existing) {
       existing.votes += 1;
