@@ -213,12 +213,14 @@ export async function getAwardSurveyResponses(surveyId: string) {
       const nominationQuestion = groupQuestions.find(
         (q) => q.question_type === "user_select",
       );
-      const reasonQuestion = groupQuestions.find(
-        (q) =>
-          q.question_type === "textarea" &&
-          nominationQuestion != null &&
-          q.display_order > nominationQuestion.display_order,
-      );
+      const reasonQuestion = groupQuestions
+        .filter(
+          (q) =>
+            q.question_type === "textarea" &&
+            nominationQuestion != null &&
+            q.display_order > nominationQuestion.display_order,
+        )
+        .sort((a, b) => b.display_order - a.display_order)[0];
 
       const reasonByUserId = new Map<string, string>();
       if (reasonQuestion) {
