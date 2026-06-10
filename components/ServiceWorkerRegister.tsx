@@ -19,13 +19,17 @@ export function ServiceWorkerRegister() {
 
     let reloading = false;
     const hadController = !!navigator.serviceWorker.controller;
+    let firstControllerChangeHandled = false;
 
     // 新 SW が有効化されたらページをリロードして反映
     const onControllerChange = () => {
       if (reloading) return;
       // 初回登録時（コントローラーがなかった場合）は claim によるコントロール取得なのでリロード不要
       // 更新時（既存コントローラーからの切替）のみリロード
-      if (!hadController) return;
+      if (!hadController && !firstControllerChangeHandled) {
+        firstControllerChangeHandled = true;
+        return;
+      }
       reloading = true;
       window.location.reload();
     };
