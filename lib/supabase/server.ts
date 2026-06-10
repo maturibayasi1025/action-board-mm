@@ -15,7 +15,20 @@ export const createServiceClient = async () => {
 };
 
 export const createClient = async () => {
-  const env = getEnv();
+  let env;
+  try {
+    env = getEnv();
+  } catch (error) {
+    const nodeEnv = process.env.NODE_ENV || "development";
+    if (nodeEnv !== "production") {
+      return createClientSupabase<Database>(
+        "https://dummy.supabase.co",
+        "dummy-key",
+      );
+    }
+    throw error;
+  }
+
   const supabaseUrl = env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
