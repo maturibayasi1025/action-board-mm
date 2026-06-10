@@ -1,0 +1,14 @@
+# Cloudflare Pages headers — PWA 静的アセット用
+# 注: _headers は静的アセットにのみ適用される（next-on-pages の Functions 出力には適用されない）。
+# /sw.js /manifest.webmanifest /icons/* はいずれも public/ 配下の静的アセットなので適用される。
+
+/sw.js
+  Cache-Control: no-cache, no-store, must-revalidate
+  Service-Worker-Allowed: /
+
+/manifest.webmanifest
+  Content-Type: application/manifest+json; charset=utf-8
+  Cache-Control: public, max-age=3600
+
+/icons/*
+  Cache-Control: public, max-age=31536000, immutable

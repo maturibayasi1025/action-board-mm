@@ -1,3 +1,8 @@
+// テストのタイムゾーンを JST に固定する。
+// 本アプリは日本（JST）前提で日付を扱う（date-fns-tz で Asia/Tokyo 計算）。
+// CI ランナーは UTC で動くため、固定しないと日付依存テストが 9 時間ずれて落ちる。
+process.env.TZ = "Asia/Tokyo";
+
 const nextJest = require("next/jest");
 
 const createJestConfig = nextJest({
