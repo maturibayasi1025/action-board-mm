@@ -62,13 +62,15 @@ export async function updateUserMissionAction(
   if (updateError) {
     throw new Error(`グッジョブの更新に失敗しました: ${updateError.message}`);
   }
-  try {
-    revalidatePath("/user-missions");
-    revalidatePath("/user-missions/my");
-    revalidatePath("/");
-    revalidatePath(`/user-missions/${missionId}`);
-  } catch (revalidateError) {
-    console.error("Revalidate エラー（継続）:", revalidateError);
+  if (!process.env.CF_PAGES) {
+    try {
+      revalidatePath("/user-missions");
+      revalidatePath("/user-missions/my");
+      revalidatePath("/");
+      revalidatePath(`/user-missions/${missionId}`);
+    } catch (revalidateError) {
+      console.error("Revalidate エラー（継続）:", revalidateError);
+    }
   }
 
   return { success: true };
@@ -151,13 +153,15 @@ export async function deleteDraftUserMissionAction(draftId: string) {
       throw new Error(`下書きの削除に失敗しました: ${deleteError.message}`);
     }
 
-    try {
-      revalidatePath("/user-missions");
-      revalidatePath("/user-missions/my");
-      revalidatePath("/");
-    } catch (revalidateError) {
-      console.error("Revalidate エラー（継続）:", revalidateError);
-      // 再検証失敗しても削除処理は継続
+    if (!process.env.CF_PAGES) {
+      try {
+        revalidatePath("/user-missions");
+        revalidatePath("/user-missions/my");
+        revalidatePath("/");
+      } catch (revalidateError) {
+        console.error("Revalidate エラー（継続）:", revalidateError);
+        // 再検証失敗しても削除処理は継続
+      }
     }
 
     return { success: true };

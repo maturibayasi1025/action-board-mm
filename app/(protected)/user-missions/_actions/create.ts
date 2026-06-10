@@ -273,35 +273,37 @@ export async function createUserMissionAction(input: CreateUserMissionInput) {
       }
     }
 
-    try {
-      revalidatePath("/user-missions");
-      revalidatePath("/user-missions/my");
-      revalidatePath("/");
-    } catch (revalidateError) {
-      // エラーの詳細をログに記録（無限ループを防ぐため、詳細は開発環境のみ）
-      const errorMessage =
-        revalidateError instanceof Error
-          ? revalidateError.message
-          : String(revalidateError);
-      const errorStack =
-        revalidateError instanceof Error ? revalidateError.stack : undefined;
+    if (!process.env.CF_PAGES) {
+      try {
+        revalidatePath("/user-missions");
+        revalidatePath("/user-missions/my");
+        revalidatePath("/");
+      } catch (revalidateError) {
+        // エラーの詳細をログに記録（無限ループを防ぐため、詳細は開発環境のみ）
+        const errorMessage =
+          revalidateError instanceof Error
+            ? revalidateError.message
+            : String(revalidateError);
+        const errorStack =
+          revalidateError instanceof Error ? revalidateError.stack : undefined;
 
-      if (process.env.NODE_ENV === "development") {
-        console.error("[createUserMissionAction] Revalidate エラー詳細:", {
-          message: errorMessage,
-          stack: errorStack,
-          errorType:
-            revalidateError instanceof Error
-              ? revalidateError.constructor.name
-              : typeof revalidateError,
-        });
-      } else {
-        console.error(
-          "[createUserMissionAction] Revalidate エラー（継続）:",
-          errorMessage,
-        );
+        if (process.env.NODE_ENV === "development") {
+          console.error("[createUserMissionAction] Revalidate エラー詳細:", {
+            message: errorMessage,
+            stack: errorStack,
+            errorType:
+              revalidateError instanceof Error
+                ? revalidateError.constructor.name
+                : typeof revalidateError,
+          });
+        } else {
+          console.error(
+            "[createUserMissionAction] Revalidate エラー（継続）:",
+            errorMessage,
+          );
+        }
+        // 再検証失敗してもグッジョブ作成処理は継続
       }
-      // 再検証失敗してもグッジョブ作成処理は継続
     }
 
     // 初回投稿チェックの結果に基づいて共有グッジョブを取得

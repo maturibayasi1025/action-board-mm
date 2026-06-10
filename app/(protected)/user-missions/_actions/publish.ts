@@ -190,13 +190,15 @@ export async function publishDraftUserMissionAction(draftId: string) {
       }
     }
 
-    try {
-      revalidatePath("/user-missions");
-      revalidatePath("/user-missions/my");
-      revalidatePath("/");
-    } catch (revalidateError) {
-      console.error("Revalidate エラー（継続）:", revalidateError);
-      // 再検証失敗しても公開処理は継続
+    if (!process.env.CF_PAGES) {
+      try {
+        revalidatePath("/user-missions");
+        revalidatePath("/user-missions/my");
+        revalidatePath("/");
+      } catch (revalidateError) {
+        console.error("Revalidate エラー（継続）:", revalidateError);
+        // 再検証失敗しても公開処理は継続
+      }
     }
 
     // 初回投稿の場合は共有グッジョブ候補を取得して返す（即時投稿と同様）
