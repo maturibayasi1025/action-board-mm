@@ -1,6 +1,5 @@
 "use client";
 
-import type { LinkedPostMissionContext } from "@/app/(protected)/surveys/_lib/linked-post-mission.types";
 import { SurveyPostMissionDialog } from "@/components/survey/SurveyPostMissionDialog";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,6 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import type { LinkedPostMissionContext } from "@/lib/types/linked-post-mission";
 import type { User } from "@supabase/supabase-js";
 import { useState } from "react";
 

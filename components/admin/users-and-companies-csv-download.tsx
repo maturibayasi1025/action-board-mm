@@ -1,7 +1,7 @@
 "use client";
 
-import type { UserWithCompanyRow } from "@/app/(protected)/admin/users-and-companies/actions";
 import { Button } from "@/components/ui/button";
+import type { UserWithCompanyRow } from "@/lib/actions/admin/users-and-companies";
 import { Download } from "lucide-react";
 
 const UNSET_KEY = "__no_company__";

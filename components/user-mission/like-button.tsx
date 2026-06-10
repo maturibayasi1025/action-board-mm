@@ -1,11 +1,10 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import type { Database } from "@/lib/types/supabase";
+import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils/utils";
-import { createBrowserClient } from "@supabase/ssr";
 import { Heart } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
 // 型定義を追加
@@ -25,12 +24,6 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error("Supabase environment variables are required");
 }
 
-// Supabaseクライアントを作成
-// ブラウザクライアントを作成するためにcreateBrowserClientを使用
-const supabase = createBrowserClient<Database>(supabaseUrl, supabaseAnonKey);
-
-// LikeButtonコンポーネントを定義
-// いいねボタンの表示とクリック処理を行うß
 export function LikeButton({
   missionId,
   initialLiked,
@@ -39,6 +32,7 @@ export function LikeButton({
   isOwnMission = false,
   isExpired = false,
 }: LikeButtonProps) {
+  const supabase = useMemo(() => createClient(), []);
   const [isLiked, setIsLiked] = useState(initialLiked);
   const [likesCount, setLikesCount] = useState(initialCount);
   const [isLoading, setIsLoading] = useState(false);

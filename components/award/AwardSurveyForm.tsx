@@ -1,15 +1,12 @@
 "use client";
 
-import type {
-  AwardQuestion,
-  AwardResponse,
-} from "@/app/(protected)/surveys/award/[id]/actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { createClient } from "@/lib/supabase/client";
+import type { AwardQuestion, AwardResponse } from "@/lib/types/award-survey";
 import { cn } from "@/lib/utils/utils";
 import { Search, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";

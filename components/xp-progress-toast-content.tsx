@@ -1,6 +1,6 @@
 "use client";
 
-import { markLevelUpSeenAction } from "@/app/actions/level-up";
+import { markLevelUpSeenAction } from "@/lib/actions/level-up";
 import { calculateLevel, getXpToNextLevel, totalXp } from "@/lib/utils/utils";
 import React, { useEffect, useState } from "react";
 import { LevelUpDialog } from "./level-up-dialog";

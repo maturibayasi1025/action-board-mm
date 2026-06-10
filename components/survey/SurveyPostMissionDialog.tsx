@@ -1,8 +1,7 @@
 "use client";
 
-import { MissionCompleteDialog } from "@/app/missions/[id]/_components/MissionCompleteDialog";
-import { achieveMissionAction } from "@/app/missions/[id]/actions";
 import { ArtifactForm } from "@/components/mission/ArtifactForm";
+import { MissionCompleteDialog } from "@/components/mission/share/MissionCompleteDialog";
 import { SubmitButton } from "@/components/submit-button";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,6 +13,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { XpProgressToastContent } from "@/components/xp-progress-toast-content";
+import { achieveMissionAction } from "@/lib/actions/missions";
 import { ARTIFACT_TYPES } from "@/lib/artifactTypes";
 import type { SerializableAuthUser } from "@/lib/auth/serializable-user";
 import type { Tables } from "@/lib/types/supabase";

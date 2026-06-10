@@ -1,6 +1,5 @@
 "use client";
 
-import { completeSharedMissionAction } from "@/app/(protected)/user-missions/actions";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -11,6 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { DifficultyBadge } from "@/components/ui/difficulty-badge";
 import { MissionIcon } from "@/components/ui/mission-icon";
+import { completeSharedMissionAction } from "@/lib/actions/user-missions";
 import { useState } from "react";
 import { toast } from "sonner";
 

@@ -1,17 +1,5 @@
 "use client";
 
-import type {
-  BusinessUnitRow,
-  CompanyRow,
-} from "@/app/(protected)/admin/business-units/actions";
-import {
-  type SearchUserResult,
-  searchUsers,
-} from "@/app/(protected)/admin/mvv-badges/actions";
-import {
-  getUserBusinessUnit,
-  updateUserBusinessUnit,
-} from "@/app/(protected)/admin/user-business-units/actions";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -31,6 +19,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import type {
+  BusinessUnitRow,
+  CompanyRow,
+} from "@/lib/actions/admin/business-units";
+import {
+  type SearchUserResult,
+  searchUsers,
+} from "@/lib/actions/admin/mvv-badges";
+import {
+  getUserBusinessUnit,
+  updateUserBusinessUnit,
+} from "@/lib/actions/admin/user-business-units";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";

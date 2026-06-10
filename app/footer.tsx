@@ -1,5 +1,3 @@
-"use client";
-
 import {
   CopyrightSection,
   FeedbackSection,
@@ -10,9 +8,7 @@ export default function Footer() {
   return (
     <footer className="w-full mt-16 bg-background">
       <FeedbackSection />
-
       <LogoSection />
-
       <CopyrightSection />
     </footer>
   );

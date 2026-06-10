@@ -1,10 +1,10 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import {
   addGlobalUnansweredExclusion,
   removeGlobalUnansweredExclusion,
-} from "@/app/(protected)/admin/_actions/unanswered-global-exclusions";
-import { Button } from "@/components/ui/button";
+} from "@/lib/actions/admin/unanswered-exclusions";
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { toast } from "sonner";

@@ -5,6 +5,12 @@ import { Label } from "@/components/ui/label";
 import type { SerializableAuthUser } from "@/lib/auth/serializable-user";
 import { createClient } from "@/lib/supabase/client";
 import type { Tables } from "@/lib/types/supabase";
+import {
+  DEFAULT_IMAGE_MIME_TYPES,
+  DEFAULT_MAX_FILE_SIZE_MB,
+  sanitizeImageFileName,
+  validateImageFile,
+} from "@/lib/utils/image-upload";
 import { useState } from "react";
 
 type ImageUploaderProps = {
@@ -21,8 +27,8 @@ export function ImageUploader({
   authUser,
   disabled,
   onImagePathChange,
-  allowedMimeTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"],
-  maxFileSizeMB = 10,
+  allowedMimeTypes = DEFAULT_IMAGE_MIME_TYPES,
+  maxFileSizeMB = DEFAULT_MAX_FILE_SIZE_MB,
 }: ImageUploaderProps) {
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -44,6 +50,16 @@ export function ImageUploader({
       return;
     }
     const file = event.target.files[0];
+
+    const validationError = validateImageFile(file, {
+      allowedMimeTypes,
+      maxFileSizeMB,
+    });
+    if (validationError) {
+      setUploadError(validationError);
+      return;
+    }
+
     // プレビュー用URL生成
     const reader = new FileReader();
     reader.onloadend = () => {
@@ -51,10 +67,7 @@ export function ImageUploader({
     };
     reader.readAsDataURL(file);
     // ファイル名をサニタイズ（日本語や特殊文字を安全な形式に変換）
-    const fileExtension = file.name.split(".").pop() || "png";
-    const sanitizedFileName = `${Date.now()}_${Math.random()
-      .toString(36)
-      .substring(2, 9)}.${fileExtension}`;
+    const sanitizedFileName = sanitizeImageFileName(file.name);
     const fileName = `${authUser.id}/${mission.id}/${sanitizedFileName}`;
     setUploading(true);
     setUploadError(null);

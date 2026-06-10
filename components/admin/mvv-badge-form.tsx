@@ -1,5 +1,14 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   type SearchUserResult,
   awardMvvBadgeAction,
@@ -10,16 +19,7 @@ import {
   searchUsers,
   updateMvvBadgeImageAction,
   uploadMvvBadgeImageAction,
-} from "@/app/(protected)/admin/mvv-badges/actions";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+} from "@/lib/actions/admin/mvv-badges";
 import { createClient } from "@/lib/supabase/client";
 import { getAvailableQuarters, getBadgeTitle } from "@/lib/types/badge";
 import type { UserBadge } from "@/lib/types/badge";

@@ -1,6 +1,5 @@
 "use client";
 
-import { updateUserMissionAction } from "@/app/(protected)/user-missions/actions";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -12,6 +11,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { updateUserMissionAction } from "@/lib/actions/user-missions";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { useState } from "react";

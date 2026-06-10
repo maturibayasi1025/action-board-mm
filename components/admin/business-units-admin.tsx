@@ -1,13 +1,5 @@
 "use client";
 
-import {
-  type BusinessUnitRow,
-  type CompanyRow,
-  createBusinessUnit,
-  createCompany,
-  updateBusinessUnit,
-  updateCompany,
-} from "@/app/(protected)/admin/business-units/actions";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -18,6 +10,14 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  type BusinessUnitRow,
+  type CompanyRow,
+  createBusinessUnit,
+  createCompany,
+  updateBusinessUnit,
+  updateCompany,
+} from "@/lib/actions/admin/business-units";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";

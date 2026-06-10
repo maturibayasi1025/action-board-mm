@@ -4,6 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createClient } from "@/lib/supabase/client";
+import {
+  DEFAULT_IMAGE_MIME_TYPES,
+  DEFAULT_MAX_FILE_SIZE_MB,
+  sanitizeImageFileName,
+  validateImageFile,
+} from "@/lib/utils/image-upload";
 import type { User } from "@supabase/supabase-js";
 import { X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
@@ -23,8 +29,8 @@ export function UserMissionImageUploader({
   disabled,
   onImagePathsChange,
   initialPaths = [],
-  allowedMimeTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"],
-  maxFileSizeMB = 10,
+  allowedMimeTypes = DEFAULT_IMAGE_MIME_TYPES,
+  maxFileSizeMB = DEFAULT_MAX_FILE_SIZE_MB,
   maxImages = 3,
 }: ImageUploaderProps) {
   const [uploading, setUploading] = useState(false);
@@ -94,19 +100,12 @@ export function UserMissionImageUploader({
 
     const file = event.target.files[0];
 
-    // ファイルサイズチェック
-    if (file.size > maxFileSizeMB * 1024 * 1024) {
-      setUploadError(
-        `ファイルサイズが大きすぎます。最大${maxFileSizeMB}MBまでです。`,
-      );
-      return;
-    }
-
-    // MIMEタイプチェック
-    if (!allowedMimeTypes.includes(file.type)) {
-      setUploadError(
-        `対応していないファイル形式です。許可されている形式: ${allowedMimeTypes.join(", ")}`,
-      );
+    const validationError = validateImageFile(file, {
+      allowedMimeTypes,
+      maxFileSizeMB,
+    });
+    if (validationError) {
+      setUploadError(validationError);
       return;
     }
 
@@ -127,10 +126,7 @@ export function UserMissionImageUploader({
     reader.readAsDataURL(file);
 
     // ファイル名をサニタイズ（日本語や特殊文字を安全な形式に変換）
-    const fileExtension = file.name.split(".").pop() || "png";
-    const sanitizedFileName = `${Date.now()}_${Math.random()
-      .toString(36)
-      .substring(2, 9)}.${fileExtension}`;
+    const sanitizedFileName = sanitizeImageFileName(file.name);
     const fileName = `${authUser.id}/${sanitizedFileName}`;
     setUploading(true);
     setUploadError(null);

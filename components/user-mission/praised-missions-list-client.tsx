@@ -24,30 +24,7 @@ import { Calendar, Heart, Search, User, X } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
-type UserMission = {
-  id: string;
-  createdBy: string;
-  createdByName: string;
-  title: string;
-  content: string;
-  imagePaths?: string[];
-  praisedUsers: string[];
-  praisedExternalUsers?: string[];
-  status: "pending" | "approved" | "rejected";
-  rejectionReason?: string;
-  createdAt: string;
-  updatedAt: string;
-  approvedAt?: string;
-  approvedBy?: string;
-  publicMissionId?: string;
-  likesCount: number;
-  mvvItems: {
-    passionateExecution: boolean;
-    supremeRelationships: boolean;
-    happinessCirculation: boolean;
-  };
-  isLikedByCurrentUser: boolean;
-};
+import type { UserMission } from "@/lib/types/user-missions";
 
 export function PraisedMissionsListClient({
   missions,

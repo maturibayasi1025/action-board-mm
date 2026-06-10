@@ -1,13 +1,5 @@
 "use client";
 
-import {
-  type AwardLateGrantRow,
-  createAwardLateSubmissionGrant,
-} from "@/app/(protected)/admin/award-surveys/[id]/late-grant-actions";
-import {
-  type EnpsLateGrantRow,
-  createEnpsLateSubmissionGrant,
-} from "@/app/(protected)/admin/enps-surveys/[id]/late-grant-actions";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -17,6 +9,14 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import {
+  type AwardLateGrantRow,
+  createAwardLateSubmissionGrant,
+} from "@/lib/actions/admin/late-grant";
+import {
+  type EnpsLateGrantRow,
+  createEnpsLateSubmissionGrant,
+} from "@/lib/actions/admin/late-grant";
 import { useState } from "react";
 import { toast } from "sonner";
 

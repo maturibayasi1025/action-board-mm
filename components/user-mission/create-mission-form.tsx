@@ -1,10 +1,5 @@
 "use client";
 
-import {
-  type SaveDraftUserMissionInput,
-  createUserMissionAction,
-  saveDraftUserMissionAction,
-} from "@/app/(protected)/user-missions/actions";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -18,6 +13,11 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  type SaveDraftUserMissionInput,
+  createUserMissionAction,
+  saveDraftUserMissionAction,
+} from "@/lib/actions/user-missions";
 import { createClient } from "@/lib/supabase/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { User } from "@supabase/supabase-js";
@@ -303,7 +303,7 @@ export function CreateMissionForm(
       // 下書きがある場合は公開、ない場合は新規作成
       if (draftIdState) {
         const { publishDraftUserMissionAction } = await import(
-          "@/app/(protected)/user-missions/actions"
+          "@/lib/actions/user-missions"
         );
         const result = await publishDraftUserMissionAction(draftIdState);
 
@@ -721,7 +721,7 @@ export function CreateMissionForm(
                 setIsDeleting(true);
                 try {
                   const { deleteDraftUserMissionAction } = await import(
-                    "@/app/(protected)/user-missions/actions"
+                    "@/lib/actions/user-missions"
                   );
                   await deleteDraftUserMissionAction(draftIdState);
                   toast.success("下書きを削除しました");
