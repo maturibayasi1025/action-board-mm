@@ -1,5 +1,5 @@
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import { describe, it, expect, beforeAll } from "@jest/globals";
+import { beforeAll, describe, expect, it } from "@jest/globals";
+import { type SupabaseClient, createClient } from "@supabase/supabase-js";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
@@ -51,7 +51,7 @@ describe("eNPS Surveys RLS Policies", () => {
       .insert({
         title: "テストアンケート",
         description: "テスト用",
-        year_month: `2026-99`,
+        year_month: "2026-99",
         start_date: new Date().toISOString(),
         end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
         is_active: true,
@@ -79,7 +79,9 @@ describe("eNPS Surveys RLS Policies", () => {
       .single();
 
     if (questionError || !question) {
-      throw new Error(`Failed to create test question: ${questionError?.message}`);
+      throw new Error(
+        `Failed to create test question: ${questionError?.message}`,
+      );
     }
 
     testQuestionId = question.id;
@@ -162,10 +164,7 @@ describe("eNPS Surveys RLS Policies", () => {
       expect(data?.score_value).toBe(8);
 
       // クリーンアップ
-      await serviceClient
-        .from("enps_responses")
-        .delete()
-        .eq("id", data.id);
+      await serviceClient.from("enps_responses").delete().eq("id", data.id);
     });
 
     it("should allow authenticated users to view their own responses", async () => {
@@ -324,7 +323,10 @@ describe("eNPS Surveys RLS Policies", () => {
       expect(error).not.toBeNull();
       expect(error?.code).toBe("42501");
 
-      await serviceClient.from("enps_responses").delete().eq("id", otherResponse.id);
+      await serviceClient
+        .from("enps_responses")
+        .delete()
+        .eq("id", otherResponse.id);
       await serviceClient.auth.admin.deleteUser(otherUser.user.id);
     });
   });

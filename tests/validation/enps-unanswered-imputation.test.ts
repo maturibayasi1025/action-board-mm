@@ -1,10 +1,10 @@
+import { computeNpsBreakdownFromScores } from "@/lib/admin/enps-monthly-series";
 import {
   filterUserIdsByOrg,
   isEnpsSurveyEnded,
   listImputedUserIdsForQuestion,
   userIdsWithScoreByQuestionId,
 } from "@/lib/admin/enps-unanswered-imputation";
-import { computeNpsBreakdownFromScores } from "@/lib/admin/enps-monthly-series";
 
 describe("isEnpsSurveyEnded", () => {
   it("end_date と同じ瞬間から終了とみなす", () => {
@@ -48,9 +48,7 @@ describe("filterUserIdsByOrg", () => {
       ["a", { company_name: "A", business_unit_name: "営業" }],
       ["b", { company_name: "B", business_unit_name: "開発" }],
     ]);
-    expect(
-      filterUserIdsByOrg(["a", "b"], map, "A", "営業"),
-    ).toEqual(["a"]);
+    expect(filterUserIdsByOrg(["a", "b"], map, "A", "営業")).toEqual(["a"]);
   });
 
   it("事業部名を省略すると会社単位ですべて残す", () => {
