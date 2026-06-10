@@ -140,7 +140,6 @@ function AwardNomineeSelect({
         type="hidden"
         name={`nominee-${questionId}`}
         value={value}
-        required={required}
       />
     </div>
   );
