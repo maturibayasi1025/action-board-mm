@@ -4,9 +4,8 @@ import { createServerClient } from "@supabase/ssr";
 import { createClient as createClientSupabase } from "@supabase/supabase-js";
 
 export const createServiceClient = async () => {
-  const env = getEnv();
-  const supabaseUrl = env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseServiceRoleKey = env.SUPABASE_SERVICE_ROLE_KEY;
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!supabaseUrl || !supabaseServiceRoleKey) {
     throw new Error("Supabase service role environment variables are required");
