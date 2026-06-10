@@ -37,6 +37,9 @@ yarn-error.log*
 # vercel
 .vercel
 
+# cloudflare wrangler
+.wrangler/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
@@ -57,11 +60,7 @@ copilot-instructions.md
 .cursor
 .issues
 
-# Poster data directories
 raw_data/
-poster_data/temp/
-poster_data/*.log
-poster_data/processed-files.json
 /supabase/archive/
 
 temp

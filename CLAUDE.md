@@ -11,10 +11,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `supabase db reset` - マイグレーションとシードデータでローカルデータベースをリセット
 - `npm run dev` - Next.js開発サーバーを開始 (localhost:3000)
 
-### Expoモバイル（社内向け WebView PoC）
-- `cd mobile && cp .env.example .env` - `EXPO_PUBLIC_ACTION_BOARD_URL` に Web のオリジンを設定（[mobile/README.md](mobile/README.md)、詳細チェックリストは [mobile/docs/phase1-verification.md](mobile/docs/phase1-verification.md)）
-- `cd mobile && npx expo start` - Expo 開発サーバーを開始（実機・シミュレータで WebView からアクションボードを表示）
-- 社内配布・EAS: [mobile/docs/internal-distribution.md](mobile/docs/internal-distribution.md)、API 境界整理: [mobile/docs/api-boundary.md](mobile/docs/api-boundary.md)
+### Cloudflare Pages デプロイ
+- `npm run build:pages` - Next.js ビルド + `@cloudflare/next-on-pages` 変換
+- `npm run preview` / `npm run pages:dev` - ローカルで Pages プレビュー
+- 環境変数は Cloudflare ダッシュボードで設定（[docs/CLOUDFLARE_ENV_SETUP.md](docs/CLOUDFLARE_ENV_SETUP.md)）
+
+### PWA
+- `public/manifest.webmanifest` によりホーム画面への追加が可能
 
 ### コード品質とテスト
 - `npm run biome:check:write` - Biomeフォーマッターとリンターを自動修正付きで実行
@@ -30,6 +33,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### ビルドとデプロイメント
 - `npm run build` - 本番用Next.jsアプリケーションをビルド
+- `npm run build:pages` - Cloudflare Pages 向けビルド
 - `npm run start` - 本番サーバーを開始
 
 ### Storybook
