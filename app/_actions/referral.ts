@@ -1,5 +1,6 @@
 "use server";
 
+import { grantMissionCompletionXp } from "@/lib/services/userLevel";
 import { createServiceClient } from "@/lib/supabase/server";
 import {
   isEmailAlreadyUsedInReferral,

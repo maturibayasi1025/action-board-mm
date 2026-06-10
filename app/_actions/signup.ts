@@ -319,7 +319,7 @@ export const emailSignUpActionWithState = async (
 };
 
 // LINE認証用のバリデーションスキーマ
-const lineAuthSchema = z.object({
+export const lineAuthSchema = z.object({
   code: z.string().nonempty({ message: "Authorization code is required" }),
   dateOfBirth: z
     .string()

@@ -26,6 +26,7 @@ import {
 import { validateReturnUrl } from "@/lib/validation/url";
 
 import { handleReferralCode } from "./referral";
+import { lineAuthSchema } from "./signup";
 
 export const signInActionWithState = async (
   prevState: {
