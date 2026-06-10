@@ -1,10 +1,5 @@
 "use client";
 
-import { refreshGoodjobDashboard } from "@/app/(protected)/admin/statistics/actions";
-import type {
-  GoodjobDatePreset,
-  StatisticsDashboardData,
-} from "@/app/(protected)/admin/statistics/dashboard-model";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,6 +23,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { refreshGoodjobDashboard } from "@/lib/actions/admin/statistics";
+import type {
+  GoodjobDatePreset,
+  StatisticsDashboardData,
+} from "@/lib/actions/admin/statistics";
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";

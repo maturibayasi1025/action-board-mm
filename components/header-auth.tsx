@@ -1,5 +1,5 @@
-import { signOutAction } from "@/app/actions";
 import { Button } from "@/components/ui/button";
+import { signOutAction } from "@/lib/actions";
 import { createClient } from "@/lib/supabase/server";
 import { isOwner } from "@/lib/utils/isOwner";
 import Link from "next/link";

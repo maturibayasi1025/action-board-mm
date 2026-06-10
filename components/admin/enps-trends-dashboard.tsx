@@ -1,16 +1,5 @@
 "use client";
 
-import type {
-  BusinessUnitRow,
-  CompanyRow,
-} from "@/app/(protected)/admin/business-units/actions";
-import {
-  type EnpsMonthlyPoint,
-  type EnpsMonthlyScoreExportRow,
-  type EnpsOrgFilter,
-  getEnpsMonthlyScoreExportRows,
-  getEnpsMonthlyTrendsForQuestion,
-} from "@/app/(protected)/admin/enps-surveys/trends/actions";
 import { Button } from "@/components/ui/button";
 import {
   type ChartConfig,
@@ -26,6 +15,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import type {
+  BusinessUnitRow,
+  CompanyRow,
+} from "@/lib/actions/admin/business-units";
+import {
+  type EnpsMonthlyPoint,
+  type EnpsMonthlyScoreExportRow,
+  type EnpsOrgFilter,
+  getEnpsMonthlyScoreExportRows,
+  getEnpsMonthlyTrendsForQuestion,
+} from "@/lib/actions/admin/enps-trends";
 import { Download } from "lucide-react";
 import {
   useCallback,

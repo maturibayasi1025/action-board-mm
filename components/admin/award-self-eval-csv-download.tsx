@@ -1,11 +1,11 @@
 "use client";
 
-import type { AwardQuarter } from "@/app/(protected)/admin/award-surveys/quarterly-ranking-model";
+import { Button } from "@/components/ui/button";
+import type { AwardQuarter } from "@/lib/actions/admin/award-surveys";
 import {
   exportAwardSelfEvalCsvAll,
   exportAwardSelfEvalCsvForQuarter,
-} from "@/app/(protected)/admin/award-surveys/self-eval-export-actions";
-import { Button } from "@/components/ui/button";
+} from "@/lib/actions/admin/award-surveys";
 import { Download, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";

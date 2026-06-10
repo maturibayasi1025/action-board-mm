@@ -1,6 +1,5 @@
 "use client";
 
-import { adminDeleteUser } from "@/app/(protected)/admin/users-and-companies/actions";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -10,6 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { adminDeleteUser } from "@/lib/actions/admin/users-and-companies";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";

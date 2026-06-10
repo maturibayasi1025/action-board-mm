@@ -1,12 +1,12 @@
 "use client";
 
-import {
-  type SurveyReminderKind,
-  sendSlackReminderToUnanswered,
-} from "@/app/(protected)/admin/_actions/slack-unanswered-reminder";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  type SurveyReminderKind,
+  sendSlackReminderToUnanswered,
+} from "@/lib/actions/admin/slack-unanswered-reminder";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 

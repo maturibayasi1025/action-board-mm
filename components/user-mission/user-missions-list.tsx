@@ -20,40 +20,8 @@ import {
 } from "@/components/ui/select";
 import { LikeButton } from "@/components/user-mission/like-button";
 import { createClient } from "@/lib/supabase/client";
-import { isLikeExpired } from "@/lib/utils/user-mission-likes";
-import { Calendar, PenTool, Plus, Search, User, X } from "lucide-react";
-import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
-
-type UserMission = {
-  id: string;
-  createdBy: string;
-  createdByName: string;
-  title: string;
-  content: string;
-  imagePaths?: string[];
-  praisedUsers: string[];
-  praisedExternalUsers?: string[];
-  praisedUsersWithXUsername?: Array<{
-    name: string;
-    x_username: string | null;
-  }>;
-  status: string;
-  rejectionReason: string | null;
-  createdAt: string;
-  updatedAt: string;
-  approvedAt: string | null;
-  approvedBy: string | null;
-  publishedAt: string | null;
-  publicMissionId: string | null;
-  likesCount: number;
-  mvvItems: {
-    passionateExecution: boolean;
-    supremeRelationships: boolean;
-    happinessCirculation: boolean;
-  };
-  isLikedByCurrentUser: boolean;
-};
+import type { UserMission } from "@/lib/types/user-missions";
+import { useEffect, useState } from "react";
 
 export function UserMissionsList({ missions }: { missions: UserMission[] }) {
   const [searchQuery, setSearchQuery] = useState("");

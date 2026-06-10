@@ -201,7 +201,7 @@ export function MyMissionsListClient({
 
     try {
       const { deleteDraftUserMissionAction } = await import(
-        "@/app/(protected)/user-missions/actions"
+        "@/lib/actions/user-missions"
       );
       await deleteDraftUserMissionAction(missionId);
       toast.success("下書きを削除しました");

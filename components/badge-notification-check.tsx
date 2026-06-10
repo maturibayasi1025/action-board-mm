@@ -1,7 +1,7 @@
 "use client";
 
-import { markBadgeNotificationAsSeenAction } from "@/app/actions/badge-notification";
 import { BadgeNotificationDialog } from "@/components/badge-notification-dialog";
+import { markBadgeNotificationAsSeenAction } from "@/lib/actions/badge-notification";
 import type { UserBadge } from "@/lib/types/badge";
 import { useEffect, useState } from "react";
 

@@ -1,7 +1,7 @@
 "use client";
 
-import { markLevelUpSeenAction } from "@/app/actions/level-up";
 import { LevelUpDialog } from "@/components/level-up-dialog";
+import { markLevelUpSeenAction } from "@/lib/actions/level-up";
 import { useEffect, useState } from "react";
 
 interface LevelUpCheckProps {
