@@ -134,29 +134,6 @@ describe("ArtifactForm", () => {
     expect(screen.getByPlaceholderText("例：1540017")).toBeInTheDocument();
   });
 
-  it("POSTERタイプの場合はポスター入力フォームが表示される", () => {
-    const mission = {
-      ...baseMission,
-      required_artifact_type: "POSTER" as const,
-    };
-
-    render(
-      <ArtifactForm
-        mission={mission}
-        authUser={mockUser}
-        disabled={false}
-        submittedArtifactImagePath={null}
-      />,
-    );
-
-    expect(
-      screen.getByText(
-        "掲示板の情報を入力して送信してください。内容はグッジョブの成果として記録されます。",
-      ),
-    ).toBeInTheDocument();
-    // 詳細はPosterForm.test.tsxで確認
-  });
-
   it("IMAGEタイプの場合は画像アップロードフォームが表示される", () => {
     const mission = {
       ...baseMission,

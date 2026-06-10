@@ -11,7 +11,6 @@ import type { Tables } from "@/lib/types/supabase";
 import { useState } from "react";
 import { GeolocationInput } from "./GeolocationInput";
 import { ImageUploader } from "./ImageUploader";
-import { PosterForm } from "./PosterForm";
 
 type ArtifactFormProps = {
   mission: Tables<"missions">;
@@ -55,11 +54,9 @@ export function ArtifactForm({
         <p className="text-sm text-muted-foreground">
           グッジョブを完了したら、達成を記録しましょう！
         </p>
-        {mission.required_artifact_type !== "POSTER" && (
-          <p className="text-sm text-muted-foreground">
-            ※ 入力した内容は、外部に公開されることはありません。
-          </p>
-        )}
+        <p className="text-sm text-muted-foreground">
+          ※ 入力した内容は、外部に公開されることはありません。
+        </p>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* リンク入力フォーム */}
@@ -157,11 +154,6 @@ export function ArtifactForm({
               </p>
             </div>
           </div>
-        )}
-
-        {/* ポスター入力フォーム */}
-        {artifactConfig.key === ARTIFACT_TYPES.POSTER.key && (
-          <PosterForm disabled={disabled} />
         )}
 
         {/* 画像アップロードフォーム */}
