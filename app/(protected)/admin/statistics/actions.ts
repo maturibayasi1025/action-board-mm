@@ -144,7 +144,7 @@ export async function getAwardDashboardSummary(): Promise<AwardDashboardSummary 
   )
     .filter((q): q is NonNullable<typeof q> => q != null)
     .map((q) => {
-      const counts = new Map<string, number>();
+      const counts = new Map<string, { name: string; count: number }>();
       for (const r of responseRows) {
         if (r.is_late_submission) {
           continue;
@@ -152,23 +152,38 @@ export async function getAwardDashboardSummary(): Promise<AwardDashboardSummary 
         if (r.question_id !== q.id) {
           continue;
         }
+        let key: string | null = null;
         let name: string | null = null;
         if (q.question_type === "user_select") {
           if (r.nominee_user_id) {
+            key = `uid:${r.nominee_user_id}`;
             name = r.nominee_user_name ?? "不明";
           } else {
-            name = r.text_value?.trim() ?? null;
+            const textValue = r.text_value?.trim();
+            if (textValue) {
+              key = `text:${textValue}`;
+              name = textValue;
+            }
           }
         } else {
-          name = r.text_value?.trim() ?? null;
+          const textValue = r.text_value?.trim();
+          if (textValue) {
+            key = `text:${textValue}`;
+            name = textValue;
+          }
         }
-        if (!name) {
+        if (!key || !name) {
           continue;
         }
-        counts.set(name, (counts.get(name) || 0) + 1);
+        const entry = counts.get(key);
+        if (entry) {
+          entry.count += 1;
+        } else {
+          counts.set(key, { name, count: 1 });
+        }
       }
-      const sorted = Array.from(counts.entries())
-        .map(([name, total]) => ({ name, total }))
+      const sorted = Array.from(counts.values())
+        .map(({ name, count }) => ({ name, total: count }))
         .sort((a, b) => b.total - a.total);
 
       const topThree: [
