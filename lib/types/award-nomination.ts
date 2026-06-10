@@ -10,6 +10,7 @@ export type AwardCommentRow = {
 };
 
 export type AwardWinnerDetail = {
+  key: string;
   name: string;
   total: number;
   recommenders: AwardCommentRow[];

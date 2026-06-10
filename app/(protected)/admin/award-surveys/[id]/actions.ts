@@ -247,6 +247,7 @@ export async function getAwardSurveyResponses(surveyId: string) {
       const winnerMap = new Map<
         string,
         {
+          key: string;
           name: string;
           total: number;
           recommenders: { recommenderName: string; comment: string }[];
@@ -262,7 +263,12 @@ export async function getAwardSurveyResponses(surveyId: string) {
 
           let row = winnerMap.get(nominee.key);
           if (!row) {
-            row = { name: nominee.name, total: 0, recommenders: [] };
+            row = {
+              key: nominee.key,
+              name: nominee.name,
+              total: 0,
+              recommenders: [],
+            };
             winnerMap.set(nominee.key, row);
           }
           row.total += 1;
@@ -274,7 +280,8 @@ export async function getAwardSurveyResponses(surveyId: string) {
       }
 
       const winners = Array.from(winnerMap.values())
-        .map(({ name, total, recommenders }) => ({
+        .map(({ key, name, total, recommenders }) => ({
+          key,
           name,
           total,
           recommenders,
