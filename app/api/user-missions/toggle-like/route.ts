@@ -82,6 +82,16 @@ export async function POST(request: NextRequest) {
         "ユーザーグッジョブのいいねを取り消しました",
       );
 
+      if (mission) {
+        await grantXp(
+          mission.created_by,
+          -1,
+          "USER_MISSION_LIKES",
+          `${missionId}:${user.id}`,
+          `ユーザーグッジョブ「${mission.title}」のいいねが取り消されました`,
+        );
+      }
+
       return NextResponse.json({ liked: false });
     }
 
@@ -97,6 +107,16 @@ export async function POST(request: NextRequest) {
       missionId,
       "ユーザーグッジョブにいいねしました",
     );
+
+    if (mission) {
+      await grantXp(
+        mission.created_by,
+        1,
+        "USER_MISSION_LIKES",
+        `${missionId}:${user.id}`,
+        `ユーザーグッジョブ「${mission.title}」がいいねを獲得`,
+      );
+    }
 
     if (process.env.SLACK_WEBHOOK_URL && mission) {
       const { data: likerData } = await supabase
