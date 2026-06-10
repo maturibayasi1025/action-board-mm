@@ -55,20 +55,6 @@ function pickNominationQuestionForGroup(
     .sort((a, b) => a.display_order - b.display_order)[0];
 }
 
-function resolveNomineeDisplay(
-  response: ResponseRow,
-  question: MasterQuestion,
-  userNameById: Map<string, string>,
-): string | null {
-  if (question.question_type === "user_select") {
-    if (response.nominee_user_id) {
-      return userNameById.get(response.nominee_user_id) ?? "不明";
-    }
-    return response.text_value?.trim() ?? null;
-  }
-  return response.text_value?.trim() ?? null;
-}
-
 function resolveNomineeKey(
   response: ResponseRow,
   question: MasterQuestion,
