@@ -1,5 +1,37 @@
 // ユーザーミッション関連の型定義
 
+export type UserMissionMvvItems = {
+  passionateExecution: boolean;
+  supremeRelationships: boolean;
+  happinessCirculation: boolean;
+};
+
+export type UserMission = {
+  id: string;
+  createdBy: string;
+  createdByName?: string;
+  title: string;
+  content: string;
+  imagePaths?: string[];
+  praisedUsers: string[];
+  praisedExternalUsers?: string[];
+  praisedUsersWithXUsername?: Array<{
+    name: string;
+    x_username: string | null;
+  }>;
+  status: string;
+  rejectionReason?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  approvedAt?: string | null;
+  approvedBy?: string | null;
+  publishedAt?: string | null;
+  publicMissionId?: string | null;
+  likesCount: number;
+  mvvItems: UserMissionMvvItems;
+  isLikedByCurrentUser: boolean;
+};
+
 export interface PraisedUser {
   praised_user_id: string;
   private_users: {

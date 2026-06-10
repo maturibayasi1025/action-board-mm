@@ -101,7 +101,11 @@ async function processXpTransaction(
     | "MISSION_COMPLETION"
     | "BONUS"
     | "PENALTY"
-    | "MISSION_CANCELLATION",
+    | "MISSION_CANCELLATION"
+    | "USER_MISSION_LIKE_GIVEN"
+    | "USER_MISSION_LIKES"
+    | "USER_MISSION_CREATION"
+    | "USER_MISSION_PRAISED",
   sourceId?: string,
   description?: string,
 ): Promise<{ success: boolean; userLevel?: UserLevel; error?: string }> {
@@ -163,7 +167,11 @@ export async function grantXp(
     | "MISSION_COMPLETION"
     | "BONUS"
     | "PENALTY"
-    | "MISSION_CANCELLATION" = "BONUS",
+    | "MISSION_CANCELLATION"
+    | "USER_MISSION_LIKE_GIVEN"
+    | "USER_MISSION_LIKES"
+    | "USER_MISSION_CREATION"
+    | "USER_MISSION_PRAISED" = "BONUS",
   sourceId?: string,
   description?: string,
 ): Promise<{ success: boolean; userLevel?: UserLevel; error?: string }> {

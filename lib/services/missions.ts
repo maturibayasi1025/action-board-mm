@@ -1,4 +1,35 @@
+import "server-only";
+
 import { createClient } from "@/lib/supabase/server";
+
+type MissionWithDisplayDates = {
+  important_display_start_date: string | null;
+  important_display_end_date: string | null;
+};
+
+/** 重要グッジョブを表示期間でフィルタ */
+export function filterImportantMissionsByDisplayPeriod<
+  T extends MissionWithDisplayDates,
+>(missions: T[], now: Date = new Date()): T[] {
+  return missions.filter((mission) => {
+    const startDate = mission.important_display_start_date
+      ? new Date(mission.important_display_start_date)
+      : null;
+    const endDate = mission.important_display_end_date
+      ? new Date(mission.important_display_end_date)
+      : null;
+
+    if (startDate && now < startDate) {
+      return false;
+    }
+
+    if (endDate && now > endDate) {
+      return false;
+    }
+
+    return true;
+  });
+}
 
 export async function hasFeaturedMissions(): Promise<boolean> {
   const supabase = await createClient();
@@ -16,7 +47,6 @@ export async function hasFeaturedMissions(): Promise<boolean> {
  */
 export async function hasImportantMissions(): Promise<boolean> {
   const supabase = await createClient();
-  const now = new Date().toISOString();
 
   // 重要グッジョブを取得して、期間チェックをクライアント側で行う
   const { data, error } = await supabase
@@ -29,30 +59,7 @@ export async function hasImportantMissions(): Promise<boolean> {
     return false;
   }
 
-  // 期間内または期間未設定のグッジョブをチェック
-  const validMissions = data.filter((mission) => {
-    const startDate = mission.important_display_start_date
-      ? new Date(mission.important_display_start_date)
-      : null;
-    const endDate = mission.important_display_end_date
-      ? new Date(mission.important_display_end_date)
-      : null;
-    const nowDate = new Date(now);
-
-    // 開始日が設定されている場合、現在日時が開始日以降である必要がある
-    if (startDate && nowDate < startDate) {
-      return false;
-    }
-
-    // 終了日が設定されている場合、現在日時が終了日以前である必要がある
-    if (endDate && nowDate > endDate) {
-      return false;
-    }
-
-    return true;
-  });
-
-  return validMissions.length > 0;
+  return filterImportantMissionsByDisplayPeriod(data).length > 0;
 }
 
 /**
@@ -61,7 +68,6 @@ export async function hasImportantMissions(): Promise<boolean> {
  */
 export async function getImportantMissions() {
   const supabase = await createClient();
-  const now = new Date().toISOString();
 
   const { data, error } = await supabase
     .from("missions")
@@ -80,28 +86,5 @@ export async function getImportantMissions() {
     return [];
   }
 
-  // 期間内または期間未設定のグッジョブをフィルタリング
-  const nowDate = new Date(now);
-  const validMissions = data.filter((mission) => {
-    const startDate = mission.important_display_start_date
-      ? new Date(mission.important_display_start_date)
-      : null;
-    const endDate = mission.important_display_end_date
-      ? new Date(mission.important_display_end_date)
-      : null;
-
-    // 開始日が設定されている場合、現在日時が開始日以降である必要がある
-    if (startDate && nowDate < startDate) {
-      return false;
-    }
-
-    // 終了日が設定されている場合、現在日時が終了日以前である必要がある
-    if (endDate && nowDate > endDate) {
-      return false;
-    }
-
-    return true;
-  });
-
-  return validMissions;
+  return filterImportantMissionsByDisplayPeriod(data);
 }
