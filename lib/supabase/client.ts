@@ -1,8 +1,8 @@
+import { getPublicEnv } from "@/lib/env";
 import type { Database } from "@/lib/types/supabase";
 import { createBrowserClient } from "@supabase/ssr";
 
-export const createClient = () =>
-  createBrowserClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL ?? "",
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "",
-  );
+export const createClient = () => {
+  const env = getPublicEnv();
+  return createBrowserClient<Database>(env.supabaseUrl, env.supabaseAnonKey);
+};

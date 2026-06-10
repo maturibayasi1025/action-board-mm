@@ -1,5 +1,6 @@
 // "use server"を削除 - utilityファイルには不要
 
+import { getEnv } from "@/lib/env";
 import type { Database } from "@/lib/types/supabase";
 import { createServerClient } from "@supabase/ssr";
 import { createClient as createClientSupabase } from "@supabase/supabase-js";
@@ -7,8 +8,9 @@ import { createClient as createClientSupabase } from "@supabase/supabase-js";
 // サービスロールでの操作を行うクライアントです。
 // RLSが無効になりますのでご注意ください。
 export const createServiceClient = async () => {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const env = getEnv();
+  const supabaseUrl = env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseServiceRoleKey = env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!supabaseUrl || !supabaseServiceRoleKey) {
     console.warn(
@@ -23,8 +25,9 @@ export const createServiceClient = async () => {
 };
 
 export const createClient = async () => {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const env = getEnv();
+  const supabaseUrl = env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   // Cloudflare Pages環境での詳細なログ出力
   if (process.env.CF_PAGES === "true") {
@@ -43,7 +46,7 @@ export const createClient = async () => {
     }
 
     // 開発/ビルド時のフォールバック
-    if (process.env.NODE_ENV !== "production") {
+    if (env.NODE_ENV !== "production") {
       console.warn("Using fallback Supabase client for development");
       return createClientSupabase<Database>(
         "https://dummy.supabase.co",
