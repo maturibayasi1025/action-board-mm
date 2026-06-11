@@ -40,6 +40,10 @@ const mockMission: Tables<"missions"> = {
   ogp_image_url: null,
   created_at: "2025-06-22T00:00:00Z",
   updated_at: "2025-06-22T00:00:00Z",
+  slug: "test-mission",
+  important_display_end_date: null,
+  important_display_start_date: null,
+  is_important: false,
 };
 
 describe("MissionDetails", () => {
