@@ -21,7 +21,10 @@ import {
 import { LikeButton } from "@/components/user-mission/like-button";
 import { createClient } from "@/lib/supabase/client";
 import type { UserMission } from "@/lib/types/user-missions";
-import { useEffect, useState } from "react";
+import { isLikeExpired } from "@/lib/utils/user-mission-likes";
+import { Calendar, PenTool, Plus, Search, User, X } from "lucide-react";
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
 
 export function UserMissionsList({ missions }: { missions: UserMission[] }) {
   const [searchQuery, setSearchQuery] = useState("");
@@ -399,7 +402,7 @@ export function UserMissionsList({ missions }: { missions: UserMission[] }) {
                   initialLiked={mission.isLikedByCurrentUser || false}
                   initialCount={mission.likesCount}
                   isOwnMission={currentUserId === mission.createdBy}
-                  isExpired={isLikeExpired(mission.publishedAt)}
+                  isExpired={isLikeExpired(mission.publishedAt ?? null)}
                 />
                 <Link
                   href={`/user-missions/${mission.id}`}
