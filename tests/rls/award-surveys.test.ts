@@ -36,8 +36,9 @@ describe("Award Surveys RLS Policies", () => {
 
     testUserId = authData.user.id;
 
-    // 認証済みクライアントを作成
-    const { data: signInData } = await anonClient.auth.signInWithPassword({
+    // 認証済みクライアントを作成（anonClient で signIn すると匿名テストが壊れるため専用クライアントを使用）
+    const signInClient = createClient(supabaseUrl, supabaseAnonKey);
+    const { data: signInData } = await signInClient.auth.signInWithPassword({
       email: testUserEmail,
       password: "test-password-123",
     });
@@ -269,12 +270,14 @@ describe("Award Surveys RLS Policies", () => {
 
   describe("award_late_submission_grants table", () => {
     it("should deny anonymous select on late submission grants", async () => {
-      const { error } = await anonClient
+      const { data, error } = await anonClient
         .from("award_late_submission_grants")
         .select("id")
         .limit(1);
 
-      expect(error).not.toBeNull();
+      // ポリシーが無いため RLS で全行フィルタされ、エラーではなく空配列が返る
+      expect(error).toBeNull();
+      expect(data).toEqual([]);
     });
 
     it("should deny authenticated insert on late submission grants", async () => {

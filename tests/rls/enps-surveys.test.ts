@@ -18,9 +18,10 @@ describe("eNPS Surveys RLS Policies", () => {
     serviceClient = createClient(supabaseUrl, supabaseServiceRoleKey);
 
     // テスト用のユーザーを作成
+    const testUserEmail = `test-enps-${Date.now()}@example.com`;
     const { data: authData, error: authError } =
       await serviceClient.auth.admin.createUser({
-        email: `test-enps-${Date.now()}@example.com`,
+        email: testUserEmail,
         password: "test-password-123",
         email_confirm: true,
       });
@@ -31,9 +32,10 @@ describe("eNPS Surveys RLS Policies", () => {
 
     testUserId = authData.user.id;
 
-    // 認証済みクライアントを作成
-    const { data: signInData } = await anonClient.auth.signInWithPassword({
-      email: `test-enps-${Date.now()}@example.com`,
+    // 認証済みクライアントを作成（anonClient で signIn すると匿名テストが壊れるため専用クライアントを使用）
+    const signInClient = createClient(supabaseUrl, supabaseAnonKey);
+    const { data: signInData } = await signInClient.auth.signInWithPassword({
+      email: testUserEmail,
       password: "test-password-123",
     });
 
@@ -112,13 +114,22 @@ describe("eNPS Surveys RLS Policies", () => {
     });
 
     it("should not allow anonymous users to update surveys", async () => {
-      const { error } = await anonClient
+      const { data, error } = await anonClient
         .from("enps_surveys")
         .update({ title: "更新されたタイトル" })
-        .eq("id", testSurveyId);
+        .eq("id", testSurveyId)
+        .select();
 
-      expect(error).not.toBeNull();
-      expect(error?.code).toBe("42501");
+      // UPDATE ポリシーが無いため RLS で全行フィルタされ、エラーではなく更新0件になる
+      expect(error).toBeNull();
+      expect(data).toEqual([]);
+
+      const { data: after } = await serviceClient
+        .from("enps_surveys")
+        .select("title")
+        .eq("id", testSurveyId)
+        .single();
+      expect(after?.title).toBe("テストアンケート");
     });
   });
 
@@ -320,8 +331,14 @@ describe("eNPS Surveys RLS Policies", () => {
         .delete()
         .eq("id", otherResponse.id);
 
-      expect(error).not.toBeNull();
-      expect(error?.code).toBe("42501");
+      // DELETE ポリシーは自分の行のみ対象のため、他人の行は削除0件（エラーにはならない）
+      expect(error).toBeNull();
+
+      const { data: still } = await serviceClient
+        .from("enps_responses")
+        .select("id")
+        .eq("id", otherResponse.id);
+      expect(still?.length).toBe(1);
 
       await serviceClient
         .from("enps_responses")
@@ -333,12 +350,14 @@ describe("eNPS Surveys RLS Policies", () => {
 
   describe("enps_late_submission_grants table", () => {
     it("should deny anonymous select on late submission grants", async () => {
-      const { error } = await anonClient
+      const { data, error } = await anonClient
         .from("enps_late_submission_grants")
         .select("id")
         .limit(1);
 
-      expect(error).not.toBeNull();
+      // ポリシーが無いため RLS で全行フィルタされ、エラーではなく空配列が返る
+      expect(error).toBeNull();
+      expect(data).toEqual([]);
     });
 
     it("should deny authenticated insert on late submission grants", async () => {
