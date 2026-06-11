@@ -27,10 +27,12 @@ jobs:
           cat $GITHUB_ENV
 
       # Supabase CLIのセットアップと起動
+      # NOTE: latest (v2.106) では service_role の GRANT が付与されず RLS テストが
+      # 全滅するため、ローカル開発で検証済みのバージョンに固定する
       - name: Setup Supabase CLI
         uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: 2.84.2
 
       - name: Start Supabase
         run: |
