@@ -30,7 +30,9 @@ describe("survey_submit_throttle RLS Policies", () => {
 
     testUserId = authData.user.id;
 
-    const { data: signInData } = await anonClient.auth.signInWithPassword({
+    // anonClient で signIn すると anonClient 自体が認証状態になり匿名テストが壊れるため専用クライアントを使う
+    const signInClient = createClient(supabaseUrl, supabaseAnonKey);
+    const { data: signInData } = await signInClient.auth.signInWithPassword({
       email,
       password: "test-password-123",
     });

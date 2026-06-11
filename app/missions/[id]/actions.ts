@@ -1,5 +1,3 @@
-"use server";
-
 export {
   achieveMissionFormSchema,
   cancelSubmissionFormSchema,
@@ -8,8 +6,11 @@ export {
 export {
   achieveMissionAction,
   cancelSubmissionAction,
+} from "./_actions/achieve";
+
+export {
   getMissionQuizCategoryAction,
   getQuizQuestionsAction,
   checkQuizAnswersAction,
   type QuizQuestion,
-} from "./_actions/achieve";
+} from "./quiz-actions";

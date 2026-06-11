@@ -1,5 +1,3 @@
-"use server";
-
 export type {
   CreateUserMissionInput,
   SaveDraftUserMissionInput,

@@ -58,3 +58,23 @@ export const signInAndLoginFormSchema = z.object({
 export const forgotPasswordFormSchema = z.object({
   email: emailSchema,
 });
+
+// LINE認証用のバリデーションスキーマ
+export const lineAuthSchema = z.object({
+  code: z.string().nonempty({ message: "Authorization code is required" }),
+  dateOfBirth: z
+    .string()
+    .optional()
+    .refine(
+      (value) => {
+        if (!value) return true; // 新規ユーザーでない場合はオプショナル
+        const age = calculateAge(value);
+        return age >= 18;
+      },
+      {
+        message: "18歳未満の方は登録できません",
+      },
+    ),
+  referralCode: z.string().optional().nullable(),
+  returnUrl: z.string().optional().nullable(),
+});

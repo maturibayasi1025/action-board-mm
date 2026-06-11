@@ -1,8 +1,6 @@
-"use server";
-
 import type { createClient } from "@/lib/supabase/server";
 
-async function awardPointsForMissionCreation(
+export async function awardPointsForMissionCreation(
   missionId: string,
   creatorId: string,
   praisedUserIds: string[],
@@ -40,7 +38,7 @@ async function awardPointsForMissionCreation(
 }
 
 // Slack通知（グッジョブ作成時）
-async function sendSlackNotificationForMissionCreation(
+export async function sendSlackNotificationForMissionCreation(
   missionId: string,
   title: string,
   content: string,

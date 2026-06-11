@@ -8,15 +8,13 @@ import {
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { deleteCookie, getCookie } from "@/lib/utils/server-cookies";
 import { calculateAge, encodedRedirect } from "@/lib/utils/utils";
-import { headers } from "next/headers";
-import { redirect } from "next/navigation";
-import { z } from "zod";
-
 import {
   forgotPasswordFormSchema,
   signInAndLoginFormSchema,
   signUpAndLoginFormSchema,
 } from "@/lib/validation/auth";
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 
 import {
   isEmailAlreadyUsedInReferral,
@@ -317,25 +315,5 @@ export const emailSignUpActionWithState = async (
 
   return signUpActionWithState(null, newFormData);
 };
-
-// LINE認証用のバリデーションスキーマ
-export const lineAuthSchema = z.object({
-  code: z.string().nonempty({ message: "Authorization code is required" }),
-  dateOfBirth: z
-    .string()
-    .optional()
-    .refine(
-      (value) => {
-        if (!value) return true; // 新規ユーザーでない場合はオプショナル
-        const age = calculateAge(value);
-        return age >= 18;
-      },
-      {
-        message: "18歳未満の方は登録できません",
-      },
-    ),
-  referralCode: z.string().optional().nullable(),
-  returnUrl: z.string().optional().nullable(),
-});
 
 // LINE認証処理のServer Action

@@ -45,13 +45,13 @@ type UserMission = {
   imagePaths?: string[];
   praisedUsers: string[];
   praisedExternalUsers?: string[];
-  status: "pending" | "approved" | "rejected";
-  rejectionReason?: string;
+  status: string;
+  rejectionReason?: string | null;
   createdAt: string;
   updatedAt: string;
-  approvedAt?: string;
-  approvedBy?: string;
-  publicMissionId?: string;
+  approvedAt?: string | null;
+  approvedBy?: string | null;
+  publicMissionId?: string | null;
   likesCount: number;
   mvvItems: {
     passionateExecution: boolean;

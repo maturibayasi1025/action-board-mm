@@ -116,13 +116,17 @@ async function UserMissionsList() {
                   initialLiked={mission.isLikedByCurrentUser || false}
                   initialCount={mission.likesCount}
                   isOwnMission={user?.id === mission.createdBy}
-                  isExpired={isLikeExpired(mission.publishedAt)}
+                  isExpired={isLikeExpired(mission.publishedAt ?? null)}
                 />
                 <Link
                   href={`/user-missions/${mission.id}`}
                   className="w-full md:w-auto"
                 >
-                  <Button variant="ghost" size="sm" className="w-full md:w-auto">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full md:w-auto"
+                  >
                     詳細
                   </Button>
                 </Link>

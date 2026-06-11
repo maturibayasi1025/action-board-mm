@@ -35,6 +35,9 @@ const baseMission: Tables<"missions"> = {
   updated_at: "2025-06-22T00:00:00Z",
   slug: "test-mission-1",
   required_artifact_type: "LINK",
+  important_display_end_date: null,
+  important_display_start_date: null,
+  is_important: false,
 };
 
 describe("ArtifactForm", () => {

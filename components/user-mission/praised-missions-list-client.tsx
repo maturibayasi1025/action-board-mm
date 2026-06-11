@@ -59,9 +59,8 @@ export function PraisedMissionsListClient({
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter((mission) => {
-        const createdByNameMatch = mission.createdByName
-          .toLowerCase()
-          .includes(query);
+        const createdByNameMatch =
+          mission.createdByName?.toLowerCase().includes(query) ?? false;
         const praisedUsersMatch = mission.praisedUsers.some((userName) =>
           userName.toLowerCase().includes(query),
         );
