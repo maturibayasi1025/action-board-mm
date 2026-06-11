@@ -17,22 +17,9 @@ import { MAX_POSTING_COUNT, POSTING_POINTS_PER_UNIT } from "@/lib/constants";
 import type { Database, TablesInsert } from "@/lib/types/supabase";
 import { z } from "zod";
 import {
-  type QuizQuestion,
-  checkQuizAnswersAction,
-  getMissionQuizCategoryAction,
-  getQuizQuestionsAction,
-} from "../quiz-actions";
-import {
   achieveMissionFormSchema,
   cancelSubmissionFormSchema,
 } from "./schemas";
-
-export {
-  getMissionQuizCategoryAction,
-  getQuizQuestionsAction,
-  checkQuizAnswersAction,
-  type QuizQuestion,
-};
 
 export const achieveMissionAction = async (formData: FormData) => {
   const supabase = await createClient();
