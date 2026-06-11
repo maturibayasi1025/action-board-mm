@@ -5,7 +5,9 @@ on:
 jobs:
   test:
     name: Build & Tests
-    timeout-minutes: 20
+    # 修正前はテストが序盤で死んでいて20分で足りていたが、E2E(72件)まで
+    # 完走するようになったため、ビルド3回+E2E実行を見込んで40分にする
+    timeout-minutes: 40
     runs-on: ubuntu-latest
 
     steps:
