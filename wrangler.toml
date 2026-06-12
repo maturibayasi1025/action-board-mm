@@ -11,4 +11,5 @@ NODE_ENV = "production"
 [vars]
 NEXT_PUBLIC_SITE_URL = "https://mm-actionboard.jp"
 NEXT_PUBLIC_APP_ORIGIN = "https://mm-actionboard.jp"
-
+NEXT_PUBLIC_SUPABASE_URL = "https://plzqywjvkteyxsdqmred.supabase.co"
+NEXT_PUBLIC_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBsenF5d2p2a3RleXhzZHFtcmVkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTIxNDIyNDIsImV4cCI6MjA2NzcxODI0Mn0.06LfW1-YbyOR0Kijuy9a5bda46BQZAkctQYaAnMJcGY"
