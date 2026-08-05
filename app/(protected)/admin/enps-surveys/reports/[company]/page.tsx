@@ -6,6 +6,7 @@ import {
   CompanyTrendChart,
   SegmentCompositionChart,
 } from "@/components/admin/enps-report/company-trend-chart";
+import { CompanyReportExportButtons } from "@/components/admin/enps-report/report-export-buttons";
 import { ReportQueryPicker } from "@/components/admin/enps-report/report-survey-picker";
 import { Button } from "@/components/ui/button";
 import {
@@ -68,9 +69,18 @@ export default async function CompanyReportPage({
             </p>
             <h1 className="text-3xl font-bold">{report.companyName}</h1>
           </div>
-          <div className="flex gap-2 print:hidden">
+          <div className="flex flex-wrap items-center gap-2 print:hidden">
+            <CompanyReportExportButtons
+              companyName={report.companyName}
+              yearMonth={report.survey.year_month}
+              questionText={activeQuestion?.question_text ?? ""}
+              businessUnits={report.businessUnits}
+              trend={report.trend}
+            />
             <Link href={`/admin/enps-surveys/reports?survey=${surveyId}`}>
-              <Button variant="outline">会社一覧へ</Button>
+              <Button variant="outline" size="sm">
+                会社一覧へ
+              </Button>
             </Link>
           </div>
         </div>

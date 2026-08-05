@@ -1,4 +1,5 @@
 import { CompanyComparisonTable } from "@/components/admin/enps-report/company-comparison-table";
+import { ComparisonExportButton } from "@/components/admin/enps-report/report-export-buttons";
 import { ReportQueryPicker } from "@/components/admin/enps-report/report-survey-picker";
 import { Button } from "@/components/ui/button";
 import {
@@ -118,6 +119,14 @@ async function ReportComparison({
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          <div className="flex justify-end">
+            <ComparisonExportButton
+              yearMonth={result.survey.year_month}
+              previousYearMonth={result.previousSurvey?.year_month ?? null}
+              questions={result.questions}
+              rows={result.rows}
+            />
+          </div>
           <CompanyComparisonTable
             rows={result.rows}
             questions={result.questions}

@@ -26,6 +26,12 @@ import {
   getEnpsMonthlyScoreExportRows,
   getEnpsMonthlyTrendsForQuestion,
 } from "@/lib/actions/admin/enps-trends";
+import {
+  escapeCsvCell,
+  sanitizeFilenameSegment,
+  yyyymmddForFilename,
+} from "@/lib/admin/enps-report/csv";
+import { downloadUtf8Csv } from "@/lib/admin/enps-report/download-csv";
 import { Download } from "lucide-react";
 import {
   useCallback,
@@ -139,38 +145,6 @@ function csvRowKindLabel(k: EnpsMonthlyScoreExportRow["row_kind"]): string {
     case "imputed_zero":
       return "未回答補完(スコア0)";
   }
-}
-
-function escapeCsvCell(value: string | number): string {
-  const str = String(value);
-  if (str.includes(",") || str.includes("\n") || str.includes('"')) {
-    return `"${str.replace(/"/g, '""')}"`;
-  }
-  return str;
-}
-
-function sanitizeFilenameSegment(s: string): string {
-  const t = s.trim().replace(/\s+/g, "_");
-  const cleaned = t.replace(/[/\\:*?"<>|#]+/g, "_").slice(0, 72);
-  return cleaned.length > 0 ? cleaned : "export";
-}
-
-function yyyymmddForFilename(): string {
-  const d = new Date();
-  return `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`;
-}
-
-function downloadUtf8Csv(filename: string, rows: string[]) {
-  const bom = new Uint8Array([0xef, 0xbb, 0xbf]);
-  const blob = new Blob([bom, rows.join("\n")], {
-    type: "text/csv;charset=utf-8",
-  });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = filename;
-  link.click();
-  URL.revokeObjectURL(url);
 }
 
 export function EnpsTrendsDashboard({
