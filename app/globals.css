@@ -244,3 +244,29 @@
     }
   }
 }
+
+/* eNPS会社別レポートの印刷（PDF保存）向け調整 */
+@media print {
+  /* ヒートマップやセグメントの色は判断材料そのものなので、印刷でも残す */
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  header,
+  footer,
+  nav {
+    display: none !important;
+  }
+
+  .container {
+    max-width: none;
+    padding: 0;
+  }
+
+  /* カード単位で紙をまたがないようにする */
+  section,
+  table {
+    break-inside: avoid;
+  }
+}

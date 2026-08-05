@@ -34,8 +34,11 @@ export default async function EnpsSurveysAdminPage() {
             </p>
           </div>
           <div className="flex flex-wrap gap-2 justify-end">
+            <Link href="/admin/enps-surveys/reports">
+              <Button variant="default">会社別レポート</Button>
+            </Link>
             <Link href="/admin/enps-surveys/trends">
-              <Button variant="default">時系列を見る</Button>
+              <Button variant="outline">時系列を見る</Button>
             </Link>
             <Link href="/admin/enps-surveys/questions">
               <Button variant="outline">質問を管理</Button>

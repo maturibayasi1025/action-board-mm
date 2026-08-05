@@ -29,6 +29,7 @@
     "generate-award-survey": "tsx scripts/generate-award-survey.ts",
     "export-award-self-eval": "tsx scripts/export-award-self-eval.ts",
     "generate-enps-survey": "tsx scripts/generate-enps-survey.ts",
+    "build-enps-report": "tsx scripts/build-enps-report.ts",
     "clean": "rm -rf .next && rm -rf out && rm -rf .vercel",
     "clean-cache": "rm -rf .next/cache && rm -rf .next/trace"
   },

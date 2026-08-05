@@ -3,6 +3,12 @@
  * 同一ユーザー・同一質問に複数行ある場合は created_at が最新の1件のみを採用（回答一覧と同じ考え方）。
  */
 
+import {
+  computeNps,
+  dedupeLatestByUser,
+  scoreToSegment,
+} from "@/lib/admin/enps-report/nps";
+
 export type EnpsOrgNpsRow = {
   company_name: string;
   business_unit_name: string;
@@ -10,7 +16,8 @@ export type EnpsOrgNpsRow = {
   promoters: number;
   passives: number;
   detractors: number;
-  nps: number;
+  /** 回答者が 0 人のときは null（0 と区別する） */
+  nps: number | null;
 };
 
 export type EnpsResponseForOrgAggregate = {
@@ -23,35 +30,10 @@ export type EnpsResponseForOrgAggregate = {
   business_unit_name: string;
 };
 
-function isNewer(a: string, b: string): boolean {
-  return new Date(a).getTime() > new Date(b).getTime();
-}
-
-function dedupeLatestPerUser(
-  rows: EnpsResponseForOrgAggregate[],
-): EnpsResponseForOrgAggregate[] {
-  const byUser = new Map<string, EnpsResponseForOrgAggregate>();
-  for (const r of rows) {
-    const prev = byUser.get(r.user_id);
-    if (!prev || isNewer(r.created_at, prev.created_at)) {
-      byUser.set(r.user_id, r);
-    }
-  }
-  return Array.from(byUser.values());
-}
-
 function computeNpsMetrics(
   scores: number[],
 ): Omit<EnpsOrgNpsRow, "company_name" | "business_unit_name"> {
-  const promoters = scores.filter((s) => s >= 9).length;
-  const passives = scores.filter((s) => s >= 7 && s < 9).length;
-  const detractors = scores.filter((s) => s < 7).length;
-  const respondent_count = scores.length;
-  const nps =
-    respondent_count > 0
-      ? Math.round(((promoters - detractors) / respondent_count) * 100)
-      : 0;
-  return { respondent_count, promoters, passives, detractors, nps };
+  return computeNps(scores);
 }
 
 /**
@@ -70,7 +52,7 @@ export function aggregateNpsByBusinessUnitForQuestion(
     return late;
   });
 
-  const deduped = dedupeLatestPerUser(filtered);
+  const deduped = dedupeLatestByUser(filtered);
 
   const byBucket = new Map<
     string,
@@ -141,27 +123,6 @@ export type EnpsOrgDrilldownSegment =
   | "detractor"
   | "all";
 
-function scoreToDrilldownSegment(
-  score: number,
-): Exclude<EnpsOrgDrilldownSegment, "all"> {
-  if (score >= 9) return "promoter";
-  if (score >= 7) return "passive";
-  return "detractor";
-}
-
-function dedupeLatestDrilldownSource(
-  rows: EnpsOrgDrilldownSourceRow[],
-): EnpsOrgDrilldownSourceRow[] {
-  const byUser = new Map<string, EnpsOrgDrilldownSourceRow>();
-  for (const r of rows) {
-    const prev = byUser.get(r.user_id);
-    if (!prev || isNewer(r.created_at, prev.created_at)) {
-      byUser.set(r.user_id, r);
-    }
-  }
-  return Array.from(byUser.values());
-}
-
 /**
  * 会社×事業部バケット内の、指セグメントに該当する回答者（最新1件／ユーザー）を返す。
  */
@@ -189,13 +150,11 @@ export function listOrgBucketDrilldown(
     return rCo === co && rBu === bu;
   });
 
-  const deduped = dedupeLatestDrilldownSource(filtered);
+  const deduped = dedupeLatestByUser(filtered);
   const withSegment =
     segment === "all"
       ? deduped
-      : deduped.filter(
-          (r) => scoreToDrilldownSegment(r.score_value) === segment,
-        );
+      : deduped.filter((r) => scoreToSegment(r.score_value) === segment);
 
   withSegment.sort((a, b) => {
     if (b.score_value !== a.score_value) return b.score_value - a.score_value;

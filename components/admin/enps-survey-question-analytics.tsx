@@ -36,8 +36,14 @@ export type EnpsNpsBlock = {
   promoters: number;
   passives: number;
   detractors: number;
-  nps: number;
+  /** 回答者が 0 人のときは null（0 と区別する） */
+  nps: number | null;
 };
+
+function formatNpsValue(nps: number | null): string {
+  if (nps === null) return "—";
+  return `${nps > 0 ? "+" : ""}${nps}`;
+}
 
 type ScoreQuestionMeta = { id: string; question_text: string };
 
@@ -173,10 +179,7 @@ function NpsSummaryCard({
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="text-center">
-          <div className="text-4xl font-bold">
-            {nps.nps > 0 ? "+" : ""}
-            {nps.nps}
-          </div>
+          <div className="text-4xl font-bold">{formatNpsValue(nps.nps)}</div>
           <p className="text-sm text-muted-foreground mt-1">NPS</p>
         </div>
         <div className="grid grid-cols-3 gap-4 text-center">
@@ -246,10 +249,7 @@ function LateNpsCard({
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="text-center">
-          <div className="text-4xl font-bold">
-            {nps.nps > 0 ? "+" : ""}
-            {nps.nps}
-          </div>
+          <div className="text-4xl font-bold">{formatNpsValue(nps.nps)}</div>
           <p className="text-sm text-muted-foreground mt-1">
             NPS（期限後のみ）
           </p>

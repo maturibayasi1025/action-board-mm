@@ -457,6 +457,110 @@ export type Database = {
         };
         Relationships: [];
       };
+      enps_monthly_snapshots: {
+        Row: {
+          business_unit_name: string;
+          company_name: string;
+          computed_at: string;
+          detractors: number;
+          id: string;
+          nps_imputed_base: number | null;
+          nps_respondent_base: number | null;
+          passives: number;
+          promoters: number;
+          question_id: string;
+          respondent_count: number;
+          scope: string;
+          survey_id: string;
+          target_count: number;
+        };
+        Insert: {
+          business_unit_name: string;
+          company_name: string;
+          computed_at?: string;
+          detractors: number;
+          id?: string;
+          nps_imputed_base?: number | null;
+          nps_respondent_base?: number | null;
+          passives: number;
+          promoters: number;
+          question_id: string;
+          respondent_count: number;
+          scope: string;
+          survey_id: string;
+          target_count: number;
+        };
+        Update: {
+          business_unit_name?: string;
+          company_name?: string;
+          computed_at?: string;
+          detractors?: number;
+          id?: string;
+          nps_imputed_base?: number | null;
+          nps_respondent_base?: number | null;
+          passives?: number;
+          promoters?: number;
+          question_id?: string;
+          respondent_count?: number;
+          scope?: string;
+          survey_id?: string;
+          target_count?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "enps_monthly_snapshots_question_id_fkey";
+            columns: ["question_id"];
+            isOneToOne: false;
+            referencedRelation: "enps_questions";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "enps_monthly_snapshots_survey_id_fkey";
+            columns: ["survey_id"];
+            isOneToOne: false;
+            referencedRelation: "enps_surveys";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      enps_report_ai_summaries: {
+        Row: {
+          company_name: string;
+          generated_at: string;
+          id: string;
+          input_response_count: number;
+          model: string;
+          payload: Json;
+          survey_id: string;
+        };
+        Insert: {
+          company_name: string;
+          generated_at?: string;
+          id?: string;
+          input_response_count: number;
+          model: string;
+          payload: Json;
+          survey_id: string;
+        };
+        Update: {
+          company_name?: string;
+          generated_at?: string;
+          id?: string;
+          input_response_count?: number;
+          model?: string;
+          payload?: Json;
+          survey_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "enps_report_ai_summaries_survey_id_fkey";
+            columns: ["survey_id"];
+            isOneToOne: false;
+            referencedRelation: "enps_surveys";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       enps_responses: {
         Row: {
           created_at: string;
