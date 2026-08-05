@@ -1,8 +1,8 @@
-import type {
-  CompanyComparisonRow,
-  QuestionMetric,
+import {
+  type CompanyComparisonRow,
+  GROUP_REPORT_SLUG,
+  type QuestionMetric,
 } from "@/lib/admin/enps-report/comparison";
-import { GROUP_REPORT_SLUG } from "@/lib/admin/enps-report/comparison";
 import {
   deltaToneClass,
   formatMetricDelta,
