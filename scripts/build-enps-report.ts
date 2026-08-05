@@ -10,10 +10,12 @@
  */
 
 import path from "node:path";
+import { resolveAiSummaryConfig } from "@/lib/admin/enps-report/ai-summary";
 import {
   buildAndStoreSnapshotForSurvey,
   listSurveysForSnapshot,
 } from "@/lib/admin/enps-report/build-and-store";
+import { buildAndStoreAiSummaries } from "@/lib/admin/enps-report/build-and-store-ai";
 import {
   parseReportCliOptions,
   selectTargetSurveys,
@@ -60,6 +62,13 @@ async function main() {
       );
     }
 
+    const aiConfig = options.skipAi ? null : resolveAiSummaryConfig();
+    if (!options.skipAi && !aiConfig) {
+      console.warn(
+        "ENPS_REPORT_AI_API_KEY が未設定のため、自由記述のAI分析はスキップします。",
+      );
+    }
+
     for (const survey of targets) {
       const result = await buildAndStoreSnapshotForSurvey(supabase, survey, {
         force: options.force,
@@ -77,6 +86,22 @@ async function main() {
       console.log(
         `- ${survey.year_month}: ${result.rowCount} 行を保存しました（${imputedNote}）`,
       );
+
+      if (!aiConfig) {
+        continue;
+      }
+
+      const aiResults = await buildAndStoreAiSummaries(
+        supabase,
+        survey,
+        aiConfig,
+      );
+      for (const ai of aiResults) {
+        const note = ai.stored
+          ? `AI分析を保存しました（自由記述 ${ai.inputCount} 件）`
+          : `AI分析なし（${ai.reason}）`;
+        console.log(`  - ${ai.companyName}: ${note}`);
+      }
     }
 
     console.log("=== eNPSレポート用スナップショット生成が完了しました ===");
