@@ -13,7 +13,11 @@ import {
   shouldGenerateAiSummary,
 } from "@/lib/admin/enps-report/ai-summary-types";
 import { UNASSIGNED_ORG_LABEL } from "@/lib/admin/enps-report/build-snapshot";
-import { type NpsSegment, scoreToSegment } from "@/lib/admin/enps-report/nps";
+import {
+  type NpsSegment,
+  dedupeLatestByUser,
+  scoreToSegment,
+} from "@/lib/admin/enps-report/nps";
 import { z } from "zod";
 
 export const DEFAULT_AI_BASE_URL = "https://api.openai.com/v1";
@@ -42,6 +46,8 @@ export type ScoreResponseForAi = {
   question_id: string;
   user_id: string;
   score_value: number | null;
+  is_late_submission?: boolean | null;
+  created_at?: string;
 };
 
 export type QuestionForAi = {
@@ -82,13 +88,33 @@ export function buildAiSummaryInputsByCompany(params: {
     ]),
   );
 
+  const onTimeScores = scoreResponses.filter(
+    (r) => r.score_value !== null && !r.is_late_submission,
+  );
+
+  const dedupedByQuestion = new Map<
+    string,
+    Map<string, { user_id: string; score_value: number; created_at: string }>
+  >();
+  for (const r of onTimeScores) {
+    let byUser = dedupedByQuestion.get(r.question_id);
+    if (!byUser) {
+      byUser = new Map();
+      dedupedByQuestion.set(r.question_id, byUser);
+    }
+    byUser.set(r.user_id, {
+      user_id: r.user_id,
+      score_value: r.score_value as number,
+      created_at: r.created_at ?? new Date().toISOString(),
+    });
+  }
+
   const scoreByUserQuestion = new Map<string, number>();
-  for (const r of scoreResponses) {
-    if (r.score_value === null) continue;
-    scoreByUserQuestion.set(
-      `${r.user_id}\u0000${r.question_id}`,
-      r.score_value,
-    );
+  for (const [questionId, byUser] of dedupedByQuestion.entries()) {
+    const dedupedForQuestion = dedupeLatestByUser(Array.from(byUser.values()));
+    for (const r of dedupedForQuestion) {
+      scoreByUserQuestion.set(`${r.user_id}\u0000${questionId}`, r.score_value);
+    }
   }
 
   const byCompany = new Map<string, FreeTextInput[]>();

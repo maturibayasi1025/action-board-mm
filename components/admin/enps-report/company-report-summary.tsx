@@ -53,6 +53,19 @@ export function CompanyReportSummary({
     );
   }
 
+  if (metric.masked) {
+    return (
+      <div className="rounded-md border border-border bg-muted/20 p-6">
+        <p className="text-sm text-muted-foreground">
+          回答者が5人未満のため、個人特定を避けるためデータを表示していません。
+        </p>
+        <p className="text-xs text-muted-foreground mt-2">
+          対象者数: {metric.target_count}人
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
       <SummaryTile

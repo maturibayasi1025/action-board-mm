@@ -6,6 +6,7 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
+import { shouldMaskForPrivacy } from "@/lib/admin/enps-report/build-snapshot";
 import type { CompanyTrendPoint } from "@/lib/admin/enps-report/comparison";
 import { useMemo } from "react";
 import {
@@ -40,12 +41,14 @@ const chartConfig = {
 export function CompanyTrendChart({ trend }: { trend: CompanyTrendPoint[] }) {
   const data = useMemo(
     () =>
-      trend.map((point) => ({
-        monthLabel: point.year_month,
-        respondentBase: point.nps_respondent_base,
-        imputedBase: point.nps_imputed_base,
-        responseRate: point.response_rate,
-      })),
+      trend
+        .filter((point) => !shouldMaskForPrivacy(point.respondent_count))
+        .map((point) => ({
+          monthLabel: point.year_month,
+          respondentBase: point.nps_respondent_base,
+          imputedBase: point.nps_imputed_base,
+          responseRate: point.response_rate,
+        })),
     [trend],
   );
 
@@ -136,12 +139,14 @@ export function SegmentCompositionChart({
 }) {
   const data = useMemo(
     () =>
-      trend.map((point) => ({
-        monthLabel: point.year_month,
-        promoters: point.promoters,
-        passives: point.passives,
-        detractors: point.detractors,
-      })),
+      trend
+        .filter((point) => !shouldMaskForPrivacy(point.respondent_count))
+        .map((point) => ({
+          monthLabel: point.year_month,
+          promoters: point.promoters,
+          passives: point.passives,
+          detractors: point.detractors,
+        })),
     [trend],
   );
 

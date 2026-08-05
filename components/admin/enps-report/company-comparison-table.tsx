@@ -30,7 +30,9 @@ function MetricCells({ metric }: { metric: QuestionMetric | undefined }) {
         {formatMetricDelta(metric)}
       </td>
       <td className="py-2 px-3 text-right tabular-nums text-muted-foreground">
-        {formatResponseRate(metric?.response_rate ?? null)}
+        {!metric || metric.masked
+          ? formatResponseRate(null)
+          : formatResponseRate(metric.response_rate)}
       </td>
     </>
   );

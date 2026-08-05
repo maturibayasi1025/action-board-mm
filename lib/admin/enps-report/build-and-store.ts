@@ -134,38 +134,32 @@ export async function storeSnapshotRows(
   surveyId: string,
   rows: EnpsSnapshotRow[],
 ): Promise<void> {
-  const { error: deleteError } = await supabase
-    .from("enps_monthly_snapshots")
-    .delete()
-    .eq("survey_id", surveyId);
-
-  if (deleteError) {
-    throw new Error(
-      `既存スナップショットの削除に失敗しました: ${deleteError.message}`,
-    );
-  }
-
   const computedAt = new Date().toISOString();
-  for (let i = 0; i < rows.length; i += INSERT_CHUNK_SIZE) {
-    const chunk = rows.slice(i, i + INSERT_CHUNK_SIZE).map((row) => ({
-      survey_id: surveyId,
-      question_id: row.question_id,
-      scope: row.scope,
-      company_name: row.company_name,
-      business_unit_name: row.business_unit_name,
-      target_count: row.target_count,
-      respondent_count: row.respondent_count,
-      promoters: row.promoters,
-      passives: row.passives,
-      detractors: row.detractors,
-      nps_respondent_base: row.nps_respondent_base,
-      nps_imputed_base: row.nps_imputed_base,
-      computed_at: computedAt,
-    }));
+  const dbRows = rows.map((row) => ({
+    survey_id: surveyId,
+    question_id: row.question_id,
+    scope: row.scope,
+    company_name: row.company_name,
+    business_unit_name: row.business_unit_name,
+    target_count: row.target_count,
+    respondent_count: row.respondent_count,
+    promoters: row.promoters,
+    passives: row.passives,
+    detractors: row.detractors,
+    nps_respondent_base: row.nps_respondent_base,
+    nps_imputed_base: row.nps_imputed_base,
+    computed_at: computedAt,
+  }));
+
+  for (let i = 0; i < dbRows.length; i += INSERT_CHUNK_SIZE) {
+    const chunk = dbRows.slice(i, i + INSERT_CHUNK_SIZE);
 
     const { error } = await supabase
       .from("enps_monthly_snapshots")
-      .insert(chunk);
+      .upsert(chunk, {
+        onConflict:
+          "survey_id,question_id,scope,company_name,business_unit_name",
+      });
 
     if (error) {
       throw new Error(`スナップショットの保存に失敗しました: ${error.message}`);
