@@ -51,6 +51,17 @@ Supabase の 2 つは他のワークフローと同じ Secrets を参照する�
 |-------------|------|--------|
 | `ENPS_REPORT_AI_MODEL` | 使用するモデル名 | `gpt-4o-mini` |
 | `ENPS_REPORT_AI_BASE_URL` | OpenAI 互換エンドポイント | `https://api.openai.com/v1` |
+| `ENPS_REPORT_AI_TEMPERATURE` | 出力のばらつき（任意） | 未指定（モデルの既定値に任せる） |
+
+#### 使用できるモデル
+
+`POST {BASE_URL}/chat/completions` を呼び、`response_format: { type: "json_object" }`（JSON モード）を指定します。**この2つに対応していれば、どのモデル・どのプロバイダでも使えます。**
+
+- **OpenAI**: GPT-4o 系、GPT-5 系のいずれも利用できます。要約タスクなので `gpt-4o-mini` 相当で十分ですが、記述量が多く精度を上げたい場合は上位モデルに変更できます
+- **Azure OpenAI**: `ENPS_REPORT_AI_BASE_URL` にデプロイのエンドポイントを指定します（認証ヘッダの形式が異なる場合は要調整）
+- **その他**: OpenRouter などの OpenAI 互換ゲートウェイ、または vLLM / Ollama などの自ホスト環境も、JSON モードに対応していれば利用できます
+
+> **補足**: `ENPS_REPORT_AI_TEMPERATURE` は既定では送信しません。GPT-5 系や o 系の推論モデルは既定値以外の temperature を受け付けず、指定すると 400 エラーになるためです。出力を安定させたい場合のみ、対応モデル（GPT-4o 系など）で `0.2` などを設定してください。
 
 > **注意**: AI 分析には自由記述の本文が外部の API に送信されます。氏名やユーザーIDは送らず、自由記述が5件未満の会社は生成自体を行いませんが、利用するプロバイダのデータ取り扱いポリシーは事前にご確認ください。自社の要件に合わない場合は `ENPS_REPORT_AI_BASE_URL` で別のエンドポイントに向けるか、キーを設定せず集計のみで運用できます。
 

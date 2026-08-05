@@ -45,6 +45,7 @@ jobs:
           ENPS_REPORT_AI_API_KEY: ${{ secrets.ENPS_REPORT_AI_API_KEY }}
           ENPS_REPORT_AI_MODEL: ${{ vars.ENPS_REPORT_AI_MODEL }}
           ENPS_REPORT_AI_BASE_URL: ${{ vars.ENPS_REPORT_AI_BASE_URL }}
+          ENPS_REPORT_AI_TEMPERATURE: ${{ vars.ENPS_REPORT_AI_TEMPERATURE }}
         run: |
           npm run build-enps-report -- \
             ${{ inputs.year_month && format('--year-month {0}', inputs.year_month) || '' }} \

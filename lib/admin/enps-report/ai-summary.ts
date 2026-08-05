@@ -236,8 +236,15 @@ export type AiSummaryConfig = {
   apiKey: string;
   model: string;
   baseUrl: string;
+  /** null のときはリクエストに含めず、モデルの既定値に任せる */
+  temperature: number | null;
 };
 
+/**
+ * temperature は既定で送らない。GPT-5 系や o 系の推論モデルは既定値以外を受け付けず、
+ * 指定すると 400 になるため、モデルを差し替えても動くことを優先している。
+ * 出力を安定させたい場合のみ ENPS_REPORT_AI_TEMPERATURE で明示する。
+ */
 export function resolveAiSummaryConfig(
   env: Record<string, string | undefined> = process.env,
 ): AiSummaryConfig | null {
@@ -245,13 +252,44 @@ export function resolveAiSummaryConfig(
   if (!apiKey) {
     return null;
   }
+
+  const rawTemperature = env.ENPS_REPORT_AI_TEMPERATURE?.trim();
+  const parsedTemperature =
+    rawTemperature === undefined || rawTemperature === ""
+      ? Number.NaN
+      : Number(rawTemperature);
+
   return {
     apiKey,
     model: env.ENPS_REPORT_AI_MODEL?.trim() || DEFAULT_AI_MODEL,
     baseUrl: (
       env.ENPS_REPORT_AI_BASE_URL?.trim() || DEFAULT_AI_BASE_URL
     ).replace(/\/+$/, ""),
+    temperature: Number.isFinite(parsedTemperature) ? parsedTemperature : null,
   };
+}
+
+export function buildChatCompletionsBody(params: {
+  config: AiSummaryConfig;
+  system: string;
+  user: string;
+}): Record<string, unknown> {
+  const { config, system, user } = params;
+
+  const body: Record<string, unknown> = {
+    model: config.model,
+    response_format: { type: "json_object" },
+    messages: [
+      { role: "system", content: system },
+      { role: "user", content: user },
+    ],
+  };
+
+  if (config.temperature !== null) {
+    body.temperature = config.temperature;
+  }
+
+  return body;
 }
 
 export async function generateEnpsAiSummary(params: {
@@ -278,15 +316,7 @@ export async function generateEnpsAiSummary(params: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${config.apiKey}`,
     },
-    body: JSON.stringify({
-      model: config.model,
-      temperature: 0.2,
-      response_format: { type: "json_object" },
-      messages: [
-        { role: "system", content: system },
-        { role: "user", content: user },
-      ],
-    }),
+    body: JSON.stringify(buildChatCompletionsBody({ config, system, user })),
   });
 
   if (!response.ok) {
