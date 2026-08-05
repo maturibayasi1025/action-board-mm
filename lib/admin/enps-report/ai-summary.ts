@@ -213,7 +213,7 @@ export type AiSummaryConfig = {
 };
 
 export function resolveAiSummaryConfig(
-  env: NodeJS.ProcessEnv = process.env,
+  env: Record<string, string | undefined> = process.env,
 ): AiSummaryConfig | null {
   const apiKey = env.ENPS_REPORT_AI_API_KEY?.trim();
   if (!apiKey) {
