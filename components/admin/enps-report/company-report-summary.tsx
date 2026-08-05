@@ -41,9 +41,12 @@ function SummaryTile({
 export function CompanyReportSummary({
   metric,
   previousYearMonth,
+  /** グループ全体レポートでは自分自身との差になるため非表示 */
+  showGroupDelta = true,
 }: {
   metric: QuestionMetric | undefined;
   previousYearMonth: string | null;
+  showGroupDelta?: boolean;
 }) {
   if (!metric) {
     return (
@@ -67,7 +70,11 @@ export function CompanyReportSummary({
   }
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <div
+      className={`grid gap-4 sm:grid-cols-2 ${
+        showGroupDelta ? "lg:grid-cols-4" : "lg:grid-cols-3"
+      }`}
+    >
       <SummaryTile
         label="eNPS（回答者ベース）"
         value={formatNps(metric.nps_respondent_base)}
@@ -83,18 +90,24 @@ export function CompanyReportSummary({
         }
         valueClassName={deltaToneClass(metric.delta_from_previous)}
       />
-      <SummaryTile
-        label="グループ全体との差"
-        value={formatDelta(metric.delta_from_group)}
-        sub="同じ月・同じ設問での比較"
-        valueClassName={gapToneClass(metric.delta_from_group)}
-      />
+      {showGroupDelta && (
+        <SummaryTile
+          label="グループ全体との差"
+          value={formatDelta(metric.delta_from_group)}
+          sub="同じ月・同じ設問での比較"
+          valueClassName={gapToneClass(metric.delta_from_group)}
+        />
+      )}
       <SummaryTile
         label="回答率"
         value={formatResponseRate(metric.response_rate)}
         sub={`回答 ${metric.respondent_count} 人 / 対象 ${metric.target_count} 人`}
       />
-      <Card className="sm:col-span-2 lg:col-span-4">
+      <Card
+        className={`sm:col-span-2 ${
+          showGroupDelta ? "lg:col-span-4" : "lg:col-span-3"
+        }`}
+      >
         <CardContent className="pt-6 flex flex-wrap items-baseline justify-between gap-2">
           <div>
             <p className="text-sm font-medium">

@@ -50,9 +50,9 @@ export default async function EnpsReportsPage({
       <div className="max-w-6xl mx-auto space-y-8">
         <div className="flex items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold mb-2">eNPS 会社別レポート</h1>
+            <h1 className="text-3xl font-bold mb-2">eNPS レポート</h1>
             <p className="text-muted-foreground">
-              確定済みの月次スナップショットから、会社を横並びで比較します。会社名を選ぶと個別のレポートを開きます。
+              確定済みの月次スナップショットから、グループ全体と各会社を横並びで比較します。「グループ全体」または会社名を選ぶと詳細レポートを開きます。
             </p>
           </div>
           <Link href="/admin/enps-surveys">

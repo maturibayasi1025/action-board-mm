@@ -41,15 +41,18 @@ function HighlightList({
 export function AiAnalysisPanel({
   summary,
   responsesHref,
+  emptyScopeLabel = "この会社・この月",
 }: {
   summary: EnpsAiSummaryRecord | null;
   responsesHref: string;
+  emptyScopeLabel?: string;
 }) {
   if (!summary) {
     return (
       <div className="space-y-2">
         <p className="text-sm text-muted-foreground">
-          この会社・この月のAI分析はありません。自由記述が5件未満の場合は、個人が特定されうるため生成していません。
+          {emptyScopeLabel}
+          のAI分析はありません。自由記述が5件未満の場合は、個人が特定されうるため生成していません。
         </p>
         <p className="text-sm text-muted-foreground">
           分析を有効にするには ENPS_REPORT_AI_API_KEY

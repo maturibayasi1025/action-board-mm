@@ -53,10 +53,12 @@ export function ChangeHighlights({
   improved,
   declined,
   hasPreviousMonth,
+  segmentLabel = "事業部",
 }: {
   improved: BusinessUnitChange[];
   declined: BusinessUnitChange[];
   hasPreviousMonth: boolean;
+  segmentLabel?: string;
 }) {
   if (!hasPreviousMonth) {
     return (
@@ -69,18 +71,18 @@ export function ChangeHighlights({
   return (
     <div className="grid gap-6 sm:grid-cols-2">
       <ChangeList
-        title="改善した事業部"
+        title={`改善した${segmentLabel}`}
         items={improved}
         tone="text-green-700"
         icon={<TrendingUp className="h-4 w-4" />}
-        emptyText="前月から改善した事業部はありません。"
+        emptyText={`前月から改善した${segmentLabel}はありません。`}
       />
       <ChangeList
-        title="悪化した事業部"
+        title={`悪化した${segmentLabel}`}
         items={declined}
         tone="text-red-700"
         icon={<TrendingDown className="h-4 w-4" />}
-        emptyText="前月から悪化した事業部はありません。"
+        emptyText={`前月から悪化した${segmentLabel}はありません。`}
       />
     </div>
   );

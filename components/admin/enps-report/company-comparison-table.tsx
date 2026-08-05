@@ -1,6 +1,7 @@
-import type {
-  CompanyComparisonRow,
-  QuestionMetric,
+import {
+  type CompanyComparisonRow,
+  GROUP_REPORT_SLUG,
+  type QuestionMetric,
 } from "@/lib/admin/enps-report/comparison";
 import {
   deltaToneClass,
@@ -105,30 +106,39 @@ export function CompanyComparisonTable({
           </tr>
         </thead>
         <tbody className="divide-y divide-border">
-          {rows.map((row) => (
-            <tr
-              key={row.company_name}
-              className={row.is_group ? "bg-muted/40 font-medium" : ""}
-            >
-              <td className="sticky left-0 z-[1] bg-background py-2 px-3 whitespace-nowrap">
-                {row.is_group ? (
-                  row.company_name
-                ) : (
-                  <Link
-                    href={`/admin/enps-surveys/reports/${encodeURIComponent(
-                      row.company_name,
-                    )}?survey=${surveyId}`}
-                    className="text-primary underline underline-offset-2 hover:no-underline"
-                  >
-                    {row.company_name}
-                  </Link>
-                )}
-              </td>
-              {questions.map((q) => (
-                <MetricCells key={q.id} metric={row.metrics[q.id]} />
-              ))}
-            </tr>
-          ))}
+          {rows.map((row) => {
+            const encodedName =
+              row.company_name === GROUP_REPORT_SLUG
+                ? `%67${row.company_name.slice(1)}`
+                : encodeURIComponent(row.company_name);
+            return (
+              <tr
+                key={row.company_name}
+                className={row.is_group ? "bg-muted/40 font-medium" : ""}
+              >
+                <td className="sticky left-0 z-[1] bg-background py-2 px-3 whitespace-nowrap">
+                  {row.is_group ? (
+                    <Link
+                      href={`/admin/enps-surveys/reports/${GROUP_REPORT_SLUG}?survey=${surveyId}`}
+                      className="text-primary underline underline-offset-2 hover:no-underline"
+                    >
+                      {row.company_name}
+                    </Link>
+                  ) : (
+                    <Link
+                      href={`/admin/enps-surveys/reports/${encodedName}?survey=${surveyId}`}
+                      className="text-primary underline underline-offset-2 hover:no-underline"
+                    >
+                      {row.company_name}
+                    </Link>
+                  )}
+                </td>
+                {questions.map((q) => (
+                  <MetricCells key={q.id} metric={row.metrics[q.id]} />
+                ))}
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>

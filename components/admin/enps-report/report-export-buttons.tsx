@@ -55,12 +55,16 @@ export function CompanyReportExportButtons({
   questionText,
   businessUnits,
   trend,
+  segmentLabel = "事業部",
+  scopeLabel = "会社",
 }: {
   companyName: string;
   yearMonth: string;
   questionText: string;
   businessUnits: BusinessUnitRow[];
   trend: CompanyTrendPoint[];
+  segmentLabel?: string;
+  scopeLabel?: string;
 }) {
   const onDownload = () => {
     const lines = buildCompanyReportCsv({
@@ -69,6 +73,8 @@ export function CompanyReportExportButtons({
       questionText,
       businessUnits,
       trend,
+      segmentLabel,
+      scopeLabel,
     });
     downloadUtf8Csv(
       `eNPSレポート_${sanitizeFilenameSegment(companyName)}_${sanitizeFilenameSegment(
