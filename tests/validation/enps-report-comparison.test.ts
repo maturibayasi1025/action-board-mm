@@ -1,9 +1,12 @@
 import type { SnapshotRecord } from "@/lib/admin/enps-report/comparison";
 import {
+  GROUP_REPORT_LABEL,
   buildBusinessUnitBreakdown,
   buildChangeHighlights,
+  buildCompanyBreakdown,
   buildCompanyComparison,
   buildCompanyTrend,
+  companyBreakdownAsBusinessUnitRows,
 } from "@/lib/admin/enps-report/comparison";
 import {
   buildCompanyComparisonCsv,
@@ -45,7 +48,7 @@ describe("buildCompanyComparison", () => {
     });
 
     expect(rows.map((r) => r.company_name)).toEqual([
-      "グループ全体",
+      GROUP_REPORT_LABEL,
       "A社",
       "B社",
     ]);
@@ -147,6 +150,65 @@ describe("buildBusinessUnitBreakdown", () => {
 
     expect(rows[rows.length - 1].business_unit_name).toBe("少人数");
     expect(rows[rows.length - 1].metric.masked).toBe(true);
+  });
+});
+
+describe("buildCompanyBreakdown", () => {
+  const current: SnapshotRecord[] = [
+    snapshot({
+      scope: "group",
+      company_name: "",
+      nps_respondent_base: 0,
+      respondent_count: 20,
+    }),
+    snapshot({
+      company_name: "B社",
+      nps_respondent_base: 10,
+      respondent_count: 8,
+    }),
+    snapshot({
+      company_name: "A社",
+      nps_respondent_base: 40,
+      respondent_count: 6,
+    }),
+    snapshot({
+      company_name: "少人数社",
+      nps_respondent_base: 100,
+      respondent_count: 2,
+    }),
+  ];
+
+  it("会社を eNPS 降順で返し、伏せる対象は末尾に置く", () => {
+    const rows = buildCompanyBreakdown({
+      current,
+      previous: [],
+      questionId: QUESTION,
+    });
+
+    expect(rows.map((r) => r.company_name)).toEqual(["A社", "B社", "少人数社"]);
+    expect(rows[rows.length - 1].metric.masked).toBe(true);
+  });
+
+  it("グループ全体との差を会社行に載せる", () => {
+    const rows = buildCompanyBreakdown({
+      current,
+      previous: [],
+      questionId: QUESTION,
+    });
+
+    const companyA = rows.find((r) => r.company_name === "A社");
+    expect(companyA?.metric.delta_from_group).toBe(40);
+  });
+
+  it("事業部ハイライト部品用に名前を載せ替えられる", () => {
+    const rows = companyBreakdownAsBusinessUnitRows(
+      buildCompanyBreakdown({
+        current,
+        previous: [],
+        questionId: QUESTION,
+      }),
+    );
+    expect(rows[0].business_unit_name).toBe("A社");
   });
 });
 
@@ -341,5 +403,49 @@ describe("CSV出力", () => {
     expect(joined).toContain("【月次推移】");
     expect(joined).toContain("営業");
     expect(joined).toContain("2026-01");
+  });
+
+  it("グループ全体レポートCSVは会社別内訳を出力する", () => {
+    const companies = companyBreakdownAsBusinessUnitRows(
+      buildCompanyBreakdown({
+        current: [snapshot({ company_name: "A社" })],
+        previous: [],
+        questionId: QUESTION,
+      }),
+    );
+
+    const trend = buildCompanyTrend({
+      snapshotsByMonth: [
+        {
+          survey_id: "s1",
+          year_month: "2026-01",
+          records: [
+            snapshot({
+              scope: "group",
+              company_name: "",
+              nps_respondent_base: 5,
+            }),
+          ],
+        },
+      ],
+      companyName: null,
+      questionId: QUESTION,
+    });
+
+    const lines = buildCompanyReportCsv({
+      companyName: GROUP_REPORT_LABEL,
+      yearMonth: "2026-01",
+      questionText: "推奨度",
+      businessUnits: companies,
+      trend,
+      segmentLabel: "会社",
+      scopeLabel: "対象",
+    });
+
+    const joined = lines.join("\n");
+    expect(joined).toContain(`対象,${GROUP_REPORT_LABEL}`);
+    expect(joined).toContain("【会社別】");
+    expect(joined).toContain("A社");
+    expect(joined).toContain("【月次推移】");
   });
 });

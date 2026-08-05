@@ -16,18 +16,17 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { GROUP_REPORT_LABEL } from "@/lib/admin/enps-report/comparison";
 import { isOwner } from "@/lib/utils/isOwner";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { getCompanyReport, listReportSurveys } from "../actions";
+import { getGroupReport, listReportSurveys } from "../actions";
 
 export const runtime = "edge";
 
-export default async function CompanyReportPage({
-  params,
+export default async function GroupReportPage({
   searchParams,
 }: {
-  params: Promise<{ company: string }>;
   searchParams: Promise<{ survey?: string; question?: string }>;
 }) {
   const owner = await isOwner();
@@ -35,9 +34,7 @@ export default async function CompanyReportPage({
     redirect("/");
   }
 
-  const { company } = await params;
   const { survey: surveyParam, question: questionParam } = await searchParams;
-  const companyName = decodeURIComponent(company);
 
   const surveys = await listReportSurveys();
   if (surveys.length === 0) {
@@ -49,7 +46,7 @@ export default async function CompanyReportPage({
       ? surveyParam
       : surveys[0].survey_id;
 
-  const report = await getCompanyReport(surveyId, companyName, questionParam);
+  const report = await getGroupReport(surveyId, questionParam);
   if (!report) {
     notFound();
   }
@@ -67,15 +64,20 @@ export default async function CompanyReportPage({
             <p className="text-sm text-muted-foreground">
               eNPS レポート / {report.survey.year_month}
             </p>
-            <h1 className="text-3xl font-bold">{report.companyName}</h1>
+            <h1 className="text-3xl font-bold">{GROUP_REPORT_LABEL}</h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              全社を合算した集計です。会社ごとの内訳から個別レポートへ進めます。
+            </p>
           </div>
           <div className="flex flex-wrap items-center gap-2 print:hidden">
             <CompanyReportExportButtons
-              companyName={report.companyName}
+              companyName={GROUP_REPORT_LABEL}
               yearMonth={report.survey.year_month}
               questionText={activeQuestion?.question_text ?? ""}
-              businessUnits={report.businessUnits}
+              businessUnits={report.companyRowsAsSegments}
               trend={report.trend}
+              segmentLabel="会社"
+              scopeLabel="対象"
             />
             <Link href={`/admin/enps-surveys/reports?survey=${surveyId}`}>
               <Button variant="outline" size="sm">
@@ -87,7 +89,7 @@ export default async function CompanyReportPage({
 
         <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-end print:hidden">
           <ReportQueryPicker
-            id="company-report-survey"
+            id="group-report-survey"
             label="対象月"
             paramName="survey"
             value={surveyId}
@@ -97,7 +99,7 @@ export default async function CompanyReportPage({
             }))}
           />
           <ReportQueryPicker
-            id="company-report-question"
+            id="group-report-question"
             label="スコア質問"
             paramName="question"
             value={report.activeQuestionId}
@@ -121,6 +123,7 @@ export default async function CompanyReportPage({
           <CompanyReportSummary
             metric={activeMetric}
             previousYearMonth={report.previousSurvey?.year_month ?? null}
+            showGroupDelta={false}
           />
         </section>
 
@@ -143,13 +146,20 @@ export default async function CompanyReportPage({
 
         <Card>
           <CardHeader>
-            <CardTitle>事業部別</CardTitle>
+            <CardTitle>会社別</CardTitle>
             <CardDescription>
-              eNPS の高い順に並べています（回答者ベース）。
+              eNPS
+              の高い順に並べています（回答者ベース）。会社名から個別レポートを開けます。
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <BusinessUnitHeatmap rows={report.businessUnits} />
+            <BusinessUnitHeatmap
+              rows={report.companyRowsAsSegments}
+              segmentLabel="会社"
+              emptyText="この月の会社別スナップショットがありません。"
+              surveyId={report.survey.survey_id}
+              linkSegments
+            />
           </CardContent>
         </Card>
 
@@ -157,7 +167,7 @@ export default async function CompanyReportPage({
           <CardHeader>
             <CardTitle>前月からの変化</CardTitle>
             <CardDescription>
-              回答者5人未満の事業部は、個人が推測されうるため対象外です。
+              回答者5人未満の会社は、個人が推測されうるため対象外です。
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -165,6 +175,7 @@ export default async function CompanyReportPage({
               improved={report.highlights.improved}
               declined={report.highlights.declined}
               hasPreviousMonth={report.previousSurvey !== null}
+              segmentLabel="会社"
             />
           </CardContent>
         </Card>
@@ -173,13 +184,14 @@ export default async function CompanyReportPage({
           <CardHeader>
             <CardTitle>自由記述の分析</CardTitle>
             <CardDescription>
-              テーマ分類と改善アクション案はAIによる生成です。
+              テーマ分類と改善アクション案はAIによる生成です。グループ全体の自由記述をまとめて分析しています。
             </CardDescription>
           </CardHeader>
           <CardContent>
             <AiAnalysisPanel
               summary={report.aiSummary}
               responsesHref={`/admin/enps-surveys/${report.survey.survey_id}`}
+              emptyScopeLabel="グループ全体・この月"
             />
           </CardContent>
         </Card>

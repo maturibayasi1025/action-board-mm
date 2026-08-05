@@ -3,13 +3,18 @@
 import type { EnpsAiSummaryRecord } from "@/lib/admin/enps-report/ai-summary-types";
 import {
   type BusinessUnitRow,
+  type CompanyBreakdownRow,
   type CompanyComparisonRow,
   type CompanyTrendPoint,
+  GROUP_AI_SUMMARY_COMPANY_NAME,
+  GROUP_REPORT_LABEL,
   type SnapshotRecord,
   buildBusinessUnitBreakdown,
   buildChangeHighlights,
+  buildCompanyBreakdown,
   buildCompanyComparison,
   buildCompanyTrend,
+  companyBreakdownAsBusinessUnitRows,
 } from "@/lib/admin/enps-report/comparison";
 import { fetchAllRows } from "@/lib/admin/enps-report/fetch-all";
 import { createServiceClient } from "@/lib/supabase/server";
@@ -258,6 +263,103 @@ export async function getCompanyReport(
     highlights: buildChangeHighlights(businessUnits),
     trend,
     aiSummary: await getAiSummary(survey.survey_id, companyName),
+  };
+}
+
+export type GroupReportResult = {
+  survey: ReportSurvey;
+  previousSurvey: ReportSurvey | null;
+  label: typeof GROUP_REPORT_LABEL;
+  questions: ReportScoreQuestion[];
+  activeQuestionId: string;
+  comparisonRow: CompanyComparisonRow | null;
+  companies: CompanyBreakdownRow[];
+  /** ヒートマップ／変化ハイライト部品へ渡すための会社内訳 */
+  companyRowsAsSegments: BusinessUnitRow[];
+  highlights: ReturnType<typeof buildChangeHighlights>;
+  trend: CompanyTrendPoint[];
+  aiSummary: EnpsAiSummaryRecord | null;
+};
+
+/**
+ * グループ全体の詳細レポート。会社別ページと同じ構成で、内訳は会社単位。
+ */
+export async function getGroupReport(
+  surveyId: string,
+  questionId?: string,
+): Promise<GroupReportResult | null> {
+  await requireOwner();
+
+  const [surveys, questions] = await Promise.all([
+    listReportSurveys(),
+    listReportScoreQuestions(),
+  ]);
+
+  const index = surveys.findIndex((s) => s.survey_id === surveyId);
+  if (index === -1 || questions.length === 0) {
+    return null;
+  }
+
+  const survey = surveys[index];
+  const previousSurvey = surveys[index + 1] ?? null;
+  const activeQuestionId =
+    questionId && questions.some((q) => q.id === questionId)
+      ? questionId
+      : questions[0].id;
+
+  const trendSurveys = surveys.slice(index, index + TREND_MONTHS).reverse();
+  const snapshots = await fetchSnapshotsForSurveys(
+    trendSurveys.map((s) => s.survey_id),
+  );
+
+  const current = snapshots.get(survey.survey_id) ?? [];
+  const previous = previousSurvey
+    ? (snapshots.get(previousSurvey.survey_id) ?? [])
+    : [];
+
+  const hasGroup = current.some((r) => r.scope === "group");
+  if (!hasGroup) {
+    return null;
+  }
+
+  const comparison = buildCompanyComparison({
+    current,
+    previous,
+    scoreQuestionIds: questions.map((q) => q.id),
+  });
+
+  const companies = buildCompanyBreakdown({
+    current,
+    previous,
+    questionId: activeQuestionId,
+  });
+  const companyRowsAsSegments = companyBreakdownAsBusinessUnitRows(companies);
+
+  const trend = buildCompanyTrend({
+    snapshotsByMonth: trendSurveys.map((s) => ({
+      survey_id: s.survey_id,
+      year_month: s.year_month,
+      records: snapshots.get(s.survey_id) ?? [],
+    })),
+    companyName: null,
+    questionId: activeQuestionId,
+  });
+
+  return {
+    survey,
+    previousSurvey,
+    label: GROUP_REPORT_LABEL,
+    questions,
+    activeQuestionId,
+    comparisonRow: comparison.find((r) => r.is_group) ?? null,
+    companies,
+    companyRowsAsSegments,
+    highlights: buildChangeHighlights(companyRowsAsSegments),
+    trend,
+    aiSummary: await getAiSummary(
+      survey.survey_id,
+      GROUP_AI_SUMMARY_COMPANY_NAME,
+    ),
   };
 }
 

@@ -5,12 +5,17 @@
 
 import {
   type AiSummaryConfig,
+  type FreeTextInput,
   type QuestionForAi,
   buildAiSummaryInputsByCompany,
   generateEnpsAiSummary,
 } from "@/lib/admin/enps-report/ai-summary";
 import { shouldGenerateAiSummary } from "@/lib/admin/enps-report/ai-summary-types";
 import type { SurveyForSnapshot } from "@/lib/admin/enps-report/build-and-store";
+import {
+  GROUP_AI_SUMMARY_COMPANY_NAME,
+  GROUP_REPORT_LABEL,
+} from "@/lib/admin/enps-report/comparison";
 import {
   fetchScoreResponsesForSurvey,
   fetchSnapshotTargets,
@@ -66,51 +71,84 @@ export async function buildAndStoreAiSummaries(
   const results: AiSummaryBuildResult[] = [];
 
   for (const [companyName, inputs] of Array.from(inputsByCompany.entries())) {
-    if (!shouldGenerateAiSummary(inputs.length)) {
-      results.push({
+    results.push(
+      await storeAiSummaryForScope({
+        supabase,
+        survey,
+        config,
         companyName,
-        inputCount: inputs.length,
-        stored: false,
-        reason: "自由記述が少なく個人が特定されうるため生成しません",
-      });
-      continue;
-    }
-
-    const payload = await generateEnpsAiSummary({
-      config,
-      companyName,
-      yearMonth: survey.year_month,
-      inputs,
-    });
-
-    if (!payload) {
-      results.push({
-        companyName,
-        inputCount: inputs.length,
-        stored: false,
-        reason: "AIの応答を解釈できませんでした",
-      });
-      continue;
-    }
-
-    const { error } = await supabase.from("enps_report_ai_summaries").upsert(
-      {
-        survey_id: survey.id,
-        company_name: companyName,
-        model: config.model,
-        payload,
-        input_response_count: inputs.length,
-        generated_at: new Date().toISOString(),
-      },
-      { onConflict: "survey_id,company_name" },
+        promptLabel: companyName,
+        inputs,
+      }),
     );
-
-    if (error) {
-      throw new Error(`AI分析結果の保存に失敗しました: ${error.message}`);
-    }
-
-    results.push({ companyName, inputCount: inputs.length, stored: true });
   }
 
+  // 会社横断の全体レポート用。DB 上は company_name="" で保存する。
+  const groupInputs = Array.from(inputsByCompany.values()).flat();
+  results.push(
+    await storeAiSummaryForScope({
+      supabase,
+      survey,
+      config,
+      companyName: GROUP_AI_SUMMARY_COMPANY_NAME,
+      promptLabel: GROUP_REPORT_LABEL,
+      inputs: groupInputs,
+    }),
+  );
+
   return results;
+}
+
+async function storeAiSummaryForScope(params: {
+  supabase: SupabaseClient<Database>;
+  survey: SurveyForSnapshot;
+  config: AiSummaryConfig;
+  companyName: string;
+  promptLabel: string;
+  inputs: FreeTextInput[];
+}): Promise<AiSummaryBuildResult> {
+  const { supabase, survey, config, companyName, promptLabel, inputs } = params;
+
+  if (!shouldGenerateAiSummary(inputs.length)) {
+    return {
+      companyName: promptLabel,
+      inputCount: inputs.length,
+      stored: false,
+      reason: "自由記述が少なく個人が特定されうるため生成しません",
+    };
+  }
+
+  const payload = await generateEnpsAiSummary({
+    config,
+    companyName: promptLabel,
+    yearMonth: survey.year_month,
+    inputs,
+  });
+
+  if (!payload) {
+    return {
+      companyName: promptLabel,
+      inputCount: inputs.length,
+      stored: false,
+      reason: "AIの応答を解釈できませんでした",
+    };
+  }
+
+  const { error } = await supabase.from("enps_report_ai_summaries").upsert(
+    {
+      survey_id: survey.id,
+      company_name: companyName,
+      model: config.model,
+      payload,
+      input_response_count: inputs.length,
+      generated_at: new Date().toISOString(),
+    },
+    { onConflict: "survey_id,company_name" },
+  );
+
+  if (error) {
+    throw new Error(`AI分析結果の保存に失敗しました: ${error.message}`);
+  }
+
+  return { companyName: promptLabel, inputCount: inputs.length, stored: true };
 }

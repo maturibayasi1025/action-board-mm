@@ -1,5 +1,5 @@
 /**
- * 保存済みスナップショットから、会社横断比較と会社別レポートの表示データを組み立てる。
+ * 保存済みスナップショットから、会社横断比較と会社別・グループ全体レポートの表示データを組み立てる。
  * DB アクセスを含まない純関数なので、集計の意味づけはここだけを読めば追える。
  */
 
@@ -8,6 +8,18 @@ import {
   shouldMaskForPrivacy,
 } from "@/lib/admin/enps-report/build-snapshot";
 import { computeResponseRate } from "@/lib/admin/enps-report/nps";
+
+/** 画面・CSVに出すグループ全体の表示名 */
+export const GROUP_REPORT_LABEL = "グループ全体";
+
+/** グループ全体レポートの URL セグメント（`/reports/[company]` と衝突しない固定パス） */
+export const GROUP_REPORT_SLUG = "group";
+
+/**
+ * AI 要約テーブル上のグループ全体キー。
+ * `enps_report_ai_summaries.company_name` は空文字がグループ全体を表す。
+ */
+export const GROUP_AI_SUMMARY_COMPANY_NAME = "";
 
 export type SnapshotRecord = {
   survey_id: string;
@@ -146,7 +158,7 @@ export function buildCompanyComparison(params: {
   const groupMetrics = buildMetrics("group", "");
   if (Object.keys(groupMetrics).length > 0) {
     rows.push({
-      company_name: "グループ全体",
+      company_name: GROUP_REPORT_LABEL,
       is_group: true,
       metrics: groupMetrics,
     });
@@ -174,6 +186,30 @@ export type BusinessUnitRow = {
   metric: QuestionMetric;
 };
 
+export type CompanyBreakdownRow = {
+  company_name: string;
+  metric: QuestionMetric;
+};
+
+function sortByNpsThenName<T extends { metric: QuestionMetric; name: string }>(
+  rows: T[],
+): T[] {
+  return [...rows].sort((a, b) => {
+    if (a.metric.masked !== b.metric.masked) {
+      return a.metric.masked ? 1 : -1;
+    }
+    const aNps = a.metric.nps_respondent_base;
+    const bNps = b.metric.nps_respondent_base;
+    if (aNps === null && bNps === null) {
+      return a.name.localeCompare(b.name, "ja");
+    }
+    if (aNps === null) return 1;
+    if (bNps === null) return -1;
+    if (aNps !== bNps) return bNps - aNps;
+    return a.name.localeCompare(b.name, "ja");
+  });
+}
+
 /**
  * 会社内の事業部を、指定したスコア質問の eNPS 降順に並べる。
  * 回答者が少なく伏せる対象の行は末尾にまとめ、上位・下位の判断材料に混ぜない。
@@ -200,6 +236,7 @@ export function buildBusinessUnitBreakdown(params: {
     )
     .map((record) => ({
       business_unit_name: record.business_unit_name,
+      name: record.business_unit_name,
       metric: toMetric({
         record,
         previous: previousByKey.get(keyOf(record)),
@@ -207,20 +244,38 @@ export function buildBusinessUnitBreakdown(params: {
       }),
     }));
 
-  return rows.sort((a, b) => {
-    if (a.metric.masked !== b.metric.masked) {
-      return a.metric.masked ? 1 : -1;
-    }
-    const aNps = a.metric.nps_respondent_base;
-    const bNps = b.metric.nps_respondent_base;
-    if (aNps === null && bNps === null) {
-      return a.business_unit_name.localeCompare(b.business_unit_name, "ja");
-    }
-    if (aNps === null) return 1;
-    if (bNps === null) return -1;
-    if (aNps !== bNps) return bNps - aNps;
-    return a.business_unit_name.localeCompare(b.business_unit_name, "ja");
-  });
+  return sortByNpsThenName(rows).map(({ name: _name, ...row }) => row);
+}
+
+/**
+ * グループ全体レポート用に、各会社を指定したスコア質問の eNPS 降順に並べる。
+ * 会社別レポートの事業部内訳と同じ読み方になるよう、伏せる対象は末尾に置く。
+ */
+export function buildCompanyBreakdown(params: {
+  current: SnapshotRecord[];
+  previous: SnapshotRecord[];
+  questionId: string;
+}): CompanyBreakdownRow[] {
+  const { current, previous, questionId } = params;
+  const previousByKey = indexByKey(previous);
+
+  const groupCurrent = current.find(
+    (r) => r.scope === "group" && r.question_id === questionId,
+  );
+
+  const rows = current
+    .filter((r) => r.scope === "company" && r.question_id === questionId)
+    .map((record) => ({
+      company_name: record.company_name,
+      name: record.company_name,
+      metric: toMetric({
+        record,
+        previous: previousByKey.get(keyOf(record)),
+        groupCurrent,
+      }),
+    }));
+
+  return sortByNpsThenName(rows).map(({ name: _name, ...row }) => row);
 }
 
 export type BusinessUnitChange = {
@@ -231,8 +286,9 @@ export type BusinessUnitChange = {
 };
 
 /**
- * 前月比の変化が大きい事業部を、改善側と悪化側に分けて返す。
- * 伏せる対象の事業部は個人が推測されうるため含めない。
+ * 前月比の変化が大きい区分を、改善側と悪化側に分けて返す。
+ * 伏せる対象は個人が推測されうるため含めない。
+ * 事業部・会社どちらの内訳でも、名前を `business_unit_name` に載せて再利用する。
  */
 export function buildChangeHighlights(
   rows: BusinessUnitRow[],
@@ -268,6 +324,16 @@ export function buildChangeHighlights(
     .slice(0, limit);
 
   return { improved, declined };
+}
+
+/** 会社別内訳を、既存の事業部ハイライト／ヒートマップ部品に渡せる形へ変換する */
+export function companyBreakdownAsBusinessUnitRows(
+  rows: CompanyBreakdownRow[],
+): BusinessUnitRow[] {
+  return rows.map((row) => ({
+    business_unit_name: row.company_name,
+    metric: row.metric,
+  }));
 }
 
 export type CompanyTrendPoint = {

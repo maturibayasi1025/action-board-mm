@@ -122,11 +122,26 @@ export function buildCompanyReportCsv(params: {
   questionText: string;
   businessUnits: BusinessUnitRow[];
   trend: CompanyTrendPoint[];
+  /** 内訳の列名。会社別は「事業部」、グループ全体は「会社」 */
+  segmentLabel?: string;
+  /** 内訳セクション見出し。既定は【{segmentLabel}別】 */
+  segmentSectionTitle?: string;
+  /** 先頭行のラベル。既定は「会社」 */
+  scopeLabel?: string;
 }): string[] {
-  const { companyName, yearMonth, questionText, businessUnits, trend } = params;
+  const {
+    companyName,
+    yearMonth,
+    questionText,
+    businessUnits,
+    trend,
+    segmentLabel = "事業部",
+    segmentSectionTitle = `【${segmentLabel}別】`,
+    scopeLabel = "会社",
+  } = params;
 
   const unitHeader = toLine([
-    "事業部",
+    segmentLabel,
     "eNPS(回答者ベース)",
     "前月差",
     "eNPS(未回答0点補完)",
@@ -193,11 +208,11 @@ export function buildCompanyReportCsv(params: {
   );
 
   return [
-    toLine(["会社", companyName]),
+    toLine([scopeLabel, companyName]),
     toLine(["対象年月", yearMonth]),
     toLine(["スコア質問", questionText]),
     "",
-    toLine(["【事業部別】"]),
+    toLine([segmentSectionTitle]),
     unitHeader,
     ...unitLines,
     "",

@@ -2,6 +2,7 @@ import type {
   CompanyComparisonRow,
   QuestionMetric,
 } from "@/lib/admin/enps-report/comparison";
+import { GROUP_REPORT_SLUG } from "@/lib/admin/enps-report/comparison";
 import {
   deltaToneClass,
   formatMetricDelta,
@@ -112,7 +113,12 @@ export function CompanyComparisonTable({
             >
               <td className="sticky left-0 z-[1] bg-background py-2 px-3 whitespace-nowrap">
                 {row.is_group ? (
-                  row.company_name
+                  <Link
+                    href={`/admin/enps-surveys/reports/${GROUP_REPORT_SLUG}?survey=${surveyId}`}
+                    className="text-primary underline underline-offset-2 hover:no-underline"
+                  >
+                    {row.company_name}
+                  </Link>
                 ) : (
                   <Link
                     href={`/admin/enps-surveys/reports/${encodeURIComponent(

@@ -3,7 +3,8 @@ pre-commit:
     biome:
       glob: '*.{js,ts,jsx,tsx}'
       env:
-        PATH: /opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin
+        # Homebrew / システムに加え、nvm や実行環境の node も拾えるようにする
+        PATH: /opt/homebrew/bin:/usr/local/bin:/home/ubuntu/.nvm/versions/node/v22.22.2/bin:/exec-daemon:/usr/bin:/bin
       run: node_modules/.bin/biome check --write {staged_files}
       stage_fixed: true
 
