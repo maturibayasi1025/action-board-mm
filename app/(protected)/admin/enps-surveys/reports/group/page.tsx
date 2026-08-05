@@ -158,6 +158,7 @@ export default async function GroupReportPage({
               segmentLabel="会社"
               emptyText="この月の会社別スナップショットがありません。"
               surveyId={report.survey.survey_id}
+              questionId={report.activeQuestionId}
               linkSegments
             />
           </CardContent>
