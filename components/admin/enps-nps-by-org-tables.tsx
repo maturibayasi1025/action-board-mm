@@ -186,7 +186,7 @@ function OrgNpsTable({
                   />
                 </td>
                 <td className="py-2 px-3 text-right font-semibold tabular-nums">
-                  {row.respondent_count === 0
+                  {row.nps === null
                     ? "—"
                     : `${row.nps > 0 ? "+" : ""}${row.nps}`}
                 </td>

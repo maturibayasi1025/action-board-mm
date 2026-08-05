@@ -5,17 +5,33 @@ import {
   dedupeLatestScorePerUser,
 } from "@/lib/admin/enps-monthly-series";
 import {
+  fetchAllPrivateUserIds,
+  fetchOrgMapForUserIds,
+} from "@/lib/admin/enps-report/data-access";
+import { fetchAllRows } from "@/lib/admin/enps-report/fetch-all";
+import {
   filterUserIdsByOrg,
   isEnpsSurveyEnded,
   listImputedUserIdsForQuestion,
 } from "@/lib/admin/enps-unanswered-imputation";
-import {
-  type PrivateUserOrgRow,
-  companyAndBusinessUnitFromPrivateUserRow,
-} from "@/lib/admin/private-user-org";
 import { createServiceClient } from "@/lib/supabase/server";
 import { fetchGlobalExcludedUserIds } from "@/lib/survey/unanswered-candidates";
 import { requireOwner } from "@/lib/utils/isOwner";
+
+type MonthlyResponseRow = {
+  survey_id: string;
+  user_id: string;
+  score_value: number | null;
+  is_late_submission: boolean | null;
+  created_at: string;
+};
+
+type SingleSurveyResponseRow = {
+  user_id: string;
+  score_value: number | null;
+  is_late_submission: boolean | null;
+  created_at: string;
+};
 
 export type EnpsMonthlyPoint = {
   survey_id: string;
@@ -67,30 +83,32 @@ export async function getEnpsMonthlyTrendsForQuestion(
 
   const now = new Date();
   const excludedUserIds = await fetchGlobalExcludedUserIds(supabase);
-  const { data: allPrivateIds } = await supabase
-    .from("private_users")
-    .select("id");
+  const allPrivateIds = await fetchAllPrivateUserIds(supabase);
   const eligibleUserIds = new Set(
-    (allPrivateIds ?? [])
-      .map((r) => r.id)
-      .filter((id) => !excludedUserIds.has(id)),
+    allPrivateIds.filter((id) => !excludedUserIds.has(id)),
   );
 
   const surveyIds = surveys.map((s) => s.id);
 
-  const { data: allResponses, error } = await supabase
-    .from("enps_responses")
-    .select("survey_id, user_id, score_value, is_late_submission, created_at")
-    .in("survey_id", surveyIds)
-    .eq("question_id", questionId)
-    .not("score_value", "is", null);
-
-  if (error) {
+  let allResponses: MonthlyResponseRow[];
+  try {
+    allResponses = await fetchAllRows<MonthlyResponseRow>((from, to) =>
+      supabase
+        .from("enps_responses")
+        .select(
+          "survey_id, user_id, score_value, is_late_submission, created_at",
+        )
+        .in("survey_id", surveyIds)
+        .eq("question_id", questionId)
+        .not("score_value", "is", null)
+        .range(from, to),
+    );
+  } catch (error) {
     console.error("getEnpsMonthlyTrendsForQuestion responses error:", error);
     return [];
   }
 
-  const onTimeRows = (allResponses || []).flatMap((r) => {
+  const onTimeRows = allResponses.flatMap((r) => {
     if (
       r.score_value === null ||
       r.user_id == null ||
@@ -116,61 +134,23 @@ export async function getEnpsMonthlyTrendsForQuestion(
   >();
   if (orgFilter) {
     const userIds = Array.from(new Set(onTimeRows.map((r) => r.user_id)));
-    if (userIds.length > 0) {
-      const { data: users } = await supabase
-        .from("private_users")
-        .select(
-          `
-        id,
-        business_units (
-          name,
-          display_order,
-          companies (
-            name,
-            display_order
-          )
-        )
-      `,
-        )
-        .in("id", userIds);
-
-      for (const u of users || []) {
-        const { company_name, business_unit_name } =
-          companyAndBusinessUnitFromPrivateUserRow(u as PrivateUserOrgRow);
-        userOrgMap.set(u.id, {
-          company: company_name.trim(),
-          bu: business_unit_name.trim(),
-        });
-      }
+    const respondentOrgs = await fetchOrgMapForUserIds(supabase, userIds);
+    for (const [id, org] of Array.from(respondentOrgs.entries())) {
+      userOrgMap.set(id, {
+        company: org.company_name.trim(),
+        bu: org.business_unit_name.trim(),
+      });
     }
 
-    const eligibleIds = Array.from(eligibleUserIds);
-    if (eligibleIds.length > 0) {
-      const { data: eligibleUsers } = await supabase
-        .from("private_users")
-        .select(
-          `
-        id,
-        business_units (
-          name,
-          display_order,
-          companies (
-            name,
-            display_order
-          )
-        )
-      `,
-        )
-        .in("id", eligibleIds);
-
-      for (const u of eligibleUsers || []) {
-        const { company_name, business_unit_name } =
-          companyAndBusinessUnitFromPrivateUserRow(u as PrivateUserOrgRow);
-        eligibleOrgMap.set(u.id, {
-          company_name: company_name.trim(),
-          business_unit_name: business_unit_name.trim(),
-        });
-      }
+    const eligibleOrgs = await fetchOrgMapForUserIds(
+      supabase,
+      Array.from(eligibleUserIds),
+    );
+    for (const [id, org] of Array.from(eligibleOrgs.entries())) {
+      eligibleOrgMap.set(id, {
+        company_name: org.company_name.trim(),
+        business_unit_name: org.business_unit_name.trim(),
+      });
     }
   }
 
@@ -289,20 +269,24 @@ export async function getEnpsMonthlyScoreExportRows(
     return { ok: false, error: "アンケートが見つからないか、無効です。" };
   }
 
-  const { data: allResponses, error: respError } = await supabase
-    .from("enps_responses")
-    .select("user_id, score_value, is_late_submission, created_at")
-    .eq("survey_id", surveyId)
-    .eq("question_id", questionId)
-    .not("score_value", "is", null);
-
-  if (respError) {
-    console.error("getEnpsMonthlyScoreExportRows:", respError);
+  let allResponses: SingleSurveyResponseRow[];
+  try {
+    allResponses = await fetchAllRows<SingleSurveyResponseRow>((from, to) =>
+      supabase
+        .from("enps_responses")
+        .select("user_id, score_value, is_late_submission, created_at")
+        .eq("survey_id", surveyId)
+        .eq("question_id", questionId)
+        .not("score_value", "is", null)
+        .range(from, to),
+    );
+  } catch (error) {
+    console.error("getEnpsMonthlyScoreExportRows:", error);
     return { ok: false, error: "回答の取得に失敗しました。" };
   }
 
   const now = new Date();
-  const onTimeRows = (allResponses || []).flatMap((r) => {
+  const onTimeRows = allResponses.flatMap((r) => {
     if (r.score_value === null || r.user_id == null || r.is_late_submission) {
       return [];
     }
@@ -326,72 +310,30 @@ export async function getEnpsMonthlyScoreExportRows(
   >();
 
   const excludedUserIds = await fetchGlobalExcludedUserIds(supabase);
-  const { data: allPrivateIds } = await supabase
-    .from("private_users")
-    .select("id");
+  const allPrivateIds = await fetchAllPrivateUserIds(supabase);
   const eligibleUserIds = new Set(
-    (allPrivateIds ?? [])
-      .map((r) => r.id)
-      .filter((id) => !excludedUserIds.has(id)),
+    allPrivateIds.filter((id) => !excludedUserIds.has(id)),
   );
 
   if (orgFilter) {
     const userIds = Array.from(new Set(onTimeRows.map((r) => r.user_id)));
-    if (userIds.length > 0) {
-      const { data: users } = await supabase
-        .from("private_users")
-        .select(
-          `
-          id,
-          business_units (
-            name,
-            display_order,
-            companies (
-              name,
-              display_order
-            )
-          )
-        `,
-        )
-        .in("id", userIds);
-
-      for (const u of users || []) {
-        const { company_name, business_unit_name } =
-          companyAndBusinessUnitFromPrivateUserRow(u as PrivateUserOrgRow);
-        userOrgMap.set(u.id, {
-          company: company_name.trim(),
-          bu: business_unit_name.trim(),
-        });
-      }
+    const respondentOrgs = await fetchOrgMapForUserIds(supabase, userIds);
+    for (const [id, org] of Array.from(respondentOrgs.entries())) {
+      userOrgMap.set(id, {
+        company: org.company_name.trim(),
+        bu: org.business_unit_name.trim(),
+      });
     }
 
-    const eligibleIds = Array.from(eligibleUserIds);
-    if (eligibleIds.length > 0) {
-      const { data: eligibleUsers } = await supabase
-        .from("private_users")
-        .select(
-          `
-          id,
-          business_units (
-            name,
-            display_order,
-            companies (
-              name,
-              display_order
-            )
-          )
-        `,
-        )
-        .in("id", eligibleIds);
-
-      for (const u of eligibleUsers || []) {
-        const { company_name, business_unit_name } =
-          companyAndBusinessUnitFromPrivateUserRow(u as PrivateUserOrgRow);
-        eligibleOrgMap.set(u.id, {
-          company_name: company_name.trim(),
-          business_unit_name: business_unit_name.trim(),
-        });
-      }
+    const eligibleOrgs = await fetchOrgMapForUserIds(
+      supabase,
+      Array.from(eligibleUserIds),
+    );
+    for (const [id, org] of Array.from(eligibleOrgs.entries())) {
+      eligibleOrgMap.set(id, {
+        company_name: org.company_name.trim(),
+        business_unit_name: org.business_unit_name.trim(),
+      });
     }
   }
 
@@ -474,34 +416,13 @@ export async function getEnpsMonthlyScoreExportRows(
     { user_name: string; company_name: string; business_unit_name: string }
   >();
 
-  if (allIds.length > 0) {
-    const { data: userRows } = await supabase
-      .from("private_users")
-      .select(
-        `
-        id,
-        name,
-        business_units (
-          name,
-          display_order,
-          companies (
-            name,
-            display_order
-          )
-        )
-      `,
-      )
-      .in("id", allIds);
-
-    for (const u of userRows || []) {
-      const { company_name, business_unit_name } =
-        companyAndBusinessUnitFromPrivateUserRow(u as PrivateUserOrgRow);
-      nameOrgByUser.set(u.id, {
-        user_name: u.name?.trim() ?? "",
-        company_name: company_name.trim(),
-        business_unit_name: business_unit_name.trim(),
-      });
-    }
+  const exportOrgs = await fetchOrgMapForUserIds(supabase, allIds);
+  for (const [id, org] of Array.from(exportOrgs.entries())) {
+    nameOrgByUser.set(id, {
+      user_name: org.name,
+      company_name: org.company_name.trim(),
+      business_unit_name: org.business_unit_name.trim(),
+    });
   }
 
   const rows: EnpsMonthlyScoreExportRow[] = merged.map((r) => {

@@ -5,6 +5,7 @@ import {
   type EnpsResponseForOrgAggregate,
   aggregateNpsByBusinessUnitForScoreQuestions,
 } from "@/lib/admin/enps-nps-by-business-unit";
+import { computeNps } from "@/lib/admin/enps-report/nps";
 import {
   buildImputedDrilldownRows,
   buildImputedOrgAggregateRows,
@@ -213,7 +214,7 @@ export async function getSurveyResponses(surveyId: string) {
     promoters: number;
     passives: number;
     detractors: number;
-    nps: number;
+    nps: number | null;
   };
 
   const npsData: Record<string, NpsBlock> = {};
@@ -243,18 +244,13 @@ export async function getSurveyResponses(surveyId: string) {
         ),
       );
     }
-    const promoters = scores.filter((s) => s >= 9).length;
-    const passives = scores.filter((s) => s >= 7 && s < 9).length;
-    const detractors = scores.filter((s) => s < 7).length;
-    const total = scores.length;
-    const nps =
-      total > 0 ? Math.round(((promoters - detractors) / total) * 100) : 0;
+    const breakdown = computeNps(scores);
     npsData[question.id] = {
       scores,
-      promoters,
-      passives,
-      detractors,
-      nps,
+      promoters: breakdown.promoters,
+      passives: breakdown.passives,
+      detractors: breakdown.detractors,
+      nps: breakdown.nps,
     };
   }
 
@@ -266,18 +262,13 @@ export async function getSurveyResponses(surveyId: string) {
         r.is_late_submission,
     );
     const scores = late.map((r) => r.score_value as number);
-    const promoters = scores.filter((s) => s >= 9).length;
-    const passives = scores.filter((s) => s >= 7 && s < 9).length;
-    const detractors = scores.filter((s) => s < 7).length;
-    const total = scores.length;
-    const nps =
-      total > 0 ? Math.round(((promoters - detractors) / total) * 100) : 0;
+    const breakdown = computeNps(scores);
     lateNpsData[question.id] = {
       scores,
-      promoters,
-      passives,
-      detractors,
-      nps,
+      promoters: breakdown.promoters,
+      passives: breakdown.passives,
+      detractors: breakdown.detractors,
+      nps: breakdown.nps,
     };
   }
 
