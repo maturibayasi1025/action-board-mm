@@ -156,5 +156,7 @@ npm run build-enps-report -- --year-month 2026-07 --force
 レポートは保存済みのスナップショットだけを表示するため、初回は手動での作成が必要です。下記の「初回セットアップ」を参照してください。
 
 ### AI 分析の欄が空のまま
-- `ENPS_REPORT_AI_API_KEY` が設定されているか確認（未設定ならログに「AI分析はスキップします」と出ます）
+- **Repository Secret**（Settings → Secrets and variables → Actions）に `ENPS_REPORT_AI_API_KEY` があるか確認する。未設定ならワークフローログに「AI分析はスキップします」と出ます
+- Cloudflare Pages / Vercel の **Preview・Production 環境変数** にキーを設定しても、レポート画面の AI 分析には使われません（生成は GitHub Actions 上でのみ行われます）
+- キーを追加・変更したあとは、対象月を指定して `force` 付きで `Build Monthly eNPS Report` を再実行する必要があります（既存スナップショットがある月は、再実行しないと AI 分析だけ追加されません）
 - 対象会社の自由記述が5件未満の場合、個人が特定されうるため意図的に生成していません
