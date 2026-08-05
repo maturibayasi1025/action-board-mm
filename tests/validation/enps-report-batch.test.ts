@@ -1,6 +1,7 @@
 import {
   buildAiSummaryInputsByCompany,
   buildAiSummaryPrompt,
+  buildChatCompletionsBody,
   parseAiSummaryPayload,
   resolveAiSummaryConfig,
 } from "@/lib/admin/enps-report/ai-summary";
@@ -306,5 +307,56 @@ describe("resolveAiSummaryConfig", () => {
 
     expect(config?.baseUrl).toBe("https://example.com/v1");
     expect(config?.model).toBeTruthy();
+  });
+
+  it("temperature は既定で null（推論モデルが既定値以外を受け付けないため）", () => {
+    const config = resolveAiSummaryConfig({ ENPS_REPORT_AI_API_KEY: "key" });
+    expect(config?.temperature).toBeNull();
+  });
+
+  it("temperature を明示すればその値を使う", () => {
+    const config = resolveAiSummaryConfig({
+      ENPS_REPORT_AI_API_KEY: "key",
+      ENPS_REPORT_AI_TEMPERATURE: "0.2",
+    });
+    expect(config?.temperature).toBe(0.2);
+  });
+
+  it("数値として解釈できない temperature は無視する", () => {
+    const config = resolveAiSummaryConfig({
+      ENPS_REPORT_AI_API_KEY: "key",
+      ENPS_REPORT_AI_TEMPERATURE: "低め",
+    });
+    expect(config?.temperature).toBeNull();
+  });
+});
+
+describe("buildChatCompletionsBody", () => {
+  const baseConfig = {
+    apiKey: "key",
+    model: "gpt-5.6",
+    baseUrl: "https://api.openai.com/v1",
+  };
+
+  it("temperature が null なら送信しない（GPT-5系や o系は既定値以外で400になる）", () => {
+    const body = buildChatCompletionsBody({
+      config: { ...baseConfig, temperature: null },
+      system: "system",
+      user: "user",
+    });
+
+    expect(body).not.toHaveProperty("temperature");
+    expect(body.model).toBe("gpt-5.6");
+    expect(body.response_format).toEqual({ type: "json_object" });
+  });
+
+  it("temperature が指定されていれば送信する", () => {
+    const body = buildChatCompletionsBody({
+      config: { ...baseConfig, model: "gpt-4o-mini", temperature: 0.2 },
+      system: "system",
+      user: "user",
+    });
+
+    expect(body.temperature).toBe(0.2);
   });
 });
