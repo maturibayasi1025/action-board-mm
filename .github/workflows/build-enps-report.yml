@@ -10,6 +10,11 @@ on:
         description: '対象年月（YYYY-MM）。空なら締切済みで最新のアンケート'
         required: false
         type: string
+      all:
+        description: '過去の全アンケートをまとめて作成する（初回セットアップ用。過去分も現在の所属で集計される点に注意）'
+        required: false
+        default: false
+        type: boolean
       force:
         description: '既存スナップショットを再計算して上書きする'
         required: false
@@ -49,6 +54,7 @@ jobs:
         run: |
           npm run build-enps-report -- \
             ${{ inputs.year_month && format('--year-month {0}', inputs.year_month) || '' }} \
+            ${{ inputs.all && '--all' || '' }} \
             ${{ inputs.force && '--force' || '' }} \
             ${{ inputs.skip_ai && '--skip-ai' || '' }}
 

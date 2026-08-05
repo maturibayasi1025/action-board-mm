@@ -60,16 +60,32 @@ export async function listSurveysForSnapshot(
   );
 }
 
-async function hasExistingSnapshot(
+async function fetchLatestComputedAt(
   supabase: SupabaseClient<Database>,
   surveyId: string,
-): Promise<boolean> {
+): Promise<string | null> {
   const { data } = await supabase
     .from("enps_monthly_snapshots")
-    .select("id")
+    .select("computed_at")
     .eq("survey_id", surveyId)
+    .order("computed_at", { ascending: false })
     .limit(1);
-  return (data ?? []).length > 0;
+  return data?.[0]?.computed_at ?? null;
+}
+
+/**
+ * 締切前に作られたスナップショットは未回答補完を含まない暫定値なので、締切後に作り直す。
+ * これがないと、受付中に一度作ったサーベイが「既存あり」と判定されて確定されないままになる。
+ */
+export function isSnapshotFinalized(params: {
+  computedAt: string | null;
+  endDate: string;
+  surveyEnded: boolean;
+}): boolean {
+  const { computedAt, endDate, surveyEnded } = params;
+  if (computedAt === null) return false;
+  if (!surveyEnded) return true;
+  return new Date(computedAt).getTime() >= new Date(endDate).getTime();
 }
 
 /**
@@ -84,14 +100,20 @@ export async function buildAndStoreSnapshotForSurvey(
   const now = options?.now ?? new Date();
   const surveyEnded = isEnpsSurveyEnded(survey.end_date, now);
 
-  if (!options?.force && (await hasExistingSnapshot(supabase, survey.id))) {
-    return {
-      survey,
-      rowCount: 0,
-      surveyEnded,
-      skipped: true,
-      reason: "既にスナップショットが存在します（--force で再計算できます）",
-    };
+  if (!options?.force) {
+    const computedAt = await fetchLatestComputedAt(supabase, survey.id);
+    if (
+      isSnapshotFinalized({ computedAt, endDate: survey.end_date, surveyEnded })
+    ) {
+      return {
+        survey,
+        rowCount: 0,
+        surveyEnded,
+        skipped: true,
+        reason:
+          "既に確定済みのスナップショットがあります（--force で再計算できます）",
+      };
+    }
   }
 
   const scoreQuestionIds = await fetchActiveScoreQuestionIds(supabase);

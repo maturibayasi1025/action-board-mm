@@ -9,7 +9,10 @@ import {
   MIN_AI_SUMMARY_INPUTS,
   shouldGenerateAiSummary,
 } from "@/lib/admin/enps-report/ai-summary-types";
-import type { SurveyForSnapshot } from "@/lib/admin/enps-report/build-and-store";
+import {
+  type SurveyForSnapshot,
+  isSnapshotFinalized,
+} from "@/lib/admin/enps-report/build-and-store";
 import {
   parseReportCliOptions,
   selectTargetSurveys,
@@ -96,6 +99,47 @@ describe("selectTargetSurveys", () => {
       now,
     );
     expect(targets).toEqual([]);
+  });
+});
+
+describe("isSnapshotFinalized", () => {
+  const endDate = "2026-07-31T23:59:59Z";
+
+  it("スナップショットが無ければ未確定", () => {
+    expect(
+      isSnapshotFinalized({ computedAt: null, endDate, surveyEnded: true }),
+    ).toBe(false);
+  });
+
+  it("締切後に計算されていれば確定済みとして再計算しない", () => {
+    expect(
+      isSnapshotFinalized({
+        computedAt: "2026-08-01T00:00:00Z",
+        endDate,
+        surveyEnded: true,
+      }),
+    ).toBe(true);
+  });
+
+  it("締切前に作られた暫定値は、締切後に作り直す", () => {
+    // --all などで受付中に先に作ってしまったケース。未回答補完が入っていない
+    expect(
+      isSnapshotFinalized({
+        computedAt: "2026-07-20T00:00:00Z",
+        endDate,
+        surveyEnded: true,
+      }),
+    ).toBe(false);
+  });
+
+  it("まだ受付中なら既存をそのまま使う", () => {
+    expect(
+      isSnapshotFinalized({
+        computedAt: "2026-07-20T00:00:00Z",
+        endDate,
+        surveyEnded: false,
+      }),
+    ).toBe(true);
   });
 });
 
