@@ -60,6 +60,8 @@ HUBSPOT_API_KEY             # HubSpot APIキー
 HUBSPOT_CONTACT_LIST_ID     # HubSpotコンタクトリストID
 ```
 
+> **注意**: eNPS レポートの自由記述 AI 分析用 `ENPS_REPORT_AI_API_KEY` は **Cloudflare（Preview / Production）には設定しません**。生成は GitHub Actions の `Build Monthly eNPS Report` ワークフローだけで行い、キーは GitHub の Repository Secret に置きます。詳細は [`.github/SECRETS_SETUP.md`](../.github/SECRETS_SETUP.md) を参照してください。
+
 ### 設定方法
 1. [Cloudflareダッシュボード](https://dash.cloudflare.com/)にログイン
 2. Pages → プロジェクトを選択

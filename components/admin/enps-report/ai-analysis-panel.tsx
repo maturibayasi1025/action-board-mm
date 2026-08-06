@@ -55,8 +55,12 @@ export function AiAnalysisPanel({
           のAI分析はありません。自由記述が5件未満の場合は、個人が特定されうるため生成していません。
         </p>
         <p className="text-sm text-muted-foreground">
-          分析を有効にするには ENPS_REPORT_AI_API_KEY
-          を設定し、レポート生成ワークフローを実行してください。
+          分析は画面表示時ではなく、GitHub Actions の「Build Monthly eNPS
+          Report」ワークフロー実行時にだけ生成されます。Repository Secret の
+          ENPS_REPORT_AI_API_KEY
+          を設定したうえで、対象月を指定して force
+          付きでワークフローを再実行してください。Cloudflare / Vercel
+          のプレビュー環境変数にキーを設定しても反映されません。
         </p>
       </div>
     );
