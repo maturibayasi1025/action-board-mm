@@ -43,12 +43,14 @@ function isAbsoluteHttpUrl(value: string): boolean {
 }
 
 /** Worker 実行時の process.env（スプレッドしないと Next のビルド時インライン化を踏む） */
-export function readRuntimeEnv(): NodeJS.ProcessEnv {
+type EnvRecord = Record<string, string | undefined>;
+
+export function readRuntimeEnv(): EnvRecord {
   return { ...process.env };
 }
 
-export function preprocessEnv(source: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
-  const preprocessed = { ...source };
+export function preprocessEnv(source: EnvRecord): EnvRecord {
+  const preprocessed: EnvRecord = { ...source };
   for (const key of Object.keys(preprocessed)) {
     if (preprocessed[key] === "") {
       preprocessed[key] = undefined;
@@ -63,7 +65,7 @@ export function preprocessEnv(source: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
   return preprocessed;
 }
 
-function parseEnv(source: NodeJS.ProcessEnv = readRuntimeEnv()): Env {
+function parseEnv(source: EnvRecord = readRuntimeEnv()): Env {
   const parsed = envSchema.safeParse(preprocessEnv(source));
   if (!parsed.success) {
     const missing = parsed.error.errors.map((e) => e.path.join(".")).join(", ");
@@ -87,7 +89,7 @@ export function resetEnvCacheForTests(): void {
 }
 
 export function resolveSupabasePublicCredentials(
-  runtimeEnv: NodeJS.ProcessEnv = readRuntimeEnv(),
+  runtimeEnv: EnvRecord = readRuntimeEnv(),
   inlined: { url?: string; anonKey?: string } = {},
 ): { url: string; anonKey: string } {
   return {
