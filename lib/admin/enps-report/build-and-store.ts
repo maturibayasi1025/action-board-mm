@@ -173,6 +173,18 @@ export async function storeSnapshotRows(
     computed_at: computedAt,
   }));
 
+  // 再計算後に消えた会社・事業部の行が残ると、レポートが二重計上になる。
+  const { error: deleteError } = await supabase
+    .from("enps_monthly_snapshots")
+    .delete()
+    .eq("survey_id", surveyId);
+
+  if (deleteError) {
+    throw new Error(
+      `スナップショットの削除に失敗しました: ${deleteError.message}`,
+    );
+  }
+
   for (let i = 0; i < dbRows.length; i += INSERT_CHUNK_SIZE) {
     const chunk = dbRows.slice(i, i + INSERT_CHUNK_SIZE);
 

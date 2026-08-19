@@ -129,10 +129,14 @@ export function BusinessUnitHeatmap({
                       : formatDelta(metric.delta_from_previous)}
                   </td>
                   <td className="py-2 px-3 text-right tabular-nums text-muted-foreground">
-                    {metric.respondent_count} / {metric.target_count}
+                    {metric.masked
+                      ? MASKED_LABEL
+                      : `${metric.respondent_count} / ${metric.target_count}`}
                   </td>
                   <td className="py-2 px-3 text-right tabular-nums text-muted-foreground">
-                    {formatResponseRate(metric.response_rate)}
+                    {metric.masked
+                      ? MASKED_LABEL
+                      : formatResponseRate(metric.response_rate)}
                   </td>
                   <td className="py-2 px-3 text-right tabular-nums text-muted-foreground">
                     {metric.masked
