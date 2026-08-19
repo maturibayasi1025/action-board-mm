@@ -6,8 +6,9 @@ pages_build_output_dir = ".vercel/output/static"
 
 # 公開変数のみ。シークレット（SUPABASE_SERVICE_ROLE_KEY 等）は Cloudflare ダッシュボードで設定する。
 # [env.production] を置くと Pages の vars が継承されず、本番 SSR が全滅する。
+# NODE_ENV は [vars] に置かない。ビルド環境へ注入されると npm ci が
+# devDependencies を省略し、next build の型チェックが失敗する。
 [vars]
-NODE_ENV = "production"
 NEXT_PUBLIC_SITE_URL = "https://mm-actionboard.jp"
 NEXT_PUBLIC_APP_ORIGIN = "https://mm-actionboard.jp"
 NEXT_PUBLIC_SUPABASE_URL = "https://plzqywjvkteyxsdqmred.supabase.co"

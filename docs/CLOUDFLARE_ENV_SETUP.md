@@ -21,6 +21,8 @@ NEXT_PUBLIC_GA_ID = "YOUR_GOOGLE_ANALYTICS_ID"
 
 `[env.production]` を追加すると、Pages では `vars` が継承されません。本番用に別値を置く場合は、必要な公開変数をすべて `[env.production.vars]` に再掲してください。空の `[env.production]` や `NODE_ENV` だけのブロックは置かないでください（本番 SSR が全滅します）。
 
+`NODE_ENV` も `[vars]` に置かないでください。Cloudflare Pages は `[vars]` をビルド環境にも注入するため、`npm ci` が devDependencies を省略し、`next build` の型チェックが失敗します。`NODE_ENV=production` は `npm run build:pages` 側で指定します。
+
 ### 値の取得方法
 
 #### Supabase
