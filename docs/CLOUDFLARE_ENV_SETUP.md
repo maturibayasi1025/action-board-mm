@@ -19,6 +19,8 @@ NEXT_PUBLIC_LINE_CLIENT_ID = "YOUR_LINE_CLIENT_ID"
 NEXT_PUBLIC_GA_ID = "YOUR_GOOGLE_ANALYTICS_ID"
 ```
 
+`[env.production]` を追加すると、Pages では `vars` が継承されません。本番用に別値を置く場合は、必要な公開変数をすべて `[env.production.vars]` に再掲してください。空の `[env.production]` や `NODE_ENV` だけのブロックは置かないでください（本番 SSR が全滅します）。
+
 ### 値の取得方法
 
 #### Supabase

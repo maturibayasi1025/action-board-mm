@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { signOutAction } from "@/lib/actions";
-import { createClient } from "@/lib/supabase/server";
+import { getCurrentUserSafe } from "@/lib/supabase/server";
 import { isOwner } from "@/lib/utils/isOwner";
 import Link from "next/link";
 import MyAvatar from "./my-avatar";
@@ -14,11 +14,7 @@ import {
 } from "./ui/dropdown-menu";
 
 export default async function AuthButton() {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUserSafe();
 
   const owner = user ? await isOwner() : false;
 
