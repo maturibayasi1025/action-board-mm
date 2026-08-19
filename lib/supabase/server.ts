@@ -1,10 +1,12 @@
-import { getEnv } from "@/lib/env";
+import { resolveSupabasePublicCredentials } from "@/lib/env";
 import type { Database } from "@/lib/types/supabase";
 import { createServerClient } from "@supabase/ssr";
 import { createClient as createClientSupabase } from "@supabase/supabase-js";
 
 export const createServiceClient = async () => {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const { url: supabaseUrl } = resolveSupabasePublicCredentials(undefined, {
+    url: process.env.NEXT_PUBLIC_SUPABASE_URL,
+  });
   const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!supabaseUrl || !supabaseServiceRoleKey) {
@@ -14,23 +16,19 @@ export const createServiceClient = async () => {
 };
 
 export const createClient = async () => {
-  // Check for Supabase credentials before full env validation
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const { url: supabaseUrl, anonKey: supabaseAnonKey } =
+    resolveSupabasePublicCredentials(undefined, {
+      url: process.env.NEXT_PUBLIC_SUPABASE_URL,
+      anonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    });
 
   if (!supabaseUrl || !supabaseAnonKey) {
-    const nodeEnv = process.env.NODE_ENV || "development";
-    if (nodeEnv !== "production") {
-      return createClientSupabase<Database>(
-        "https://dummy.supabase.co",
-        "dummy-key",
-      );
-    }
-    throw new Error("Supabase environment variables are required");
+    console.error("Supabase public environment variables are missing");
+    return createClientSupabase<Database>(
+      "https://dummy.supabase.co",
+      "dummy-key",
+    );
   }
-
-  // Validate all env vars - errors from optional fields will propagate
-  const env = getEnv();
 
   try {
     const { cookies } = await import("next/headers");
@@ -72,3 +70,17 @@ export const createClient = async () => {
     });
   }
 };
+
+/** ナビ等の共通レイアウト用。認証確認に失敗してもページ全体を落とさない */
+export async function getCurrentUserSafe() {
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    return user;
+  } catch (error) {
+    console.error("Failed to get current user", error);
+    return null;
+  }
+}

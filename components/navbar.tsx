@@ -8,17 +8,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { createClient } from "@/lib/supabase/server";
+import { getCurrentUserSafe } from "@/lib/supabase/server";
 import { Menu, Plus } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
 export default async function Navbar() {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUserSafe();
 
   return (
     <nav className="sticky top-0 z-50 flex h-16 w-full max-w-full justify-center overflow-x-hidden border-b border-b-foreground/10 bg-white">

@@ -4,11 +4,10 @@ compatibility_date = "2025-08-28"
 compatibility_flags = ["nodejs_compat"]
 pages_build_output_dir = ".vercel/output/static"
 
-[env.production]
-NODE_ENV = "production"
-
-# Public vars only — secrets (SUPABASE_SERVICE_ROLE_KEY, etc.) via Cloudflare dashboard
+# 公開変数のみ。シークレット（SUPABASE_SERVICE_ROLE_KEY 等）は Cloudflare ダッシュボードで設定する。
+# [env.production] を置くと Pages の vars が継承されず、本番 SSR が全滅する。
 [vars]
+NODE_ENV = "production"
 NEXT_PUBLIC_SITE_URL = "https://mm-actionboard.jp"
 NEXT_PUBLIC_APP_ORIGIN = "https://mm-actionboard.jp"
 NEXT_PUBLIC_SUPABASE_URL = "https://plzqywjvkteyxsdqmred.supabase.co"
