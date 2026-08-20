@@ -113,8 +113,9 @@ export async function getUserMissionsServer(
   } = await supabase.auth.getUser();
 
   const creatorIds = Array.from(new Set(data.map((m) => m.created_by)));
+  // 匿名でも読める公開プロフィールを使う。RLS が停止ユーザーを隠す。
   const { data: creators } = await supabase
-    .from("private_users")
+    .from("public_user_profiles")
     .select("id, name")
     .in("id", creatorIds);
 

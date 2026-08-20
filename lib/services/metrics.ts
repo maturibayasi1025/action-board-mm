@@ -185,15 +185,16 @@ export async function fetchDonationData(): Promise<DonationData | null> {
 export async function fetchAchievementData(): Promise<AchievementData> {
   const supabase = await createClient();
 
+  // activity_timeline_view は停止ユーザーを除外済み
   const { count: totalCount } = await supabase
-    .from("achievements")
+    .from("activity_timeline_view")
     .select("*", { count: "exact", head: true });
 
   const date = new Date();
   date.setHours(date.getHours() - 24);
 
   const { count: todayCount } = await supabase
-    .from("achievements")
+    .from("activity_timeline_view")
     .select("*", { count: "exact", head: true })
     .gte("created_at", date.toISOString());
 
