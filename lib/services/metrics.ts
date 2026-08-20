@@ -213,7 +213,8 @@ export async function fetchRegistrationData(): Promise<RegistrationData> {
 
   const { count: totalCount } = await supabase
     .from("public_user_profiles")
-    .select("*", { count: "exact", head: true });
+    .select("*", { count: "exact", head: true })
+    .is("suspended_at", null);
 
   const date = new Date();
   date.setHours(date.getHours() - 24);
@@ -221,6 +222,7 @@ export async function fetchRegistrationData(): Promise<RegistrationData> {
   const { count: todayCount } = await supabase
     .from("public_user_profiles")
     .select("*", { count: "exact", head: true })
+    .is("suspended_at", null)
     .gte("created_at", date.toISOString());
 
   return {

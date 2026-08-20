@@ -15,7 +15,8 @@ export async function findPrivateUserByFuzzyName(
 ): Promise<string | null> {
   const { data: users, error } = await supabase
     .from("private_users")
-    .select("id, name");
+    .select("id, name")
+    .is("suspended_at", null);
 
   if (error || !users) {
     console.error("ユーザー取得エラー:", error);
@@ -72,6 +73,7 @@ export async function findPrivateUserIdForSlackMention(
     .from("private_users")
     .select("id")
     .eq("slack_user_id", slackUserId)
+    .is("suspended_at", null)
     .maybeSingle();
 
   if (bySlack?.id) {
@@ -85,7 +87,8 @@ export async function findPrivateUserIdForSlackMention(
 
   const { data: users, error } = await supabase
     .from("private_users")
-    .select("id, name");
+    .select("id, name")
+    .is("suspended_at", null);
 
   if (error || !users) {
     return null;

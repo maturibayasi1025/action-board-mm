@@ -7,6 +7,7 @@ import {
   executeChunkedQuery,
 } from "@/lib/utils/supabase-utils";
 import { calculateLevel, calculateMissionXp } from "../utils/utils";
+import { filterActiveUserIds, isSuspendedUser } from "./user-status";
 import { getUser } from "./users";
 
 export type UserLevel = Tables<"user_levels">;
@@ -109,6 +110,10 @@ async function processXpTransaction(
   sourceId?: string,
   description?: string,
 ): Promise<{ success: boolean; userLevel?: UserLevel; error?: string }> {
+  if (await isSuspendedUser(userId)) {
+    return { success: false, error: "停止中のユーザーにはXPを付与できません" };
+  }
+
   const supabase = await createServiceClient();
 
   try {
@@ -239,17 +244,20 @@ export async function getUserXpBonus(
 export async function getUserRank(userId: string): Promise<number | null> {
   const supabase = await createServiceClient();
 
-  // より高いXPを持つユーザーの数を数える
+  if (await isSuspendedUser(userId)) {
+    return null;
+  }
+
   const { data: userLevel } = await supabase
-    .from("user_levels")
+    .from("user_ranking_view")
     .select("xp")
     .eq("user_id", userId)
-    .single();
+    .maybeSingle();
 
   if (!userLevel) return null;
 
   const { count, error } = await supabase
-    .from("user_levels")
+    .from("user_ranking_view")
     .select("*", { count: "exact", head: true })
     .gt("xp", userLevel.xp);
 
@@ -258,7 +266,7 @@ export async function getUserRank(userId: string): Promise<number | null> {
     return null;
   }
 
-  return (count || 0) + 1; // より高いユーザー数 + 1 = 自分のランク
+  return (count || 0) + 1;
 }
 
 /**
@@ -573,7 +581,19 @@ export async function grantXpBatch(
     for (const transaction of transactions) {
       userIdSet.add(transaction.userId);
     }
-    const userIds = Array.from(userIdSet);
+    const activeUserIds = await filterActiveUserIds(Array.from(userIdSet));
+    const userIds = Array.from(userIdSet).filter((id) => activeUserIds.has(id));
+    const skippedSuspended = Array.from(userIdSet)
+      .filter((id) => !activeUserIds.has(id))
+      .map((userId) => ({
+        userId,
+        success: false as const,
+        error: "停止中のユーザーにはXPを付与できません",
+      }));
+
+    if (userIds.length === 0) {
+      return { success: true, results: skippedSuspended };
+    }
 
     // 2. 現在のユーザーレベル情報を一括取得（チャンク分割）
     const { data: currentLevels, error: levelsError } =
@@ -626,8 +646,12 @@ export async function grantXpBatch(
       }
     }
 
+    const activeTransactions = transactions.filter((transaction) =>
+      activeUserIds.has(transaction.userId),
+    );
+
     // 5. XPトランザクションを一括挿入
-    const xpTransactions = transactions.map((transaction) => ({
+    const xpTransactions = activeTransactions.map((transaction) => ({
       user_id: transaction.userId,
       xp_amount: transaction.xpAmount,
       source_type: transaction.sourceType,
@@ -652,7 +676,7 @@ export async function grantXpBatch(
     // 6. ユーザーごとのXP合計を計算
     const userXpUpdates = new Map<string, number>();
 
-    for (const transaction of transactions) {
+    for (const transaction of activeTransactions) {
       const currentTotal = userXpUpdates.get(transaction.userId) || 0;
       userXpUpdates.set(
         transaction.userId,
@@ -719,7 +743,7 @@ export async function grantXpBatch(
       }
     }
 
-    return { success: true, results };
+    return { success: true, results: [...skippedSuspended, ...results] };
   } catch (error) {
     console.error("Error in grantXpBatch:", error);
     const errorMessage =

@@ -48,6 +48,7 @@ async function getUnansweredNamesForEnpsSurvey(
   const { data: allUsers } = await supabase
     .from("private_users")
     .select("id, name")
+    .is("suspended_at", null)
     .order("name", { ascending: true });
 
   const unanswered = filterUnansweredPrivateUsers(
@@ -74,6 +75,7 @@ async function getUnansweredNamesForAwardSurvey(
   const { data: allUsers } = await supabase
     .from("private_users")
     .select("id, name")
+    .is("suspended_at", null)
     .order("name", { ascending: true });
 
   const unanswered = filterUnansweredPrivateUsers(

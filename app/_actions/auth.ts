@@ -24,6 +24,8 @@ import {
   isValidReferralCode,
 } from "@/lib/validation/referral";
 
+import { isSuspendedUser } from "@/lib/services/user-status";
+import { USER_SUSPENDED_ERROR } from "@/lib/utils/user-status";
 import { validateReturnUrl } from "@/lib/validation/url";
 
 import { handleReferralCode } from "./referral";
@@ -107,6 +109,14 @@ export const signInActionWithState = async (
       console.log("[Sign In Debug] No user or session returned");
       return {
         error: "ユーザーまたはセッションが見つかりません",
+        formData: currentFormData,
+      };
+    }
+
+    if (await isSuspendedUser(data.user.id)) {
+      await supabase.auth.signOut();
+      return {
+        error: USER_SUSPENDED_ERROR,
         formData: currentFormData,
       };
     }

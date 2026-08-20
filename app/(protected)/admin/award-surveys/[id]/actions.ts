@@ -92,6 +92,7 @@ export async function getAwardSurveyResponses(surveyId: string) {
     business_unit_name: string;
   };
   let userMap = new Map<string, UserFields>();
+  const suspendedUserIds = new Set<string>();
   if (userIds.length > 0) {
     const { data: users } = await supabase
       .from("private_users")
@@ -99,6 +100,7 @@ export async function getAwardSurveyResponses(surveyId: string) {
         `
         id,
         name,
+        suspended_at,
         business_units (
           name,
           display_order,
@@ -113,6 +115,9 @@ export async function getAwardSurveyResponses(surveyId: string) {
 
     userMap = new Map(
       (users || []).map((u) => {
+        if (u.suspended_at) {
+          suspendedUserIds.add(u.id);
+        }
         const { company_name, business_unit_name } =
           companyAndBusinessUnitFromPrivateUserRow(u as PrivateUserOrgRow);
         return [
@@ -163,6 +168,9 @@ export async function getAwardSurveyResponses(surveyId: string) {
     name: string;
   } | null {
     if (response.nominee_user_id) {
+      if (suspendedUserIds.has(response.nominee_user_id)) {
+        return null;
+      }
       const name =
         response.nominee_user_name ??
         userMap.get(response.nominee_user_id)?.name ??
@@ -322,7 +330,8 @@ export async function getAwardUnansweredUsers(surveyId: string) {
 
   const { data: allUsers } = await supabase
     .from("private_users")
-    .select("id, name");
+    .select("id, name")
+    .is("suspended_at", null);
 
   return filterUnansweredPrivateUsers(
     allUsers ?? [],

@@ -55,6 +55,10 @@ async function getUserMissionById(id: string) {
     data: { user },
   } = await supabase.auth.getUser();
 
+  if (!userProfile && user?.id !== data.created_by) {
+    return null;
+  }
+
   // 外部ユーザー（メンバー以外）を取得
   const { data: praisedExternalUsers, error: praisedExternalError } =
     await supabase

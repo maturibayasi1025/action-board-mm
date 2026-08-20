@@ -40,7 +40,8 @@ export async function getAssessmentData(
     // 1. 全ユーザー一覧を取得
     const { data: users, error: usersError } = await supabase
       .from("private_users")
-      .select("id, name, address_prefecture, registered_at");
+      .select("id, name, address_prefecture, registered_at")
+      .is("suspended_at", null);
 
     if (usersError) {
       console.error("ユーザー取得エラー:", usersError);

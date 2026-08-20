@@ -1,5 +1,6 @@
 "use server";
 
+import { assertUserActive } from "@/lib/services/user-status";
 import { createClient } from "@/lib/supabase/server";
 import type { Json } from "@/lib/types/supabase";
 import { excludeCreatorFromPraisedUserIds } from "@/lib/utils/user-mission-praised";
@@ -37,6 +38,7 @@ export async function createUserMissionAction(input: CreateUserMissionInput) {
     }
 
     console.log("認証済みユーザー:", user.id);
+    await assertUserActive(user.id);
 
     // その日初めてのグッジョブ投稿かチェック（投稿作成前にチェック）
     console.log("[初回投稿チェック] 投稿作成前にチェック開始");
