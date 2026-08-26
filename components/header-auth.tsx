@@ -53,6 +53,9 @@ export default async function AuthButton() {
             <DropdownMenuItem asChild className="block md:hidden">
               <Link href="/user-missions/new">グッジョブ作成</Link>
             </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/office-check">最終チェック・退室</Link>
+            </DropdownMenuItem>
           </DropdownMenuGroup>
           {owner && (
             <>

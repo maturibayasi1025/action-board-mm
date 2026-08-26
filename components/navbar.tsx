@@ -58,6 +58,9 @@ export default async function Navbar() {
                 </Link>
               </div>
               <div className="font-semibold hidden sm:flex">
+                <Link href="/office-check">最終チェック</Link>
+              </div>
+              <div className="font-semibold hidden sm:flex">
                 <Link href="/#dashboard">ダッシュボード</Link>
               </div>
               <div className="hidden sm:flex">

@@ -1,8 +1,10 @@
+import { buildOfficeClosingSlackMessage } from "@/lib/office-check/slack-message";
 import {
   buildPraisedMentionsLine,
   formatPraisedNamesWithMentions,
   getSlackUsersList,
 } from "@/lib/slack/slack-users";
+import { resolveSlackWebhookUrlForType } from "@/lib/slack/survey-webhook-urls";
 import { type NextRequest, NextResponse } from "next/server";
 
 export const runtime = "edge";
@@ -12,7 +14,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { message, type, data } = body;
 
-    const webhookUrl = process.env.SLACK_WEBHOOK_URL;
+    const webhookUrl = resolveSlackWebhookUrlForType(type);
     if (!webhookUrl) {
       console.warn("[Slack通知] Slack Webhook URLが設定されていません");
       return NextResponse.json(
@@ -247,6 +249,20 @@ export async function POST(request: NextRequest) {
         text: ":heart: グッジョブにいいねがつきました！",
         blocks,
       };
+    } else if (type === "office_closing_check") {
+      const { reporterName, leftAtLabel, floors, note } = data as {
+        reporterName?: string;
+        leftAtLabel?: string;
+        floors?: Array<{ name: string; checked: boolean }>;
+        note?: string | null;
+      };
+
+      slackMessage = buildOfficeClosingSlackMessage({
+        reporterName: reporterName || "不明",
+        leftAtLabel: leftAtLabel || "未入力",
+        floors: Array.isArray(floors) ? floors : [],
+        note,
+      });
     }
 
     console.log(

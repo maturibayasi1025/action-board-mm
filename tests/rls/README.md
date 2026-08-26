@@ -17,6 +17,7 @@ npm run test:rls
 - `public-user-profiles.test.ts` - public_user_profilesテーブルのRLSポリシーをテスト
 - `achievements.test.ts` - achievementsテーブルのRLSポリシーをテスト
 - `missions.test.ts` - missionsテーブルのRLSポリシーをテスト
+- `office-closing-checks.test.ts` - 最終退室チェック（office_floors / office_closing_reports）のRLSポリシーをテスト
 
 ## RLSポリシーの説明
 

@@ -1071,6 +1071,96 @@ export type Database = {
         };
         Relationships: [];
       };
+      office_closing_report_floors: {
+        Row: {
+          checked: boolean;
+          floor_id: string;
+          id: string;
+          report_id: string;
+        };
+        Insert: {
+          checked?: boolean;
+          floor_id: string;
+          id?: string;
+          report_id: string;
+        };
+        Update: {
+          checked?: boolean;
+          floor_id?: string;
+          id?: string;
+          report_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "office_closing_report_floors_floor_id_fkey";
+            columns: ["floor_id"];
+            isOneToOne: false;
+            referencedRelation: "office_floors";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "office_closing_report_floors_report_id_fkey";
+            columns: ["report_id"];
+            isOneToOne: false;
+            referencedRelation: "office_closing_reports";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      office_closing_reports: {
+        Row: {
+          created_at: string;
+          id: string;
+          left_at: string;
+          note: string | null;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          left_at: string;
+          note?: string | null;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          left_at?: string;
+          note?: string | null;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
+      office_floors: {
+        Row: {
+          created_at: string;
+          display_order: number;
+          id: string;
+          is_active: boolean;
+          name: string;
+          slug: string;
+          updated_at: string;
+        };
+        Insert: {
+          created_at?: string;
+          display_order?: number;
+          id?: string;
+          is_active?: boolean;
+          name: string;
+          slug: string;
+          updated_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          display_order?: number;
+          id?: string;
+          is_active?: boolean;
+          name?: string;
+          slug?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       poster_activities: {
         Row: {
           address: string | null;
