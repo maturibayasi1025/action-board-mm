@@ -1071,6 +1071,27 @@ export type Database = {
         };
         Relationships: [];
       };
+      office_checkins: {
+        Row: {
+          checked_in_at: string;
+          created_at: string;
+          id: string;
+          user_id: string;
+        };
+        Insert: {
+          checked_in_at?: string;
+          created_at?: string;
+          id?: string;
+          user_id: string;
+        };
+        Update: {
+          checked_in_at?: string;
+          created_at?: string;
+          id?: string;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
       office_closing_report_floors: {
         Row: {
           checked: boolean;
@@ -1112,6 +1133,7 @@ export type Database = {
           created_at: string;
           id: string;
           left_at: string;
+          leave_kind: string;
           note: string | null;
           user_id: string;
         };
@@ -1119,6 +1141,7 @@ export type Database = {
           created_at?: string;
           id?: string;
           left_at: string;
+          leave_kind?: string;
           note?: string | null;
           user_id: string;
         };
@@ -1126,6 +1149,7 @@ export type Database = {
           created_at?: string;
           id?: string;
           left_at?: string;
+          leave_kind?: string;
           note?: string | null;
           user_id?: string;
         };

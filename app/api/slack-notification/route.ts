@@ -250,16 +250,33 @@ export async function POST(request: NextRequest) {
         blocks,
       };
     } else if (type === "office_closing_check") {
-      const { reporterName, leftAtLabel, floors, note } = data as {
+      const {
+        kind,
+        reporterName,
+        atLabel,
+        leftAtLabel,
+        remainingNames,
+        floors,
+        note,
+      } = data as {
+        kind?: "checkin" | "midday" | "final";
         reporterName?: string;
+        atLabel?: string;
         leftAtLabel?: string;
+        remainingNames?: string[];
         floors?: Array<{ name: string; checked: boolean }>;
         note?: string | null;
       };
 
+      const resolvedKind =
+        kind === "checkin" || kind === "midday" || kind === "final"
+          ? kind
+          : "final";
       slackMessage = buildOfficeClosingSlackMessage({
+        kind: resolvedKind,
         reporterName: reporterName || "不明",
-        leftAtLabel: leftAtLabel || "未入力",
+        atLabel: atLabel || leftAtLabel || "未入力",
+        remainingNames: Array.isArray(remainingNames) ? remainingNames : [],
         floors: Array.isArray(floors) ? floors : [],
         note,
       });

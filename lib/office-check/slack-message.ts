@@ -1,12 +1,18 @@
+import { formatRemainingNames } from "./remaining";
+
 export type OfficeClosingFloorCheck = {
   name: string;
   checked: boolean;
 };
 
+export type OfficePresenceKind = "checkin" | "midday" | "final";
+
 export type OfficeClosingSlackPayload = {
+  kind: OfficePresenceKind;
   reporterName: string;
-  leftAtLabel: string;
-  floors: OfficeClosingFloorCheck[];
+  atLabel: string;
+  remainingNames: string[];
+  floors?: OfficeClosingFloorCheck[];
   note?: string | null;
 };
 
@@ -15,23 +21,52 @@ function floorLine(floor: OfficeClosingFloorCheck): string {
   return `• ${floor.name} ${mark}`;
 }
 
+function headingForKind(kind: OfficePresenceKind): {
+  emoji: string;
+  title: string;
+  timeLabel: string;
+} {
+  switch (kind) {
+    case "checkin":
+      return {
+        emoji: ":office:",
+        title: "入室しました",
+        timeLabel: "入室時間",
+      };
+    case "midday":
+      return {
+        emoji: ":walking:",
+        title: "途中退室しました",
+        timeLabel: "退室時間",
+      };
+    case "final":
+      return {
+        emoji: ":door:",
+        title: "最終退室チェックが完了しました",
+        timeLabel: "退室時間",
+      };
+    default: {
+      const exhaustive: never = kind;
+      return exhaustive;
+    }
+  }
+}
+
 export function buildOfficeClosingSlackMessage(
   data: OfficeClosingSlackPayload,
 ): { text: string; blocks: unknown[] } {
-  const floorLines =
-    data.floors.length > 0
-      ? data.floors.map(floorLine).join("\n")
-      : "（対象階なし）";
+  const heading = headingForKind(data.kind);
   const noteText = data.note?.trim() ? data.note.trim() : "なし";
+  const remainingText = formatRemainingNames(data.remainingNames);
 
-  const text = `:door: 最終退室チェック（退室時間 ${data.leftAtLabel}）`;
+  const text = `${heading.emoji} ${heading.title}（${heading.timeLabel} ${data.atLabel}） 在室: ${remainingText}`;
 
   const blocks: unknown[] = [
     {
       type: "section",
       text: {
         type: "mrkdwn",
-        text: ":door: *最終退室チェックが完了しました*",
+        text: `${heading.emoji} *${heading.title}*`,
       },
     },
     {
@@ -43,25 +78,43 @@ export function buildOfficeClosingSlackMessage(
         },
         {
           type: "mrkdwn",
-          text: `*退室時間:*\n${data.leftAtLabel}`,
+          text: `*${heading.timeLabel}:*\n${data.atLabel}`,
         },
       ],
     },
-    {
+  ];
+
+  if (data.kind === "final") {
+    const floorLines =
+      data.floors && data.floors.length > 0
+        ? data.floors.map(floorLine).join("\n")
+        : "（対象階なし）";
+    blocks.push({
       type: "section",
       text: {
         type: "mrkdwn",
         text: `*各階の最終チェック:*\n${floorLines}`,
       },
-    },
-    {
+    });
+  }
+
+  if (data.kind !== "checkin") {
+    blocks.push({
       type: "section",
       text: {
         type: "mrkdwn",
         text: `*備考:*\n${noteText}`,
       },
+    });
+  }
+
+  blocks.push({
+    type: "section",
+    text: {
+      type: "mrkdwn",
+      text: `*現在の在室:*\n${remainingText}`,
     },
-  ];
+  });
 
   return { text, blocks };
 }

@@ -1,15 +1,26 @@
 import { z } from "zod";
 import { LEFT_AT_TIME_PATTERN } from "./left-at";
 
-export const officeClosingFormSchema = z.object({
-  leftAtTime: z
-    .string()
-    .regex(LEFT_AT_TIME_PATTERN, "退室時間を HH:mm 形式で入力してください"),
-  checkedFloorIds: z
-    .array(z.string().uuid())
-    .min(1, "各階の最終チェックを入れてください"),
-  note: z.string().max(500, "備考は500文字以内で入力してください").optional(),
-});
+export const officeLeaveKindSchema = z.enum(["midday", "final"]);
+
+export const officeClosingFormSchema = z
+  .object({
+    leaveKind: officeLeaveKindSchema,
+    leftAtTime: z
+      .string()
+      .regex(LEFT_AT_TIME_PATTERN, "退室時間を HH:mm 形式で入力してください"),
+    checkedFloorIds: z.array(z.string().uuid()).default([]),
+    note: z.string().max(500, "備考は500文字以内で入力してください").optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.leaveKind === "final" && data.checkedFloorIds.length === 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "各階の最終チェックを入れてください",
+        path: ["checkedFloorIds"],
+      });
+    }
+  });
 
 export type OfficeClosingFormInput = z.infer<typeof officeClosingFormSchema>;
 

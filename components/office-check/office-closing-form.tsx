@@ -16,6 +16,8 @@ export type OfficeFloorOption = {
   name: string;
 };
 
+type LeaveKind = "midday" | "final";
+
 type Props = {
   floors: OfficeFloorOption[];
 };
@@ -23,6 +25,7 @@ type Props = {
 export function OfficeClosingForm({ floors }: Props) {
   const router = useRouter();
   const defaultTime = useMemo(() => formatJstHm(new Date()), []);
+  const [leaveKind, setLeaveKind] = useState<LeaveKind>("midday");
   const [leftAtTime, setLeftAtTime] = useState(defaultTime);
   const [checkedFloorIds, setCheckedFloorIds] = useState<string[]>([]);
   const [note, setNote] = useState("");
@@ -43,61 +46,94 @@ export function OfficeClosingForm({ floors }: Props) {
     setSubmitting(true);
     try {
       const result = await submitOfficeClosingCheckAction({
+        leaveKind,
         leftAtTime,
-        checkedFloorIds,
+        checkedFloorIds: leaveKind === "final" ? checkedFloorIds : [],
         note,
       });
       if (!result.success) {
         toast.error(result.error);
         return;
       }
-      toast.success("最終チェックを送信し、Slackへ通知しました");
+      toast.success(
+        leaveKind === "final"
+          ? "最終チェックを送信し、Slackへ通知しました"
+          : "途中退室をSlackへ通知しました",
+      );
       setCheckedFloorIds([]);
       setNote("");
       setLeftAtTime(formatJstHm(new Date()));
       router.refresh();
     } catch (error) {
       console.error(error);
-      toast.error("最終チェックの送信に失敗しました");
+      toast.error("退室の送信に失敗しました");
     } finally {
       setSubmitting(false);
     }
   }
 
-  if (floors.length === 0) {
-    return (
-      <p className="text-sm text-muted-foreground">
-        チェック対象の階がまだ登録されていません。管理者に連絡してください。
-      </p>
-    );
-  }
-
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <fieldset className="space-y-3">
-        <legend className="text-sm font-medium">各階の最終チェック</legend>
+      <fieldset className="space-y-2">
+        <legend className="text-sm font-medium">退室の種類</legend>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            variant={leaveKind === "midday" ? "default" : "outline"}
+            onClick={() => setLeaveKind("midday")}
+          >
+            途中退室
+          </Button>
+          <Button
+            type="button"
+            variant={leaveKind === "final" ? "default" : "outline"}
+            onClick={() => setLeaveKind("final")}
+          >
+            最終退室
+          </Button>
+        </div>
         <p className="text-sm text-muted-foreground">
-          消灯・空調・施錠などを確認できたら、階ごとにチェックを入れてください。
+          {leaveKind === "final"
+            ? "最後に退室する人が、各階チェックを入れて送信します。"
+            : "先に帰るときは途中退室を送ると、Slackに在室者が残ります。"}
         </p>
-        {floors.map((floor) => {
-          const checked = checkedFloorIds.includes(floor.id);
-          const checkboxId = `floor-${floor.id}`;
-          return (
-            <div key={floor.id} className="flex items-center gap-3">
-              <Checkbox
-                id={checkboxId}
-                checked={checked}
-                onCheckedChange={(value) =>
-                  toggleFloor(floor.id, value === true)
-                }
-              />
-              <Label htmlFor={checkboxId} className="cursor-pointer text-base">
-                {floor.name} 最終チェック
-              </Label>
-            </div>
-          );
-        })}
       </fieldset>
+
+      {leaveKind === "final" ? (
+        floors.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            チェック対象の階がまだ登録されていません。管理者に連絡してください。
+          </p>
+        ) : (
+          <fieldset className="space-y-3">
+            <legend className="text-sm font-medium">各階の最終チェック</legend>
+            <p className="text-sm text-muted-foreground">
+              消灯・空調・施錠などを確認できたら、階ごとにチェックを入れてください。
+            </p>
+            {floors.map((floor) => {
+              const checked = checkedFloorIds.includes(floor.id);
+              const checkboxId = `floor-${floor.id}`;
+              return (
+                <div key={floor.id} className="flex items-center gap-3">
+                  <Checkbox
+                    id={checkboxId}
+                    checked={checked}
+                    onCheckedChange={(value) =>
+                      toggleFloor(floor.id, value === true)
+                    }
+                  />
+                  <Label
+                    htmlFor={checkboxId}
+                    className="cursor-pointer text-base"
+                  >
+                    {floor.name} 最終チェック
+                  </Label>
+                </div>
+              );
+            })}
+          </fieldset>
+        )
+      ) : null}
 
       <div className="space-y-2">
         <Label htmlFor="left-at-time">退室時間</Label>
@@ -122,8 +158,16 @@ export function OfficeClosingForm({ floors }: Props) {
         />
       </div>
 
-      <Button type="submit" disabled={submitting} className="w-full sm:w-auto">
-        {submitting ? "送信中..." : "最終チェックを送信"}
+      <Button
+        type="submit"
+        disabled={submitting || (leaveKind === "final" && floors.length === 0)}
+        className="w-full sm:w-auto"
+      >
+        {submitting
+          ? "送信中..."
+          : leaveKind === "final"
+            ? "最終チェックを送信"
+            : "途中退室を通知"}
       </Button>
     </form>
   );

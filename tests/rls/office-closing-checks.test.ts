@@ -128,4 +128,37 @@ describe("office closing check RLS", () => {
     expect(error).toBeNull();
     expect(data?.length).toBe(1);
   });
+
+  it("匿名ユーザーは入室を挿入できない", async () => {
+    const { error } = await anonClient.from("office_checkins").insert({
+      user_id: user1.user.userId,
+      checked_in_at: new Date().toISOString(),
+    });
+    expect(error).not.toBeNull();
+  });
+
+  it("認証ユーザーは自分の入室を挿入できる", async () => {
+    const { data, error } = await user1.client
+      .from("office_checkins")
+      .insert({
+        user_id: user1.user.userId,
+        checked_in_at: new Date().toISOString(),
+      })
+      .select("id")
+      .single();
+    expect(error).toBeNull();
+    expect(data?.id).toBeTruthy();
+    if (data?.id) {
+      await adminClient.from("office_checkins").delete().eq("id", data.id);
+    }
+  });
+
+  it("認証ユーザーは他人名義の入室を挿入できない", async () => {
+    const { error } = await user1.client.from("office_checkins").insert({
+      user_id: user2.user.userId,
+      checked_in_at: new Date().toISOString(),
+    });
+    expect(error).not.toBeNull();
+    expect(error?.code).toBe("42501");
+  });
 });
