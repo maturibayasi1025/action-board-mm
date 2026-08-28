@@ -24,11 +24,11 @@
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase サービスロールキー | Supabase Dashboard → Settings → API → service_role secret |
 | `BATCH_ADMIN_KEY` | バッチAPI認証キー | デプロイ環境（Vercel/Cloudflare等）の `BATCH_ADMIN_KEY` と同じ値 |
 | `NEXT_PUBLIC_APP_ORIGIN` | デプロイ済みアプリのURL | 例: `https://your-app.vercel.app` または本番ドメイン |
-| `SLACK_WEBHOOK_URL_ENPS` | eNPS サーベイ通知用 Webhook（任意） | 対象チャンネル用に [Incoming Webhooks](https://api.slack.com/messaging/webhooks) で作成 |
-| `SLACK_WEBHOOK_URL_AWARD` | 表彰サーベイ通知用 Webhook（任意） | 対象チャンネル用に同上 |
-| `SLACK_WEBHOOK_URL` | 上記が未設定のときのフォールバック / グッジョブ等の他通知 | Incoming Webhooks で作成 |
+| `SLACK_WEBHOOK_URL_ENPS` | eNPS サーベイ通知用 Webhook | eNPS チャンネル用に [Incoming Webhooks](https://api.slack.com/messaging/webhooks) で作成 |
+| `SLACK_WEBHOOK_URL_AWARD` | 表彰サーベイ通知用 Webhook | 表彰チャンネル用に同上 |
+| `SLACK_WEBHOOK_URL` | グッジョブ等の他通知（サーベイには使わない） | Incoming Webhooks で作成 |
 
-> **注意**: ワークフローはリポジトリ上で `npm run generate-enps-survey` / `generate-award-survey` を実行し、`npm run` のプロセスに上記 Secrets を渡します。Slack 通知はその実行時に送信されます。**デプロイ環境**（Vercel / Cloudflare 等）に管理画面の未回答リマインドやバッチ API 用の同じ変数を設定してください。`SLACK_WEBHOOK_URL_ENPS` / `SLACK_WEBHOOK_URL_AWARD` が未設定の場合は `SLACK_WEBHOOK_URL` にフォールバックします。
+> **注意**: ワークフローはリポジトリ上で `npm run generate-enps-survey` / `generate-award-survey` を実行し、`npm run` のプロセスに上記 Secrets を渡します。Slack 通知はその実行時に送信されます。**デプロイ環境**（Vercel / Cloudflare 等）に管理画面の未回答リマインドやバッチ API 用の同じ変数を設定してください。eNPS は `SLACK_WEBHOOK_URL_ENPS`、表彰は `SLACK_WEBHOOK_URL_AWARD` のみを使い、`SLACK_WEBHOOK_URL` にはフォールバックしません。未設定のときは通知をスキップします。
 
 ### eNPS レポート生成ワークフロー
 
@@ -144,7 +144,7 @@ npm run build-enps-report -- --year-month 2026-07 --force
 - `NEXT_PUBLIC_APP_ORIGIN` が正しい URL か確認（末尾の `/` は不要）
 
 ### Slack に通知が届かない
-- **デプロイ環境**（Vercel / Cloudflare 等）に、サーベイ種別用の `SLACK_WEBHOOK_URL_ENPS` / `SLACK_WEBHOOK_URL_AWARD`、またはフォールバックの `SLACK_WEBHOOK_URL` が設定されているか確認
+- **デプロイ環境**（Vercel / Cloudflare 等）に、サーベイ種別用の `SLACK_WEBHOOK_URL_ENPS` / `SLACK_WEBHOOK_URL_AWARD` が設定されているか確認。共通の `SLACK_WEBHOOK_URL` にはフォールバックしない
 - GitHub Actions 側でも同じ名前の Secrets が必要（ワークフローが参照する変数と一致させる）
 - Webhook URL が `https://hooks.slack.com/services/...` 形式か確認
 

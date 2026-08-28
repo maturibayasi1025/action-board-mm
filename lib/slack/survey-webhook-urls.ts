@@ -1,6 +1,7 @@
 /**
  * eNPS / 表彰アンケート用 Slack Incoming Webhook URL。
- * 種別専用の変数が未設定のときは `SLACK_WEBHOOK_URL` にフォールバックする。
+ * 種別ごとのチャンネルへ送るため、専用変数のみを使う。
+ * グッジョブ等の `SLACK_WEBHOOK_URL` にはフォールバックしない。
  */
 
 function trimOrUndefined(value: string | undefined): string | undefined {
@@ -9,17 +10,11 @@ function trimOrUndefined(value: string | undefined): string | undefined {
 }
 
 export function resolveEnpsSurveySlackWebhookUrl(): string | undefined {
-  return (
-    trimOrUndefined(process.env.SLACK_WEBHOOK_URL_ENPS) ??
-    trimOrUndefined(process.env.SLACK_WEBHOOK_URL)
-  );
+  return trimOrUndefined(process.env.SLACK_WEBHOOK_URL_ENPS);
 }
 
 export function resolveAwardSurveySlackWebhookUrl(): string | undefined {
-  return (
-    trimOrUndefined(process.env.SLACK_WEBHOOK_URL_AWARD) ??
-    trimOrUndefined(process.env.SLACK_WEBHOOK_URL)
-  );
+  return trimOrUndefined(process.env.SLACK_WEBHOOK_URL_AWARD);
 }
 
 export function isEnpsSurveySlackWebhookConfigured(): boolean {

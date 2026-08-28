@@ -183,8 +183,8 @@ export async function sendSlackReminderToUnanswered(params: {
       ok: false,
       error:
         kind === "enps"
-          ? "SLACK_WEBHOOK_URL_ENPS または SLACK_WEBHOOK_URL が設定されていません"
-          : "SLACK_WEBHOOK_URL_AWARD または SLACK_WEBHOOK_URL が設定されていません",
+          ? "SLACK_WEBHOOK_URL_ENPS が設定されていません"
+          : "SLACK_WEBHOOK_URL_AWARD が設定されていません",
     };
   }
   if (!webhookUrl.startsWith("https://hooks.slack.com/")) {
