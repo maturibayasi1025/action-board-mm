@@ -128,7 +128,7 @@ export async function POST(request: NextRequest) {
     const webhookUrl = resolveAwardSurveySlackWebhookUrl();
     if (!webhookUrl) {
       console.warn(
-        "SLACK_WEBHOOK_URL_AWARD または SLACK_WEBHOOK_URL が設定されていません。Slack通知をスキップします。",
+        "SLACK_WEBHOOK_URL_AWARD が設定されていません。Slack通知をスキップします。",
       );
       return NextResponse.json({
         success: true,

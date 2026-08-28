@@ -117,7 +117,7 @@ export async function POST(request: NextRequest) {
     const webhookUrl = resolveEnpsSurveySlackWebhookUrl();
     if (!webhookUrl) {
       console.warn(
-        "SLACK_WEBHOOK_URL_ENPS または SLACK_WEBHOOK_URL が設定されていません。Slack通知をスキップします。",
+        "SLACK_WEBHOOK_URL_ENPS が設定されていません。Slack通知をスキップします。",
       );
       return NextResponse.json({
         success: true,

@@ -167,7 +167,7 @@ async function main() {
 
     if (!webhookUrl) {
       console.warn(
-        "SLACK_WEBHOOK_URL_AWARD または SLACK_WEBHOOK_URL が未設定のため、Slack通知はスキップします。",
+        "SLACK_WEBHOOK_URL_AWARD が未設定のため、Slack通知はスキップします。",
       );
       process.exit(0);
     }
