@@ -118,7 +118,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `NEXT_PUBLIC_LINE_CLIENT_ID` - LINE Login用チャンネルID
 - `BATCH_ADMIN_KEY` - バッチ処理API用の管理者キー
 - `SURVEY_ENPS_POST_MISSION_ID` / `SURVEY_AWARD_POST_MISSION_ID`（任意）- eNPS・表彰アンケートの初回回答後に案内するグッジョブの `missions.id`。未設定時は案内モーダルは出ない。運用では TEXT/NONE などダイアログから投稿しやすい成果物タイプのミッションを2件用意し、各IDを設定する
-- `SLACK_WEBHOOK_URL` / `SLACK_BOT_TOKEN` - Incoming Webhook と Bot トークン。グッジョブ通知のメンション解決には `SLACK_BOT_TOKEN` が必要。Slack アプリの Bot Token Scopes に **`users:read`** を付与し、本番（Vercel）のサーバー環境変数に設定する（`/api/slack-notification` は Edge 実行のため本番で未設定だとユーザー一覧が取得できない）。`private_users.slack_user_id` は Slack からのグッジョブ投稿でユーザーが解決できたときに保存され、以降の通知で `<@U…>` を確実に出すのに使われる。
+- `SLACK_WEBHOOK_URL` / `SLACK_WEBHOOK_URL_ENPS` / `SLACK_WEBHOOK_URL_AWARD` / `SLACK_BOT_TOKEN` - Incoming Webhook と Bot トークン。グッジョブ通知は `SLACK_WEBHOOK_URL`、eNPS は `SLACK_WEBHOOK_URL_ENPS`、表彰は `SLACK_WEBHOOK_URL_AWARD` を使い、サーベイ通知は共通URLへフォールバックしない。グッジョブ通知のメンション解決には `SLACK_BOT_TOKEN` が必要。Slack アプリの Bot Token Scopes に **`users:read`** を付与し、本番（Vercel）のサーバー環境変数に設定する（`/api/slack-notification` は Edge 実行のため本番で未設定だとユーザー一覧が取得できない）。`private_users.slack_user_id` は Slack からのグッジョブ投稿でユーザーが解決できたときに保存され、以降の通知で `<@U…>` を確実に出すのに使われる。
 
 ### GitHub Actions Secrets
 - スケジュールワークフロー（eNPS/Awardサーベイ、バッジ計算）に必要なSecretsは `.github/SECRETS_SETUP.md` を参照

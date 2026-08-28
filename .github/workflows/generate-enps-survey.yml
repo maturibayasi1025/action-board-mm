@@ -29,7 +29,6 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           NEXT_PUBLIC_APP_ORIGIN: ${{ secrets.NEXT_PUBLIC_APP_ORIGIN }}
           SLACK_WEBHOOK_URL_ENPS: ${{ secrets.SLACK_WEBHOOK_URL_ENPS }}
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         run: npm run generate-enps-survey
 
       - name: Notify on failure

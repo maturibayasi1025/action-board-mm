@@ -18,6 +18,8 @@ const envSchema = z.object({
   NEXT_PUBLIC_LINE_CLIENT_ID: z.string().optional(),
   BATCH_ADMIN_KEY: z.string().optional(),
   SLACK_WEBHOOK_URL: z.string().optional(),
+  SLACK_WEBHOOK_URL_ENPS: z.string().optional(),
+  SLACK_WEBHOOK_URL_AWARD: z.string().optional(),
   SLACK_BOT_TOKEN: z.string().optional(),
   SLACK_SIGNING_SECRET: z.string().optional(),
   SLACK_MONITOR_CHANNEL_ID: z.string().optional(),
