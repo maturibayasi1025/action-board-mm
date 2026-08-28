@@ -122,8 +122,8 @@ const createMockSupabaseQuery = () => {
   return mockQuery;
 };
 
-jest.mock("@/lib/supabase/server", () => ({
-  createClient: jest.fn(() => ({
+jest.mock("@/lib/supabase/server", () => {
+  const createClient = jest.fn(() => ({
     auth: {
       getUser: jest.fn(() =>
         Promise.resolve({ data: { user: null }, error: null }),
@@ -162,8 +162,17 @@ jest.mock("@/lib/supabase/server", () => ({
         upsert: jest.fn(() => createMockSupabaseQuery()),
       };
     }),
-  })),
-}));
+  }));
+
+  return {
+    createClient,
+    getCurrentUserSafe: jest.fn(async () => {
+      const client = await createClient();
+      const { data } = await client.auth.getUser();
+      return data?.user ?? null;
+    }),
+  };
+});
 
 jest.mock("@/lib/supabase/client", () => ({
   createClient: jest.fn(() => ({
