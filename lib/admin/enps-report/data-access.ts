@@ -53,7 +53,11 @@ export async function fetchAllPrivateUserIds(
   supabase: SupabaseClient<Database>,
 ): Promise<string[]> {
   const rows = await fetchAllRows<{ id: string }>((from, to) =>
-    supabase.from("private_users").select("id").range(from, to),
+    supabase
+      .from("private_users")
+      .select("id")
+      .is("deleted_at", null)
+      .range(from, to),
   );
   return rows.map((r) => r.id);
 }

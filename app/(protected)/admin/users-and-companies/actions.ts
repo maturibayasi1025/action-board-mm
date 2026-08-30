@@ -36,6 +36,7 @@ export async function listUsersWithCompanies(): Promise<
         )
       `,
       )
+      .is("deleted_at", null)
       .order("name", { ascending: true });
 
     if (error) {
@@ -74,8 +75,9 @@ export async function listUsersWithCompanies(): Promise<
 }
 
 /**
- * 経営者がユーザーを Auth および public/private プロフィールから削除する。
- * auth.users 参照で RESTRICT / NO ACTION になる行は事前に解消する。
+ * 経営者がユーザーをソフト削除する。
+ * Auth の物理削除は FK / トリガーで失敗しやすく、投稿グッジョブも消えるため使わない。
+ * プロフィールに deleted_at を立て、ログイン不可にして一覧から外す。
  */
 export async function adminDeleteUser(
   targetUserId: string,
@@ -96,52 +98,35 @@ export async function adminDeleteUser(
       return { success: false, error: "経営者アカウントは削除できません" };
     }
     const supabase = await createServiceClient();
-    const { error: mErr } = await supabase
-      .from("user_missions")
-      .update({ approved_by: null })
-      .eq("approved_by", targetUserId);
-    if (mErr) {
-      console.error("adminDeleteUser user_missions:", mErr);
-      return { success: false, error: "関連グッジョブの更新に失敗しました" };
+    const deletedAt = new Date().toISOString();
+    const { data: updated, error: updateError } = await supabase
+      .from("private_users")
+      .update({ deleted_at: deletedAt })
+      .eq("id", targetUserId)
+      .is("deleted_at", null)
+      .select("id")
+      .maybeSingle();
+    if (updateError) {
+      console.error("adminDeleteUser private_users:", updateError);
+      return { success: false, error: "削除状態の更新に失敗しました" };
     }
-    const { error: xpErr } = await supabase
-      .from("external_user_pending_xp")
-      .update({ claimed_by_user_id: null })
-      .eq("claimed_by_user_id", targetUserId);
-    if (xpErr) {
-      console.error("adminDeleteUser external_user_pending_xp:", xpErr);
-      return { success: false, error: "保留ポイントの更新に失敗しました" };
+    if (!updated) {
+      const { data: existing } = await supabase
+        .from("private_users")
+        .select("id, deleted_at")
+        .eq("id", targetUserId)
+        .maybeSingle();
+      if (!existing) {
+        return { success: false, error: "ユーザーが見つかりません" };
+      }
     }
-    const { error: enpsGrantErr } = await supabase
-      .from("enps_late_submission_grants")
-      .update({ created_by_user_id: operator.id })
-      .eq("created_by_user_id", targetUserId);
-    if (enpsGrantErr) {
-      console.error(
-        "adminDeleteUser enps_late_submission_grants:",
-        enpsGrantErr,
-      );
-      return { success: false, error: "eNPS付与の更新に失敗しました" };
+    const { error: banError } = await supabase.auth.admin.updateUserById(
+      targetUserId,
+      { ban_duration: "876600h" },
+    );
+    if (banError) {
+      console.error("adminDeleteUser auth ban:", banError);
     }
-    const { error: awardGrantErr } = await supabase
-      .from("award_late_submission_grants")
-      .update({ created_by_user_id: operator.id })
-      .eq("created_by_user_id", targetUserId);
-    if (awardGrantErr) {
-      console.error(
-        "adminDeleteUser award_late_submission_grants:",
-        awardGrantErr,
-      );
-      return { success: false, error: "表彰付与の更新に失敗しました" };
-    }
-    const { error: authErr } =
-      await supabase.auth.admin.deleteUser(targetUserId);
-    if (authErr) {
-      console.error("adminDeleteUser auth:", authErr);
-      return { success: false, error: authErr.message };
-    }
-    await supabase.from("public_user_profiles").delete().eq("id", targetUserId);
-    await supabase.from("private_users").delete().eq("id", targetUserId);
     revalidatePath("/admin/users-and-companies");
     return { success: true };
   } catch (error) {

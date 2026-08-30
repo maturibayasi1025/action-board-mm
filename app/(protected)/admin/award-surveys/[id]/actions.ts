@@ -322,7 +322,8 @@ export async function getAwardUnansweredUsers(surveyId: string) {
 
   const { data: allUsers } = await supabase
     .from("private_users")
-    .select("id, name");
+    .select("id, name")
+    .is("deleted_at", null);
 
   return filterUnansweredPrivateUsers(
     allUsers ?? [],

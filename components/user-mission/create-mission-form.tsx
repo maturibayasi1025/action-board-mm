@@ -171,6 +171,7 @@ export function CreateMissionForm(
       const { data, error } = await supabase
         .from("private_users")
         .select("id, name, x_username")
+        .is("deleted_at", null)
         .order("name");
 
       if (data && !error) {

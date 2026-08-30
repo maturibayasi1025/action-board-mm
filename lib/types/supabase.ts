@@ -1348,6 +1348,7 @@ export type Database = {
           business_unit_id: string | null;
           created_at: string;
           date_of_birth: string;
+          deleted_at: string | null;
           hubspot_contact_id: string | null;
           id: string;
           name: string;
@@ -1362,6 +1363,7 @@ export type Database = {
           business_unit_id?: string | null;
           created_at?: string;
           date_of_birth: string;
+          deleted_at?: string | null;
           hubspot_contact_id?: string | null;
           id: string;
           name: string;
@@ -1376,6 +1378,7 @@ export type Database = {
           business_unit_id?: string | null;
           created_at?: string;
           date_of_birth?: string;
+          deleted_at?: string | null;
           hubspot_contact_id?: string | null;
           id?: string;
           name?: string;
@@ -1400,6 +1403,7 @@ export type Database = {
           avatar_url: string | null;
           business_unit_id: string | null;
           created_at: string;
+          deleted_at: string | null;
           github_username: string | null;
           id: string;
           name: string;
@@ -1410,6 +1414,7 @@ export type Database = {
           avatar_url?: string | null;
           business_unit_id?: string | null;
           created_at: string;
+          deleted_at?: string | null;
           github_username?: string | null;
           id: string;
           name: string;
@@ -1420,6 +1425,7 @@ export type Database = {
           avatar_url?: string | null;
           business_unit_id?: string | null;
           created_at?: string;
+          deleted_at?: string | null;
           github_username?: string | null;
           id?: string;
           name?: string;

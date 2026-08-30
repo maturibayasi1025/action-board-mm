@@ -119,7 +119,8 @@ export async function getTotalUsers() {
 
   const { count } = await supabase
     .from("private_users")
-    .select("*", { count: "exact", head: true });
+    .select("*", { count: "exact", head: true })
+    .is("deleted_at", null);
 
   return count || 0;
 }
