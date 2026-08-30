@@ -16,11 +16,13 @@
 | 制限付きで出す | Slack ID、eNPS / 表彰の**個別回答**（専用スコープ。`public` キーでは出さない） |
 | 出さない | メール、生年月日、HubSpot ID、紹介コード、成果物・位置情報、任意 SQL |
 | 置き場所 | データ取得ロジックは `lib/mcp/`。配信はまず Next.js `POST /api/mcp`（既存 Cloudflare Pages）。SDK が Edge で無理なら Worker に分離 |
-| 認証 | `BATCH_ADMIN_KEY` は使わない。専用キー + スコープ（`public` / `analytics` / `survey_agg` / `slack_directory` / `survey_raw`） |
+| 認証 | **限られた人だけ。** 目標は `@maisonmarc.com` の Google アカウント必須。その上にメール許可リスト。`BATCH_ADMIN_KEY` は使わない |
 
 「MCP を作れば取り出せる」は正しい。ただし取り出せる範囲は**ツール定義とスコープ**で決まる。Slack ID と個別回答は出すが、`public` キーには載せない。メールや生年月日はツール自体を作らない。
 
-制限データを他AIに渡すと、その会話ログやプロバイダ側に自由記述が残る。キーは経営者相当に限定し、利用前にその前提を共有する。
+制限データを他AIに渡すと、その会話ログやプロバイダ側に自由記述が残る。接続できる人自体を絞り、利用前にその前提を共有する。
+
+**限られた人だけに開けることは可能。** 目標は「`@maisonmarc.com` の Google Workspace でログインした人」だけ。会社ドメイン全員ではなく、そのうち許可したメールだけ、にもできる。共有APIキーだけに頼るとコピーで広がるので、本番は Google ログインを正とする。
 
 ---
 
@@ -120,11 +122,71 @@ Phase 1 着手時に、Edge 上で MCP initialize → tools/list → 1 ツール
 
 ---
 
-## 6. 認証とスコープ
+## 6. 誰が開けるか（アクセス制限）
 
-`BATCH_ADMIN_KEY` の再利用はしない（バッチ書き込みAPIと権限が混ざる）。
+結論: **開ける。** MCP を社内の一部の人だけに限定できる。`@maisonmarc.com` の Google アカウント必須、もその一手段。
 
-### キー
+今の Action Board ログイン（メール+パスワード / LINE）には Google は無い。MCP 用に Google Cloud の OAuth クライアント（`openid email`）を別途用意する。アプリ本体のログイン方式は変えない。
+
+### 制限の二段
+
+| 段 | 条件 | 効果 |
+|----|------|------|
+| 1. ドメイン | Google トークンの email が `@maisonmarc.com` で、`email_verified` が true。認可 URL に `hd=maisonmarc.com` | 個人 Gmail や他社アカウントでは開けない |
+| 2. 許可リスト | `MCP_ALLOWED_GOOGLE_EMAILS`（例: 経営者・分析担当だけ） | 会社アカウントを持つ全員には開けない |
+
+「maisonmarc.com なら誰でも」にしたくなければ、段2を必須にする。Slack ID / 個別回答は段2必須を推奨する。
+
+ドメインだけでは「限られた人」に足りないことが多い。Workspace アカウントを持つ社員は段1を通る。
+
+### Cursor / Claude から使うときの形
+
+リモート MCP はブラウザの Cookie を送らない。そのため **Cloudflare Access を `/api/mcp` に掛けるだけ、は使わない**（ブラウザなら Google ログインできるが、Cursor の MCP クライアントは Access のリダイレクトを完走できない）。
+
+正式経路は MCP の OAuth 2.1 で、**認可サーバは自前、IdP は Google** にする。
+
+```
+Cursor「Connect」
+  → ブラウザが開く
+  → 自前 /api/mcp/oauth/authorize
+  → Google ログイン（hd=maisonmarc.com）
+  → callback で email / hd / email_verified / 許可リストを検証
+  → 自前の短いアクセストークン（スコープ付き）を Cursor に返す
+  → 以降 Bearer で /api/mcp を呼ぶ
+```
+
+Cursor が Google に直接リダイレクトする方式は採らない（Google 側が `cursor://` コールバックを受けないことがある）。Google と話すのは自前の Web コールバックだけにする。
+
+トークンに載せるもの: 発行先メール、スコープ、有効期限（例: 8時間）。監査ログの主体は API キーIDではなく **Google メール** にする。
+
+### 段階的な入れ方
+
+1. **Phase 1（接続確認）**  
+   人ごとに配る Bearer キー。発行対象は許可リストの人だけ、という運用制限。キーはコピーできるので、本番の「本人確認」にはしない。
+2. **Phase 1.5（推奨してすぐ足す）**  
+   小さな「MCP 接続」ページ。Google でログイン → 自分用の短い JWT またはワンタイムキーを表示 → Cursor の `headers.Authorization` に貼る。OAuth 仕様の実装より軽いが、貼り直しが必要。
+3. **本番（Phase 4 相当、制限データを出す前に前倒し推奨）**  
+   上記 MCP OAuth + Google。Cursor の Connect ボタンでブラウザログイン。キーの配布をやめる。
+
+制限データ（`survey_raw` / `slack_directory`）を出す PR より前に、段1+段2の Google 制限を入れる。共有キーのまま個別回答を出すのは避ける。
+
+### Cloudflare Access を使うなら
+
+Pages の管理画面や「接続ページ」だけ Access（Google Workspace）で守るのはよい。`/api/mcp` の唯一の鍵にはしない。Access の Service Token は共有秘密になり、Google 本人確認にならない。
+
+### アプリの `isOwner` との関係
+
+`OWNER_EMAILS` は Action Board のメール+パスワードアカウント向け。Google Workspace のメールと同じとは限らない。MCP の許可リストは **`MCP_ALLOWED_GOOGLE_EMAILS` を別管理** する。一致させたい場合は同じアドレスを両方に書く。
+
+Action Board にログインしていることは、MCP 利用の条件にしない（他AIクライアントに Cookie セッションを渡せないため）。
+
+---
+
+## 6.1 スコープ（何が読めるか）
+
+`BATCH_ADMIN_KEY` の再利用はしない（バッチ書き込みAPIと権限が混ざる）。Google で入れたあと、その人にどのスコープを付けるかは許可リスト側で決める。
+
+### キー（Phase 1 の暫定。OAuth 後は廃止）
 
 環境変数 `MCP_API_KEYS`（JSON）。Cloudflare では Encrypt する。
 
@@ -334,6 +396,8 @@ lib/mcp/
   privileged-client.ts # 列固定クエリ専用。汎用 from() を晒さない
   server.ts            # ツール登録（SDK 非依存の dispatch でも可）
 app/api/mcp/route.ts   # Streamable HTTP
+app/api/mcp/oauth/     # Google を IdP にした MCP OAuth（本番）
+app/api/mcp/connect/   # 任意。JWT を手貼りする接続ページ（Phase 1.5）
 app/api/data/[tool]/route.ts   # 任意。同じ dispatch
 tests/unit/mcp/
   auth.test.ts
@@ -352,8 +416,9 @@ docs/MCP_CLIENT_SETUP.md       # 実装後。Cursor の mcp.json 例
 ### Phase 0 — 合意（この文書）
 
 - [x] Slack ID と eNPS / 表彰の個別回答は出す（`slack_directory` / `survey_raw`。公開キーには付けない）
-- [ ] 制限キーを経営者以外に渡すか
-- [ ] キー運用（env 配列で開始でよいか）
+- [x] 接続は限られた人だけ。目標は `@maisonmarc.com` Google + 許可リスト
+- [ ] 会社ドメイン全員を通すか、許可リスト必須か（推奨: 許可リスト必須）
+- [ ] 制限データを出す前に Google ログインを必須にするか（推奨: 必須）
 - [ ] 他AIの会話ログに自由記述が残ってよいことの確認
 
 ### Phase 1 — 公開データ MCP（最初の実装 PR）
@@ -365,7 +430,19 @@ docs/MCP_CLIENT_SETUP.md       # 実装後。Cursor の mcp.json 例
 5. 単体テスト + 手動: Cursor から `list_missions` / `get_xp_ranking`
 6. クライアント手順（`docs/MCP_CLIENT_SETUP.md`）
 
-完了条件: キー無しは 401。`public` キーでミッションとランキングが取れる。禁止テーブルを叩くツールが存在しない。
+完了条件: 認証無しは 401。許可した人だけがミッションとランキングを取れる。禁止テーブルを叩くツールが存在しない。
+
+Phase 1 のキーは接続確認用。社外に URL を知られても、キーまたは Google が無いと中身は見えない。
+
+### Phase 1.5 — Google で本人確認（制限データより前）
+
+- Google OAuth クライアント（Workspace、`hd=maisonmarc.com`）
+- `MCP_ALLOWED_GOOGLE_DOMAIN=maisonmarc.com`
+- `MCP_ALLOWED_GOOGLE_EMAILS`（許可リスト。空ならドメイン全員になるので、空は禁止推奨）
+- 接続ページまたは MCP OAuth。Gmail / 許可外メールは 403
+- 監査の主体を Google メールにする
+
+完了条件: `@maisonmarc.com` 以外では Connect できない。許可リスト外も不可。
 
 ### Phase 2 — 分析
 
@@ -391,35 +468,35 @@ docs/MCP_CLIENT_SETUP.md       # 実装後。Cursor の mcp.json 例
 - 監査ログに `survey_id` と件数を残す
 - テスト: `public` キーでは 403。redact が `date_of_birth` / email / `hubspot_contact_id` を落とす。`slack_user_id` は `slack_directory` のときだけ残る
 
+制限データを出す前提: Phase 1.5 の Google + 許可リストが先。共有キーのまま `survey_raw` は出さない。
+
 ### Phase 4 — 運用強化
 
-- キーを DB 管理 + 失効 UI（owner のみ）
-- 監査をテーブル保存（`mcp_audit_logs`）
-- REST `/api/data`（MCP 非対応クライアント向け）
+- MCP OAuth 2.1 を正とし、静的キーを廃止
+- 許可リストの管理 UI（owner のみ）
+- 監査をテーブル保存（`mcp_audit_logs`、主体は Google メール）
+- REST `/api/data`（MCP 非対応クライアント向け。同じ Google 検証）
 - 必要なら Worker 分離
 
 ---
 
 ## 11. クライアント接続（実装後のイメージ）
 
-Cursor（リモート MCP）:
+本番（Google ログイン後）は URL だけ置く。Cursor の Connect でブラウザが開き、`@maisonmarc.com` でログインする。
 
 ```json
 {
   "mcpServers": {
     "action-board": {
-      "url": "https://mm-actionboard.jp/api/mcp",
-      "headers": {
-        "Authorization": "Bearer <発行されたキー>"
-      }
+      "url": "https://mm-actionboard.jp/api/mcp"
     }
   }
 }
 ```
 
-Claude Desktop も、Streamable HTTP 対応版であれば同じ URL + Bearer。stdio 用ラッパは公式経路にしない。
+Phase 1 の暫定だけ、人ごとに配った Bearer を `headers.Authorization` に書く。キーはチャットや Git に置かない。
 
-キーはチャットや Git に置かない。各自のローカル MCP 設定またはチームのシークレットマネージャに置く。
+Claude Desktop も Streamable HTTP + OAuth 対応版なら同じ。stdio 用ラッパは正式経路にしない。
 
 ---
 
@@ -427,7 +504,7 @@ Claude Desktop も、Streamable HTTP 対応版であれば同じ URL + Bearer。
 
 | 層 | 内容 |
 |----|------|
-| 単体 | スコープ外ツールは 403。redact が email / date_of_birth / hubspot_contact_id を落とす。`slack_user_id` は `slack_directory` 以外で落とす。`survey_raw` は `survey_id` 無しで Zod エラー。limit が上限で頭打ち |
+| 単体 | スコープ外ツールは 403。Gmail と許可リスト外は 403。redact が email / date_of_birth / hubspot_contact_id を落とす。`slack_user_id` は `slack_directory` 以外で落とす。`survey_raw` は `survey_id` 無しで Zod エラー。limit が上限で頭打ち |
 | 契約 | 各ツールの入力 Zod と戻り JSON のスナップショット |
 | 手動 | Cursor から「今月のXPランキング上位を教えて」→ `get_xp_ranking` だけが呼ばれる |
 | 回帰 | 禁止テーブル名が `lib/mcp/tools` に現れないこと（grep テスト可） |
@@ -440,7 +517,10 @@ RLS テスト（`tests/rls`）は既存のアプリ契約。MCP はそれより�
 
 | 変数 | 必須 | 用途 |
 |------|------|------|
-| `MCP_API_KEYS` | Phase 1 から | JSON 配列（id, secret, scopes, label） |
+| `MCP_API_KEYS` | Phase 1 暫定 | JSON 配列（id, secret, scopes, label）。OAuth 後は廃止 |
+| `MCP_ALLOWED_GOOGLE_DOMAIN` | Phase 1.5 | 例: `maisonmarc.com` |
+| `MCP_ALLOWED_GOOGLE_EMAILS` | Phase 1.5 | カンマ区切り。空は禁止推奨 |
+| `MCP_GOOGLE_CLIENT_ID` / `MCP_GOOGLE_CLIENT_SECRET` | Phase 1.5 | MCP 専用の Google OAuth クライアント |
 | `NEXT_PUBLIC_SUPABASE_URL` | 既存 | クエリ先 |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Phase 1–2 | cookie なしクライアント |
 | `MCP_READONLY_DB_URL` または同等 | Phase 3 推奨 | `mcp_restricted` ロールの接続。列 GRANT 済み |
@@ -453,11 +533,12 @@ RLS テスト（`tests/rls`）は既存のアプリ契約。MCP はそれより�
 ## 14. レビューで見るポイント
 
 1. 新しいツールは禁止リスト（メール、DOB、HubSpot、紹介コード、成果物、任意SQL）に触れていないか
-2. `survey_raw` / `slack_directory` が `public` キーで呼べないか
-3. 個別回答ツールが `survey_id` 無しで全件引けないか
-4. `private_users` を `SELECT *` していないか
-5. `status: all` や pending グッジョブを公開していないか
-6. キーがドキュメント例で実値になっていないか
+2. `@gmail.com` や許可リスト外で Connect / ツール呼び出しできないか
+3. `survey_raw` / `slack_directory` が認証だけの人（スコープ無し）で呼べないか
+4. 個別回答ツールが `survey_id` 無しで全件引けないか
+5. `private_users` を `SELECT *` していないか
+6. `status: all` や pending グッジョブを公開していないか
+7. キーや Google シークレットがドキュメント例で実値になっていないか
 
 ---
 
@@ -466,8 +547,8 @@ RLS テスト（`tests/rls`）は既存のアプリ契約。MCP はそれより�
 Phase 1 を1本の実装 PR にする。
 
 - 含む: `lib/mcp`（public ツール一式）、`app/api/mcp/route.ts`、env、単体テスト、クライアント手順
-- 含まない: Slack ID、個別回答、REST、キー管理 UI、Worker 分離、レート制限の本格基盤
+- 含まない: Slack ID、個別回答、Google OAuth 本番、REST、キー管理 UI、Worker 分離、レート制限の本格基盤
 
-Slack ID と個別回答は Phase 3 の別 PR。公開MCPが動いてから、特権経路と監査を足す。
+Google 制限は Phase 1.5 のすぐ次。Slack ID と個別回答は、Google + 許可リストが付いてから Phase 3。
 
 スパイクで Edge 不可なら、同じ PR 内で Worker に切り替え、Pages の `/api/mcp` は 501 + 移行先 URL にする。
