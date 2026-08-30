@@ -13,11 +13,14 @@
 | MCP でデータを取れるか | **取れる。** Cursor / Claude Desktop / 対応クライアントからツール呼び出しで取得できる |
 | 生 SQL・DB 直結はするか | **しない。** `execute_sql` も service_role も渡さない |
 | 最初に公開するもの | 画面でも見える公開データ（ミッション、ランキング、公開プロフィール、承認済みグッジョブ） |
-| 後回し | eNPS / 表彰の**個別回答**、メール、生年月日、Slack ID、紹介コード |
+| 制限付きで出す | Slack ID、eNPS / 表彰の**個別回答**（専用スコープ。`public` キーでは出さない） |
+| 出さない | メール、生年月日、HubSpot ID、紹介コード、成果物・位置情報、任意 SQL |
 | 置き場所 | データ取得ロジックは `lib/mcp/`。配信はまず Next.js `POST /api/mcp`（既存 Cloudflare Pages）。SDK が Edge で無理なら Worker に分離 |
-| 認証 | `BATCH_ADMIN_KEY` は使わない。専用キー + スコープ（`public` / `analytics` / `survey_agg`） |
+| 認証 | `BATCH_ADMIN_KEY` は使わない。専用キー + スコープ（`public` / `analytics` / `survey_agg` / `slack_directory` / `survey_raw`） |
 
-「MCP を作れば取り出せる」は正しい。ただし取り出せる範囲は**ツール定義とスコープ**で決まる。範囲を決めずにキーだけ配ると、他AI経由の情報漏洩になる。
+「MCP を作れば取り出せる」は正しい。ただし取り出せる範囲は**ツール定義とスコープ**で決まる。Slack ID と個別回答は出すが、`public` キーには載せない。メールや生年月日はツール自体を作らない。
+
+制限データを他AIに渡すと、その会話ログやプロバイダ側に自由記述が残る。キーは経営者相当に限定し、利用前にその前提を共有する。
 
 ---
 
@@ -26,6 +29,8 @@
 ### やりたいこと
 
 - 経営・企画・分析メンバーが、Cursor や Claude など**別のAI**に質問して、グッジョブ・ランキング・ダッシュボード相当の数字を出させる
+- **Slack ID** でユーザーを突合・メンションできるようにする
+- **eNPS / 表彰の個別回答**（スコア・自由記述・誰が答えたか）を他AIに食わせる
 - そのために「DB を直接触らせる」以外の、運用可能な入口を用意する
 
 ### やらないこと（このプランの範囲外）
@@ -34,7 +39,7 @@
 - 任意 SQL / 任意テーブル SELECT
 - `SUPABASE_SERVICE_ROLE_KEY` や `BATCH_ADMIN_KEY` を他AIクライアントに配布
 - ChatGPT GPTs / Dify 専用コネクタの本実装（REST を後から足せる形にはする）
-- eNPS・表彰の**個人が特定できる生回答**の配信
+- メール・生年月日・HubSpot ID の配信（Slack ID とサーベイ個別回答は対象。これらは対象外）
 
 ---
 
@@ -63,10 +68,11 @@ RLS 上は認証済みなら `private_users` 全行や `xp_transactions` 全行�
 対策の原則:
 
 - **ツールが存在しないデータは取れない**（禁止データをツールに載せない）
-- **キーはスコープ付き**（survey 用キーが無いと集計も取れない）
-- **件数上限とページング必須**（デフォルト 20、最大 100）
-- **監査ログ**（誰のキーが、どのツールを、いつ呼んだか）
-- **service_role を MCP プロセスに持たせない**（少なくとも Phase 1–2）
+- **キーはスコープ付き**（`survey_raw` / `slack_directory` が無いキーでは個別回答も Slack ID も取れない）
+- **件数上限とページング必須**（公開データはデフォルト 20 / 最大 100。個別回答はデフォルト 50 / 最大 200、**必ず `survey_id` 必須**）
+- **監査ログ**（誰のキーが、どのツールを、いつ呼んだか。`survey_raw` / `slack_directory` は必須）
+- **service_role を MCP の汎用クライアントに持たせない**。個別回答と Slack ID は列を固定した専用クエリだけが特権経路を使う
+- **制限スコープのキーは経営者相当だけ**。会話ログに自由記述が残ることを利用前に伝える
 
 ---
 
@@ -93,9 +99,9 @@ RLS 上は認証済みなら `private_users` 全行や `xp_transactions` 全行�
 └─────────────────────────────────────────┘
         │
         ▼
-  Supabase anon（公開データ）
-  または専用 read-only role + SECURITY DEFINER ビュー
-  （survey_agg のみ、後から read-only ロール）
+  Supabase anon（public / analytics）
+  制限付き: 列 GRANT した mcp_restricted ロール
+  または SECURITY DEFINER RPC（Slack ID・個別回答・スナップショット）
 ```
 
 ### なぜ「MCP 本体」と「取得ロジック」を分けるか
@@ -134,7 +140,19 @@ Phase 1 着手時に、Edge 上で MCP initialize → tools/list → 1 ツール
     "id": "owner-analytics-2026",
     "secret": "...",
     "scopes": ["public", "analytics", "survey_agg"],
-    "label": "経営者向け集計"
+    "label": "経営者向け集計（個人回答なし）"
+  },
+  {
+    "id": "owner-restricted-2026",
+    "secret": "...",
+    "scopes": [
+      "public",
+      "analytics",
+      "survey_agg",
+      "slack_directory",
+      "survey_raw"
+    ],
+    "label": "経営者向け。Slack ID とサーベイ個別回答を含む"
   }
 ]
 ```
@@ -152,9 +170,13 @@ Phase 1 着手時に、Edge 上で MCP initialize → tools/list → 1 ツール
 |----------|--------------|--------|
 | `public` | ミッション、承認済みグッジョブ、公開プロフィール、レベル、バッジ、ランキング | 分析したいメンバー全般 |
 | `analytics` | ダッシュボード RPC、日次サマリ、グッジョブ統計（管理画面 statistics 相当の公開集計） | 数字を見る人 |
-| `survey_agg` | eNPS 月次スナップショット、表彰の**指名件数・設問メタ**（個人回答なし） | 経営者相当。`isOwner` と同じ運用意識 |
+| `survey_agg` | eNPS 月次スナップショット、表彰の**指名件数・設問メタ**（個人回答なし） | 集計だけでよい人 |
+| `slack_directory` | `user_id` + 公開名 + `slack_user_id` の対応表 | 他AIから Slack メンションや突合をしたい人。経営者相当 |
+| `survey_raw` | eNPS / 表彰の**個別回答**（スコア・自由記述・回答者ID・被指名者ID） | 生回答を他AIに食わせたい人。経営者相当。`isOwner` と同じ運用意識 |
 
 スコープに無いツールは `tools/list` にも出さない（名前を知って呼んでも 403）。
+
+`slack_directory` と `survey_raw` は分けて発行できる。両方欲しい人には restricted キーを1本渡す。`public` だけのキーにはどちらも付けない。
 
 ---
 
@@ -178,28 +200,48 @@ Phase 1 着手時に、Edge 上で MCP initialize → tools/list → 1 ツール
 - `daily_action_summary` 等のサマリテーブル
 - 管理画面 statistics のグッジョブ集計（件数。個人のメールは含まない）
 
-### Phase 3（`survey_agg`）のみ
+### Phase 3（`survey_agg`）
 
 - `enps_surveys` / `enps_questions` / `award_surveys` / `award_questions`（定義）
 - `enps_monthly_snapshots`（凍結済み集計）
 - 表彰の指名**件数**・設問別トップ（管理画面の quarterly ranking 相当。氏名は公開プロフィール名まで）
 
+### Phase 3 制限付き（`slack_directory` / `survey_raw`）— 要望により出す
+
+管理画面の owner が service role で見ている範囲に寄せる。`private_users` の行そのものは返さない。
+
+**Slack ID（`slack_directory`）**
+
+- 返す列だけ: `user_id`, `name`（`public_user_profiles`）, `slack_user_id`
+- `slack_user_id` が null の行はデフォルト除外（`include_missing: true` で含めてよい）
+- 生年月日・HubSpot ID・メールは結合しない
+
+**個別回答（`survey_raw`）**
+
+- `enps_responses`: `id`, `survey_id`, `question_id`, `user_id`, `score_value`, `text_value`, `is_late_submission`, `created_at`
+- `award_responses`: 上記に加え `nominee_user_id`
+- 設問文・公開名は JOIN してよい（AI が読みやすいようにする）
+- `slack_user_id` を回答行に付けるのは、同じキーが `slack_directory` も持つときだけ
+- **`survey_id` 必須**。全期間一括ダンプのツールは作らない
+
+アプリの RLS では個別回答は本人のみ。MCP から全員分を読むには、後述の特権読み取り経路が必要。
+
 ### ツールに載せない（ハード禁止）
 
 | 対象 | 理由 |
 |------|------|
-| `enps_responses` / `award_responses` の生行 | 個人のスコア・自由記述 |
-| `enps_report_ai_summaries.payload` | 原文コメントが入り得る |
-| `private_users` の DOB / slack_user_id / hubspot_contact_id | PII・外部ID |
+| `enps_report_ai_summaries.payload` | 原文が再掲され得る。個別回答ツールで足りる |
+| `private_users` の `date_of_birth` / `hubspot_contact_id` | Slack ID 以外の PII は出さない |
+| `private_users` の `SELECT *` | 列を固定した対応表だけ使う |
 | `auth.users` / `get_user_by_email` | メール |
 | `user_referral` | 紹介コード悪用 |
 | `xp_transactions` の全件ダンプ | 過剰。レベルとランキングで足りる |
 | `mission_artifacts` / 位置情報 | 本人以外は RLS でも見えない成果物 |
 | `*_late_submission_grants` | 回答バイパス |
-| `slack_notifications.payload` | 投稿内容の複製 |
+| `slack_notifications.payload` | 投稿内容の複製。Slack ID とは別物 |
 | 任意 SQL、書き込み RPC（`replace_enps_responses` 等） | 権限逸脱 |
 
-`private_users` は「名前解決」にも使わない。表示名は `public_user_profiles.name` のみ。
+表示名の解決は `public_user_profiles.name` のみ。`private_users` は `id` と `slack_user_id` 以外触らない。
 
 ---
 
@@ -247,7 +289,25 @@ Phase 1 着手時に、Edge 上で MCP initialize → tools/list → 1 ツール
 | `get_enps_monthly_snapshots` | `enps_monthly_snapshots` | `year_month?`, `group?` |
 | `get_award_nomination_ranking` | `quarterly-ranking-model.ts` | `survey_id` または四半期 |
 
-Phase 3 で初めて、スナップショット読み取り用の **SELECT 専用 DB ロール**（または SECURITY DEFINER ビュー + GRANT）を足す。アプリの service_role を MCP にコピーしない。
+### `slack_directory`（Phase 3）
+
+| ツール | 既存の再利用 | 入力 |
+|--------|--------------|------|
+| `list_slack_directory` | `private_users.slack_user_id` + `public_user_profiles` | `user_id?`, `query?`（名前）, `include_missing?`, `limit`, `offset` |
+| `get_slack_user_id` | 同上 | `user_id` |
+
+### `survey_raw`（Phase 3）
+
+管理画面の `getAwardSurveyResponses` / `lib/admin/enps-report/data-access.ts` と同じ列に寄せる。
+
+| ツール | 既存の再利用 | 入力 |
+|--------|--------------|------|
+| `list_enps_responses` | `enps_responses` + 設問文 | **`survey_id` 必須**, `question_id?`, `user_id?`, `limit`, `offset` |
+| `list_award_responses` | `getAwardSurveyResponses` 相当 | **`survey_id` 必須**, `question_id?`, `user_id?`, `nominee_user_id?`, `limit`, `offset` |
+| `get_enps_response` | 同上 | `id` |
+| `get_award_response` | 同上 | `id` |
+
+書き込み RPC（`replace_enps_responses` / `replace_award_responses`）は登録しない。
 
 ---
 
@@ -268,7 +328,10 @@ lib/mcp/
     rankings.ts
     user-missions.ts
     analytics.ts
-    surveys.ts         # Phase 3
+    surveys.ts         # Phase 3 survey_agg
+    slack-directory.ts # Phase 3 slack_directory
+    survey-responses.ts # Phase 3 survey_raw
+  privileged-client.ts # 列固定クエリ専用。汎用 from() を晒さない
   server.ts            # ツール登録（SDK 非依存の dispatch でも可）
 app/api/mcp/route.ts   # Streamable HTTP
 app/api/data/[tool]/route.ts   # 任意。同じ dispatch
@@ -288,9 +351,10 @@ docs/MCP_CLIENT_SETUP.md       # 実装後。Cursor の mcp.json 例
 
 ### Phase 0 — 合意（この文書）
 
-- [ ] 禁止データリストに抜けが無いか（特にサーベイ）
-- [ ] `survey_agg` を経営者以外に渡すか
+- [x] Slack ID と eNPS / 表彰の個別回答は出す（`slack_directory` / `survey_raw`。公開キーには付けない）
+- [ ] 制限キーを経営者以外に渡すか
 - [ ] キー運用（env 配列で開始でよいか）
+- [ ] 他AIの会話ログに自由記述が残ってよいことの確認
 
 ### Phase 1 — 公開データ MCP（最初の実装 PR）
 
@@ -309,11 +373,23 @@ docs/MCP_CLIENT_SETUP.md       # 実装後。Cursor の mcp.json 例
 - キー単位レート制限（例: 60 req / 分）
 - レスポンスサイズ上限（例: 200KB）
 
-### Phase 3 — サーベイ集計
+### Phase 3 — サーベイ集計 + 制限データ（Slack ID / 個別回答）
 
-- DB: `mcp_readonly` ロール、または `enps_monthly_snapshots` 等への SECURITY DEFINER ビュー
-- `survey_agg` ツール
-- 個別回答を返す経路がテストで存在しないことを明示
+特権読み取り（どれか1つ。上から推奨）:
+
+1. Postgres ロール `mcp_restricted` + **列レベル GRANT**
+   - `private_users`: `id`, `slack_user_id` のみ
+   - `enps_responses` / `award_responses`: 全列 SELECT
+   - `enps_monthly_snapshots` 等の集計表
+2. SECURITY DEFINER RPC（`mcp_list_enps_responses` 等）。返す列を SQL 側で固定
+3. 実装を急ぐ場合のみ、`createServiceClient()` を `privileged-client.ts` の **3関数以内** に閉じる。`.from("private_users").select("*")` は禁止。MCP ルートや public ツールから service_role を import しない
+
+アプリ側の追加:
+
+- `slack_directory` / `survey_raw` ツール
+- 制限ツールはレートを落とす（例: 20 req / 分）
+- 監査ログに `survey_id` と件数を残す
+- テスト: `public` キーでは 403。redact が `date_of_birth` / email / `hubspot_contact_id` を落とす。`slack_user_id` は `slack_directory` のときだけ残る
 
 ### Phase 4 — 運用強化
 
@@ -351,7 +427,7 @@ Claude Desktop も、Streamable HTTP 対応版であれば同じ URL + Bearer。
 
 | 層 | 内容 |
 |----|------|
-| 単体 | スコープ外ツールは 403。redact が email / date_of_birth / slack_user_id を落とす。limit が 100 で頭打ち |
+| 単体 | スコープ外ツールは 403。redact が email / date_of_birth / hubspot_contact_id を落とす。`slack_user_id` は `slack_directory` 以外で落とす。`survey_raw` は `survey_id` 無しで Zod エラー。limit が上限で頭打ち |
 | 契約 | 各ツールの入力 Zod と戻り JSON のスナップショット |
 | 手動 | Cursor から「今月のXPランキング上位を教えて」→ `get_xp_ranking` だけが呼ばれる |
 | 回帰 | 禁止テーブル名が `lib/mcp/tools` に現れないこと（grep テスト可） |
@@ -367,20 +443,21 @@ RLS テスト（`tests/rls`）は既存のアプリ契約。MCP はそれより�
 | `MCP_API_KEYS` | Phase 1 から | JSON 配列（id, secret, scopes, label） |
 | `NEXT_PUBLIC_SUPABASE_URL` | 既存 | クエリ先 |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Phase 1–2 | cookie なしクライアント |
-| `MCP_READONLY_DB_URL` または同等 | Phase 3 | 集計ビュー専用。service_role の代用にしない |
-| `MCP_RATE_LIMIT_PER_MINUTE` | Phase 2 | デフォルト 60 |
+| `MCP_READONLY_DB_URL` または同等 | Phase 3 推奨 | `mcp_restricted` ロールの接続。列 GRANT 済み |
+| `MCP_RATE_LIMIT_PER_MINUTE` | Phase 2 | デフォルト 60（制限ツールは別途低く） |
 
-`SUPABASE_SERVICE_ROLE_KEY` を MCP ルートから import しない（lint / review で見る）。
+`SUPABASE_SERVICE_ROLE_KEY` を `app/api/mcp` や public ツールから import しない。暫定で使う場合は `lib/mcp/privileged-client.ts` のみ（lint / review で見る）。
 
 ---
 
 ## 14. レビューで見るポイント
 
-1. 新しいツールは禁止リストに触れていないか
-2. `status: all` や pending グッジョブを公開していないか
-3. サービス関数の service_role 経路をそのまま呼んでいないか
-4. ツール説明が「何でも聞ける」になっていないか
-5. キーがドキュメント例で実値になっていないか
+1. 新しいツールは禁止リスト（メール、DOB、HubSpot、紹介コード、成果物、任意SQL）に触れていないか
+2. `survey_raw` / `slack_directory` が `public` キーで呼べないか
+3. 個別回答ツールが `survey_id` 無しで全件引けないか
+4. `private_users` を `SELECT *` していないか
+5. `status: all` や pending グッジョブを公開していないか
+6. キーがドキュメント例で実値になっていないか
 
 ---
 
@@ -389,6 +466,8 @@ RLS テスト（`tests/rls`）は既存のアプリ契約。MCP はそれより�
 Phase 1 を1本の実装 PR にする。
 
 - 含む: `lib/mcp`（public ツール一式）、`app/api/mcp/route.ts`、env、単体テスト、クライアント手順
-- 含まない: survey、REST、キー管理 UI、Worker 分離、レート制限の本格基盤
+- 含まない: Slack ID、個別回答、REST、キー管理 UI、Worker 分離、レート制限の本格基盤
+
+Slack ID と個別回答は Phase 3 の別 PR。公開MCPが動いてから、特権経路と監査を足す。
 
 スパイクで Edge 不可なら、同じ PR 内で Worker に切り替え、Pages の `/api/mcp` は 501 + 移行先 URL にする。
