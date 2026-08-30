@@ -23,6 +23,10 @@ jest.mock("@/app/actions", () => ({
   signOutAction: jest.fn(),
 }));
 
+jest.mock("@/lib/utils/isOwner", () => ({
+  isOwner: jest.fn(() => Promise.resolve(false)),
+}));
+
 describe("HeaderAuth", () => {
   describe("未認証状態", () => {
     it("ログインリンクが表示される", async () => {
@@ -33,20 +37,22 @@ describe("HeaderAuth", () => {
       ).toBeInTheDocument();
     });
 
-    it("新規登録リンクは表示されない", async () => {
+    it("新規登録リンクが表示される", async () => {
       render(await HeaderAuth());
 
       expect(
-        screen.queryByRole("link", { name: "新規登録" }),
-      ).not.toBeInTheDocument();
+        screen.getByRole("link", { name: "新規登録" }),
+      ).toBeInTheDocument();
     });
 
     it("適切なリンク先が設定される", async () => {
       render(await HeaderAuth());
 
       const loginLink = screen.getByRole("link", { name: "ログイン" });
+      const signUpLink = screen.getByRole("link", { name: "新規登録" });
 
       expect(loginLink).toHaveAttribute("href", "/sign-in");
+      expect(signUpLink).toHaveAttribute("href", "/sign-up");
     });
   });
 

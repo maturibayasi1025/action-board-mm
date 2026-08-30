@@ -7,6 +7,8 @@ export {
   signInActionWithState,
   forgotPasswordAction,
   resetPasswordAction,
+  changePasswordAction,
+  acceptInvitePasswordAction,
   signOutAction,
   handleLineAuthAction,
 } from "./_actions/auth";

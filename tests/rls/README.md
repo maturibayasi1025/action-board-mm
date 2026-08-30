@@ -17,6 +17,7 @@ npm run test:rls
 - `public-user-profiles.test.ts` - public_user_profilesテーブルのRLSポリシーをテスト
 - `achievements.test.ts` - achievementsテーブルのRLSポリシーをテスト
 - `missions.test.ts` - missionsテーブルのRLSポリシーをテスト
+- `user-invitations.test.ts` - user_invitationsテーブルのRLSポリシーをテスト（サービスロールのみ書き込み可）
 
 ## RLSポリシーの説明
 

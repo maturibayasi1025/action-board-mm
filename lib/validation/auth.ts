@@ -7,10 +7,11 @@ const ALLOWED_PASSWORD_CHARS_REGEX = /^[a-zA-Z0-9@+*/#$%&!\-]*$/;
 const ALPHANUMERIC_REQUIRED_REGEX = /(?=.*[a-zA-Z])(?=.*[0-9])/;
 
 // メールアドレスのバリデーションスキーマ（再利用可能）
-const emailSchema = z
+export const emailSchema = z
   .string()
   .nonempty({ message: "メールアドレスを入力してください" })
-  .email({ message: "有効なメールアドレスを入力してください" });
+  .email({ message: "有効なメールアドレスを入力してください" })
+  .transform((value) => value.trim().toLowerCase());
 
 // パスワードのサーバーバリデーションスキーマ（再利用可能）
 export const passwordAlertSchema = z
@@ -35,19 +36,6 @@ export const passwordSchema = passwordAlertlessSchema.and(passwordAlertSchema);
 export const signUpAndLoginFormSchema = z.object({
   email: emailSchema,
   password: passwordSchema,
-  date_of_birth: z
-    .string()
-    .nonempty({ message: "生年月日を入力してください" })
-    .refine(
-      (value) => {
-        const age = calculateAge(value);
-        return age >= 18;
-      },
-      {
-        message: "18歳未満の方は登録できません",
-      },
-    )
-    .transform((value) => new Date(value).toISOString()), // ISO形式に変換
 });
 
 export const signInAndLoginFormSchema = z.object({
@@ -57,6 +45,48 @@ export const signInAndLoginFormSchema = z.object({
 
 export const forgotPasswordFormSchema = z.object({
   email: emailSchema,
+});
+
+export const setPasswordFormSchema = z
+  .object({
+    password: passwordSchema,
+    confirmPassword: z
+      .string()
+      .nonempty({ message: "パスワード確認を入力してください" }),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "パスワードが一致しません",
+    path: ["confirmPassword"],
+  });
+
+export const changePasswordFormSchema = z
+  .object({
+    currentPassword: z
+      .string()
+      .nonempty({ message: "現在のパスワードを入力してください" }),
+    newPassword: passwordSchema,
+    confirmPassword: z
+      .string()
+      .nonempty({ message: "パスワード確認を入力してください" }),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: "パスワードが一致しません",
+    path: ["confirmPassword"],
+  })
+  .refine((data) => data.currentPassword !== data.newPassword, {
+    message: "新しいパスワードは現在のパスワードと異なるものを設定してください",
+    path: ["newPassword"],
+  });
+
+export const inviteUserFormSchema = z.object({
+  email: emailSchema,
+  business_unit_id: z
+    .union([
+      z.string().uuid({ message: "事業部の指定が不正です" }),
+      z.literal(""),
+      z.null(),
+    ])
+    .optional(),
 });
 
 // LINE認証用のバリデーションスキーマ

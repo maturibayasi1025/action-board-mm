@@ -167,7 +167,11 @@ export default async function ProfileSettingsPage({
             x_username: privateUser?.x_username ?? null,
             github_username: publicUser?.github_username ?? null,
             avatar_url: privateUser?.avatar_url ?? null,
-            business_unit_id: privateUser?.business_unit_id ?? null,
+            business_unit_id:
+              privateUser?.business_unit_id ??
+              (typeof user.user_metadata?.business_unit_id === "string"
+                ? user.user_metadata.business_unit_id
+                : null),
           }}
           initialPrivateUser={privateUser}
         />

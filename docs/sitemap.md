@@ -5,9 +5,14 @@
 ```mermaid
 flowchart TD
   top[トップ画面 /]
-  signin[ログイン画面/sign-in]
+  signin[ログイン画面 /sign-in]
   signup[ユーザー登録画面 /sign-up]
-  forgot[パスワードリセット画面 /forgot-password]
+  forgot[パスワード再設定メール /forgot-password]
+  reset[パスワードリセット /reset-password]
+  invite[招待パスワード設定 /invite/set-password]
+  profile[プロフィール設定 /settings/profile]
+  password[パスワード変更 /settings/password]
+  adminUsers[ユーザー一覧・招待 /admin/users-and-companies]
   mission[グッジョブ詳細画面 /missions/:id]
   complete[グッジョブ達成画面 /missions/:id/complete]
   user[ユーザー詳細画面 /users/:id]
@@ -17,12 +22,20 @@ flowchart TD
   top --> mission
   top --> user
 
-  signin --> mission
+  signin --> signup
   signin --> forgot
+  signin --> profile
+  forgot --> reset
+  reset --> signin
+  signup --> signin
+  adminUsers --> invite
+  invite --> profile
+  profile --> password
+
+  signin --> mission
   signup --> mission
 
   mission --グッジョブ完了ボタン押下--> complete
   mission --> user
-
   complete --> user
 ```

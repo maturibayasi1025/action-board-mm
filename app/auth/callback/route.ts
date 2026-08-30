@@ -22,14 +22,14 @@ export async function GET(request: Request) {
         error.message?.includes("code verifier") ||
         error.code === "validation_failed"
       ) {
-        // redirect_toパラメータからパスワードリセットかどうかを判定
         if (redirectTo === "/reset-password") {
-          // パスワードリセットの場合
           const resetUrl = `${origin}/reset-password`;
           return NextResponse.redirect(resetUrl);
         }
+        if (redirectTo === "/invite/set-password") {
+          return NextResponse.redirect(`${origin}/invite/set-password`);
+        }
 
-        // メール認証の場合
         const loginUrl = `${origin}/sign-in?success=${encodeURIComponent("メール認証が完了しました。ログインしてください。")}`;
         return NextResponse.redirect(loginUrl);
       }
@@ -40,6 +40,21 @@ export async function GET(request: Request) {
     return NextResponse.redirect(`${origin}${redirectTo}`);
   }
 
-  // URL to redirect to after sign up process completes
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (user) {
+    const { data: privateUser } = await supabase
+      .from("private_users")
+      .select("id")
+      .eq("id", user.id)
+      .maybeSingle();
+    if (!privateUser) {
+      return NextResponse.redirect(`${origin}/settings/profile?new=true`);
+    }
+  }
+
   return NextResponse.redirect(`${origin}/`);
 }

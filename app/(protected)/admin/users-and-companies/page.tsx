@@ -1,8 +1,12 @@
+import { listCompaniesAndUnits } from "@/app/(protected)/admin/business-units/actions";
 import {
   type UserWithCompanyRow,
+  listPendingInvitations,
   listUsersWithCompanies,
 } from "@/app/(protected)/admin/users-and-companies/actions";
 import { AdminDeleteUserButton } from "@/components/admin/admin-delete-user-button";
+import { AdminInviteUserForm } from "@/components/admin/admin-invite-user-form";
+import { AdminPendingInvitations } from "@/components/admin/admin-pending-invitations";
 import { UsersAndCompaniesCsvDownload } from "@/components/admin/users-and-companies-csv-download";
 import { createClient } from "@/lib/supabase/server";
 import { isOwner } from "@/lib/utils/isOwner";
@@ -59,7 +63,11 @@ export default async function UsersAndCompaniesPage() {
   } = await supabase.auth.getUser();
   const currentUserId = currentUser?.id ?? null;
 
-  const result = await listUsersWithCompanies();
+  const [result, invitationsResult, mastersResult] = await Promise.all([
+    listUsersWithCompanies(),
+    listPendingInvitations(),
+    listCompaniesAndUnits(),
+  ]);
   if (!result.success) {
     return (
       <div className="container mx-auto py-8 px-4">
@@ -70,6 +78,13 @@ export default async function UsersAndCompaniesPage() {
 
   const { users } = result;
   const byCompany = buildCompanyGroups(users);
+  const invitations = invitationsResult.success
+    ? invitationsResult.invitations
+    : [];
+  const companies = mastersResult.success ? mastersResult.companies : [];
+  const units = mastersResult.success
+    ? mastersResult.units.filter((u) => u.is_active)
+    : [];
 
   return (
     <div className="container mx-auto py-8 px-4">
@@ -80,11 +95,14 @@ export default async function UsersAndCompaniesPage() {
               ユーザー一覧（会社・事業部）
             </h1>
             <p className="text-muted-foreground">
-              登録ユーザーを会社ごとにまとめて表示します。プロフィールに事業部が未設定の場合は「（会社未設定）」に含まれます。CSVでは全登録者を会社・表示名順でダウンロードできます。各行からユーザーを削除できます（経営者のみ。自分自身と経営者アカウントは削除できません）。
+              登録ユーザーを会社ごとにまとめて表示します。ここから新規ユーザーを招待できます。プロフィールに事業部が未設定の場合は「（会社未設定）」に含まれます。CSVでは全登録者を会社・表示名順でダウンロードできます。各行からユーザーを削除できます（経営者のみ。自分自身と経営者アカウントは削除できません）。
             </p>
           </div>
           <UsersAndCompaniesCsvDownload users={users} />
         </div>
+
+        <AdminInviteUserForm companies={companies} units={units} />
+        <AdminPendingInvitations invitations={invitations} />
 
         {byCompany.length > 1 && (
           <nav

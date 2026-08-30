@@ -29,6 +29,7 @@ import { AVATAR_MAX_FILE_SIZE } from "@/lib/avatar";
 import { createClient } from "@/lib/supabase/client";
 import { calculateAge } from "@/lib/utils/utils";
 import { X } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   // useActionState, // API Routeを使用するためコメントアウト
@@ -279,6 +280,17 @@ export default function ProfileForm({
           {isNew
             ? "公開されるプロフィール情報を登録します。"
             : "公開されるプロフィール情報を編集します。"}
+          {!isNew && (
+            <>
+              {" "}
+              <Link
+                href="/settings/password"
+                className="text-primary underline"
+              >
+                パスワードを変更する
+              </Link>
+            </>
+          )}
         </CardDescription>
       </CardHeader>
       {queryMessage && (

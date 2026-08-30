@@ -1,7 +1,9 @@
 "use server";
 
+import { getSiteUrl } from "@/lib/env";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { isUserIdOwner, requireOwner } from "@/lib/utils/isOwner";
+import { inviteUserFormSchema } from "@/lib/validation/auth";
 import { revalidatePath } from "next/cache";
 
 export type UserWithCompanyRow = {
@@ -150,5 +152,377 @@ export async function adminDeleteUser(
     }
     console.error(error);
     return { success: false, error: "ユーザーの削除に失敗しました" };
+  }
+}
+
+export type InvitationRow = {
+  id: string;
+  email: string;
+  status: string;
+  createdAt: string;
+  businessUnitId: string | null;
+  businessUnitName: string | null;
+  companyName: string | null;
+};
+
+function ownerAuthError(
+  error: unknown,
+): { success: false; error: string } | null {
+  if (error instanceof Error && error.message === "経営者権限が必要です") {
+    return { success: false, error: "経営者権限が必要です" };
+  }
+  return null;
+}
+
+export async function listPendingInvitations(): Promise<
+  | { success: true; invitations: InvitationRow[] }
+  | { success: false; error: string }
+> {
+  try {
+    await requireOwner();
+    const supabase = await createServiceClient();
+    const { data, error } = await supabase
+      .from("user_invitations")
+      .select(
+        `
+        id,
+        email,
+        status,
+        created_at,
+        business_unit_id,
+        business_units (
+          name,
+          companies (
+            name
+          )
+        )
+      `,
+      )
+      .eq("status", "pending")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("listPendingInvitations:", error);
+      return { success: false, error: error.message };
+    }
+
+    const invitations: InvitationRow[] = (data ?? []).map((row) => {
+      const bu = row.business_units;
+      const unit =
+        bu === null ? null : Array.isArray(bu) ? (bu[0] ?? null) : bu;
+      const comp = unit?.companies;
+      const companyName =
+        comp === null || comp === undefined
+          ? null
+          : Array.isArray(comp)
+            ? (comp[0]?.name ?? null)
+            : comp.name;
+      return {
+        id: row.id,
+        email: row.email,
+        status: row.status,
+        createdAt: row.created_at,
+        businessUnitId: row.business_unit_id,
+        businessUnitName: unit?.name ?? null,
+        companyName,
+      };
+    });
+
+    return { success: true, invitations };
+  } catch (error) {
+    const ownerError = ownerAuthError(error);
+    if (ownerError) return ownerError;
+    console.error(error);
+    return { success: false, error: "招待一覧の取得に失敗しました" };
+  }
+}
+
+export async function inviteUser(input: {
+  email: string;
+  businessUnitId?: string | null;
+}): Promise<{ success: true } | { success: false; error: string }> {
+  try {
+    await requireOwner();
+    const parsed = inviteUserFormSchema.safeParse({
+      email: input.email,
+      business_unit_id: input.businessUnitId ?? "",
+    });
+    if (!parsed.success) {
+      return {
+        success: false,
+        error: parsed.error.errors.map((e) => e.message).join("\n"),
+      };
+    }
+
+    const email = parsed.data.email;
+    const businessUnitId = parsed.data.business_unit_id || null;
+    const supabaseAnon = await createClient();
+    const {
+      data: { user: operator },
+    } = await supabaseAnon.auth.getUser();
+    if (!operator?.id) {
+      return { success: false, error: "ログインが必要です" };
+    }
+
+    const supabase = await createServiceClient();
+
+    if (businessUnitId) {
+      const { data: unit, error: unitError } = await supabase
+        .from("business_units")
+        .select("id")
+        .eq("id", businessUnitId)
+        .maybeSingle();
+      if (unitError || !unit) {
+        return { success: false, error: "指定した事業部が見つかりません" };
+      }
+    }
+
+    const { data: existingUsers, error: userFetchError } = await supabase.rpc(
+      "get_user_by_email",
+      { user_email: email },
+    );
+    if (userFetchError) {
+      console.error("inviteUser get_user_by_email:", userFetchError);
+      return { success: false, error: "ユーザーの確認に失敗しました" };
+    }
+
+    const existingAuthUser = existingUsers?.[0] ?? null;
+    if (existingAuthUser) {
+      const { data: profile } = await supabase
+        .from("private_users")
+        .select("id")
+        .eq("id", existingAuthUser.id)
+        .maybeSingle();
+      if (profile) {
+        return {
+          success: false,
+          error: "このメールアドレスは既に登録されています",
+        };
+      }
+
+      const { data: pendingForExisting } = await supabase
+        .from("user_invitations")
+        .select("id")
+        .eq("status", "pending")
+        .ilike("email", email)
+        .maybeSingle();
+      if (pendingForExisting) {
+        return {
+          success: false,
+          error:
+            "このメールアドレスには未完了の招待があります。再送してください。",
+        };
+      }
+
+      const { error: deleteOrphanError } = await supabase.auth.admin.deleteUser(
+        existingAuthUser.id,
+      );
+      if (deleteOrphanError) {
+        console.error("inviteUser delete orphan:", deleteOrphanError);
+        return {
+          success: false,
+          error: "未完了のアカウントが残っているため招待できません",
+        };
+      }
+    }
+
+    const { data: pending } = await supabase
+      .from("user_invitations")
+      .select("id")
+      .eq("status", "pending")
+      .ilike("email", email)
+      .maybeSingle();
+    if (pending) {
+      return {
+        success: false,
+        error:
+          "このメールアドレスには未完了の招待があります。再送してください。",
+      };
+    }
+
+    const siteUrl = getSiteUrl();
+    const { data: invited, error: inviteError } =
+      await supabase.auth.admin.inviteUserByEmail(email, {
+        data: {
+          invited_by: operator.id,
+          ...(businessUnitId ? { business_unit_id: businessUnitId } : {}),
+        },
+        redirectTo: `${siteUrl}/auth/callback?redirect_to=/invite/set-password`,
+      });
+
+    if (inviteError || !invited.user) {
+      console.error("inviteUser inviteUserByEmail:", inviteError);
+      if (inviteError?.message?.toLowerCase().includes("already")) {
+        return {
+          success: false,
+          error: "このメールアドレスは既に登録されています",
+        };
+      }
+      return {
+        success: false,
+        error: inviteError?.message ?? "招待メールの送信に失敗しました",
+      };
+    }
+
+    const { error: insertError } = await supabase
+      .from("user_invitations")
+      .insert({
+        email,
+        invited_by: operator.id,
+        auth_user_id: invited.user.id,
+        business_unit_id: businessUnitId,
+        status: "pending",
+      });
+    if (insertError) {
+      console.error("inviteUser insert:", insertError);
+      return { success: false, error: "招待の保存に失敗しました" };
+    }
+
+    revalidatePath("/admin/users-and-companies");
+    return { success: true };
+  } catch (error) {
+    const ownerError = ownerAuthError(error);
+    if (ownerError) return ownerError;
+    console.error(error);
+    return { success: false, error: "招待の送信に失敗しました" };
+  }
+}
+
+export async function resendInvitation(
+  invitationId: string,
+): Promise<{ success: true } | { success: false; error: string }> {
+  try {
+    await requireOwner();
+    const supabase = await createServiceClient();
+    const { data: invitation, error } = await supabase
+      .from("user_invitations")
+      .select("id, email, auth_user_id, business_unit_id, status")
+      .eq("id", invitationId)
+      .maybeSingle();
+
+    if (error || !invitation) {
+      return { success: false, error: "招待が見つかりません" };
+    }
+    if (invitation.status !== "pending") {
+      return { success: false, error: "再送できる未完了の招待ではありません" };
+    }
+
+    if (invitation.auth_user_id) {
+      const { data: profile } = await supabase
+        .from("private_users")
+        .select("id")
+        .eq("id", invitation.auth_user_id)
+        .maybeSingle();
+      if (profile) {
+        return { success: false, error: "この招待はすでに登録済みです" };
+      }
+      const { error: deleteError } = await supabase.auth.admin.deleteUser(
+        invitation.auth_user_id,
+      );
+      if (deleteError) {
+        console.error("resendInvitation deleteUser:", deleteError);
+      }
+    }
+
+    const siteUrl = getSiteUrl();
+    const { data: invited, error: inviteError } =
+      await supabase.auth.admin.inviteUserByEmail(invitation.email, {
+        data: {
+          ...(invitation.business_unit_id
+            ? { business_unit_id: invitation.business_unit_id }
+            : {}),
+        },
+        redirectTo: `${siteUrl}/auth/callback?redirect_to=/invite/set-password`,
+      });
+
+    if (inviteError || !invited.user) {
+      console.error("resendInvitation inviteUserByEmail:", inviteError);
+      return {
+        success: false,
+        error: inviteError?.message ?? "招待メールの再送に失敗しました",
+      };
+    }
+
+    const { error: updateError } = await supabase
+      .from("user_invitations")
+      .update({
+        auth_user_id: invited.user.id,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", invitation.id);
+
+    if (updateError) {
+      console.error("resendInvitation update:", updateError);
+      return { success: false, error: "招待の更新に失敗しました" };
+    }
+
+    revalidatePath("/admin/users-and-companies");
+    return { success: true };
+  } catch (error) {
+    const ownerError = ownerAuthError(error);
+    if (ownerError) return ownerError;
+    console.error(error);
+    return { success: false, error: "招待の再送に失敗しました" };
+  }
+}
+
+export async function cancelInvitation(
+  invitationId: string,
+): Promise<{ success: true } | { success: false; error: string }> {
+  try {
+    await requireOwner();
+    const supabase = await createServiceClient();
+    const { data: invitation, error } = await supabase
+      .from("user_invitations")
+      .select("id, auth_user_id, status")
+      .eq("id", invitationId)
+      .maybeSingle();
+
+    if (error || !invitation) {
+      return { success: false, error: "招待が見つかりません" };
+    }
+    if (invitation.status !== "pending") {
+      return { success: false, error: "取り消せる未完了の招待ではありません" };
+    }
+
+    if (invitation.auth_user_id) {
+      const { data: profile } = await supabase
+        .from("private_users")
+        .select("id")
+        .eq("id", invitation.auth_user_id)
+        .maybeSingle();
+      if (!profile) {
+        const { error: deleteError } = await supabase.auth.admin.deleteUser(
+          invitation.auth_user_id,
+        );
+        if (deleteError) {
+          console.error("cancelInvitation deleteUser:", deleteError);
+        }
+      }
+    }
+
+    const now = new Date().toISOString();
+    const { error: updateError } = await supabase
+      .from("user_invitations")
+      .update({
+        status: "cancelled",
+        cancelled_at: now,
+        updated_at: now,
+        auth_user_id: null,
+      })
+      .eq("id", invitation.id);
+
+    if (updateError) {
+      console.error("cancelInvitation update:", updateError);
+      return { success: false, error: "招待の取消に失敗しました" };
+    }
+
+    revalidatePath("/admin/users-and-companies");
+    return { success: true };
+  } catch (error) {
+    const ownerError = ownerAuthError(error);
+    if (ownerError) return ownerError;
+    console.error(error);
+    return { success: false, error: "招待の取消に失敗しました" };
   }
 }
