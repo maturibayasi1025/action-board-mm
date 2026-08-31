@@ -223,7 +223,7 @@ export const listAchievementsTool: McpToolDefinition<{
 }> = {
   name: "list_achievements",
   description:
-    "公式ミッションの達成記録（誰が何をいつ達成したか）。成果物の本文・画像・位置情報は含まない。",
+    "公式ミッションの達成記録（誰が何をいつ達成したか）。非表示ミッションは含まない。成果物の本文・画像・位置情報は含まない。",
   scopes: ["public"],
   inputSchema: {
     type: "object",
@@ -250,7 +250,10 @@ export const listAchievementsTool: McpToolDefinition<{
     const range = toRange(limit, offset);
     let query = db
       .from("achievements")
-      .select("id, user_id, mission_id, created_at, missions(title, slug)")
+      .select(
+        "id, user_id, mission_id, created_at, missions!inner(title, slug)",
+      )
+      .eq("missions.is_hidden", false)
       .order("created_at", { ascending: false })
       .range(range.from, range.to);
     if (input.user_id) {

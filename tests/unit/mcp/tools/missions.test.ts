@@ -1,5 +1,8 @@
 import type { McpPrincipal } from "@/lib/mcp/auth";
-import { listMissionsTool } from "@/lib/mcp/tools/missions";
+import {
+  listAchievementsTool,
+  listMissionsTool,
+} from "@/lib/mcp/tools/missions";
 
 const principal: McpPrincipal = {
   keyId: "ops-public",
@@ -9,12 +12,14 @@ const principal: McpPrincipal = {
 
 function createThenQuery(result: { data: unknown; error: null }) {
   const query: Record<string, unknown> = {};
-  const chain = () => query;
+  const chain = jest.fn(() => query);
   query.select = chain;
   query.eq = chain;
   query.in = chain;
   query.order = chain;
   query.range = chain;
+  query.gte = chain;
+  query.lte = chain;
   query.maybeSingle = async () => result;
   query.then = (resolve: (value: { data: unknown; error: null }) => unknown) =>
     resolve(result);
@@ -59,5 +64,22 @@ describe("list_missions", () => {
     expect(result.items[0]?.is_hidden).toBeUndefined();
     expect(result.items[0]?.slack_user_id).toBeUndefined();
     expect(db.from).toHaveBeenCalledWith("missions");
+  });
+});
+
+describe("list_achievements", () => {
+  it("excludes hidden missions via an inner embed", async () => {
+    const query = createThenQuery({ data: [], error: null });
+    const db = {
+      from: jest.fn(() => query),
+    };
+
+    await listAchievementsTool.execute({}, { db: db as never, principal });
+
+    expect(db.from).toHaveBeenCalledWith("achievements");
+    expect(query.select).toHaveBeenCalledWith(
+      "id, user_id, mission_id, created_at, missions!inner(title, slug)",
+    );
+    expect(query.eq).toHaveBeenCalledWith("missions.is_hidden", false);
   });
 });
