@@ -436,10 +436,12 @@ Phase 1 のキーは接続確認用。社外に URL を知られても、キー�
 
 ### Phase 1.5 — Google で本人確認（制限データより前）
 
+実装済み（`/mcp/connect` と `/api/mcp/oauth/*`）。
+
 - Google OAuth クライアント（Workspace、`hd=maisonmarc.com`）
 - `MCP_ALLOWED_GOOGLE_DOMAIN=maisonmarc.com`
-- `MCP_ALLOWED_GOOGLE_EMAILS`（許可リスト。空ならドメイン全員になるので、空は禁止推奨）
-- 接続ページまたは MCP OAuth。Gmail / 許可外メールは 403
+- `MCP_ALLOWED_GOOGLE_EMAILS`（許可リスト。**空なら誰も入れない**）
+- 接続ページまたは MCP OAuth。Gmail / 許可外メールは拒否
 - 監査の主体を Google メールにする
 
 完了条件: `@maisonmarc.com` 以外では Connect できない。許可リスト外も不可。

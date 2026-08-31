@@ -5,6 +5,7 @@ const principal: McpPrincipal = {
   keyId: "ops-public",
   scopes: ["public"],
   label: "public",
+  email: null,
 };
 
 describe("get_xp_ranking", () => {

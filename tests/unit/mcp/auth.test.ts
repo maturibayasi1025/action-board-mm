@@ -27,7 +27,7 @@ describe("parseMcpApiKeys", () => {
       ]),
     );
     expect(keys).toEqual([
-      { keyId: "a", secret: "s", scopes: ["public"], label: null },
+      { keyId: "a", secret: "s", scopes: ["public"], label: null, email: null },
     ]);
   });
 
@@ -57,6 +57,7 @@ describe("authenticateMcpRequest", () => {
       keyId: "ops-public",
       scopes: ["public"],
       label: "public",
+      email: null,
     });
   });
 

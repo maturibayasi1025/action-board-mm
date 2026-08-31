@@ -1,5 +1,6 @@
 import { authenticateMcpRequest } from "@/lib/mcp/auth";
 import { type McpDb, createMcpDb } from "@/lib/mcp/client";
+import { mcpProtectedResourceMetadataUrl } from "@/lib/mcp/oauth";
 import {
   dispatchJsonRpc,
   isJsonRpcRequest,
@@ -31,7 +32,7 @@ export async function handleMcpHttp(
   );
   if (!principal) {
     return jsonResponse({ error: "Unauthorized" }, 401, {
-      "WWW-Authenticate": 'Bearer realm="mcp"',
+      "WWW-Authenticate": `Bearer realm="mcp", resource_metadata="${mcpProtectedResourceMetadataUrl()}"`,
     });
   }
 
