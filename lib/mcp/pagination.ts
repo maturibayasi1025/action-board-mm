@@ -21,3 +21,13 @@ export function toRange(
 ): { from: number; to: number } {
   return { from: offset, to: offset + limit - 1 };
 }
+
+export const SURVEY_RAW_DEFAULT_LIMIT = 50;
+export const SURVEY_RAW_MAX_LIMIT = 200;
+
+export function clampSurveyRawLimit(limit?: number): number {
+  if (limit === undefined || Number.isNaN(limit)) {
+    return SURVEY_RAW_DEFAULT_LIMIT;
+  }
+  return Math.min(SURVEY_RAW_MAX_LIMIT, Math.max(1, Math.floor(limit)));
+}

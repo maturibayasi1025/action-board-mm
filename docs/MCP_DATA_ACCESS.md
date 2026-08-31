@@ -52,7 +52,7 @@
 - 既存の取得ロジック: `lib/services/*`（ミッション、ランキング RPC、ダッシュボード、公開プロフィール）
 - 集計・レポート: `lib/admin/enps-report/*`、`lib/admin/export-award-self-eval*.ts`、管理画面 `app/(protected)/admin/*`
 - バッチ認証: `BATCH_ADMIN_KEY`（GitHub Actions 向け。外部AIには不適）
-- MCP 実装: **未着手**
+- MCP 実装: Phase 1（公開）+ Phase 1.5（Google）+ Phase 3（集計 / Slack ID / 個別回答）。Phase 2（analytics）は未着手
 
 RLS 上は認証済みなら `private_users` 全行や `xp_transactions` 全行が読める。**アプリの RLS をそのまま MCP に載せるのは不可**。MCP はアプリより狭い許可リストにする。
 
@@ -454,7 +454,9 @@ Phase 1 のキーは接続確認用。社外に URL を知られても、キー�
 
 ### Phase 3 — サーベイ集計 + 制限データ（Slack ID / 個別回答）
 
-特権読み取り（どれか1つ。上から推奨）:
+実装済み。特権読み取りは `lib/mcp/privileged-client.ts` の列固定関数のみ（`private_users` は `id, slack_user_id`。`SELECT *` なし）。`survey_raw` / `slack_directory` は Google JWT（`principal.email`）必須。共有 API キーにスコープを付けても出さない。
+
+当初の候補（どれか1つ。上から推奨）:
 
 1. Postgres ロール `mcp_restricted` + **列レベル GRANT**
    - `private_users`: `id`, `slack_user_id` のみ

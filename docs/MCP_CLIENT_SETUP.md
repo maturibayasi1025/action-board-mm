@@ -1,6 +1,6 @@
 # Action Board MCP 接続手順
 
-読み取り専用のリモート MCP です。公開データ（ミッション、ランキング、公開プロフィール、承認済みグッジョブ）だけが取れます。
+読み取り専用のリモート MCP です。公開データに加え、Google 許可リストでスコープを付けた人だけが集計・Slack ID・個別回答を取れます。
 
 URL: `https://mm-actionboard.jp/api/mcp`
 
@@ -10,7 +10,16 @@ URL: `https://mm-actionboard.jp/api/mcp`
    - `MCP_JWT_SECRET`
    - `MCP_GOOGLE_CLIENT_ID` / `MCP_GOOGLE_CLIENT_SECRET`
    - `MCP_ALLOWED_GOOGLE_DOMAIN=maisonmarc.com`
-   - `MCP_ALLOWED_GOOGLE_EMAILS`（例: `owner@maisonmarc.com`。空だと誰も入れない）
+   - `MCP_ALLOWED_GOOGLE_EMAILS`（空だと誰も入れない。カンマ区切りは `public` のみ。制限データは JSON）
+
+```json
+[
+  {
+    "email": "owner@maisonmarc.com",
+    "scopes": ["public", "survey_agg", "slack_directory", "survey_raw"]
+  }
+]
+```
 2. Google Cloud の OAuth クライアント（ウェブ）のリダイレクト URI に  
    `https://mm-actionboard.jp/api/mcp/oauth/google/callback` を登録する
 3. ブラウザで [MCP 接続ページ](https://mm-actionboard.jp/mcp/connect) を開き、会社の Google アカウントでログインする
@@ -62,12 +71,25 @@ Google 設定前の接続確認用です。キーはコピーで広がるので�
 }
 ```
 
+## スコープ
+
+| スコープ | 取れるもの | 条件 |
+|----------|------------|------|
+| `public` | ミッション、ランキング、公開プロフィール、承認済みグッジョブ | API キーまたは Google |
+| `survey_agg` | eNPS サーベイ定義、月次スナップショット、表彰指名件数 | スコープがあれば可 |
+| `slack_directory` | `user_id` + 公開名 + Slack ID | **Google ログイン必須**。API キーでは不可 |
+| `survey_raw` | eNPS / 表彰の個別回答（`survey_id` 必須） | **Google ログイン必須**。API キーでは不可 |
+
+個別回答を他AIに渡すと、会話ログやプロバイダ側に自由記述が残ります。
+
 ## この接続で取れないもの
 
-- メール、生年月日、HubSpot ID、Slack ID
-- eNPS / 表彰の個別回答
+- メール、生年月日、HubSpot ID
 - 任意 SQL
-- 書き込み（投稿、いいね、回答）
+- 書き込み（投稿、いいね、回答、`replace_*_responses`）
+- `enps_report_ai_summaries.payload`
+- Slack ID（`slack_directory` が無い、または API キーのみのとき）
+- 個別回答（`survey_raw` が無い、または API キーのみのとき）
 
 ## 認証エラー
 

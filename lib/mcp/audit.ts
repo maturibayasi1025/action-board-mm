@@ -5,6 +5,7 @@ export type McpAuditEntry = {
   latencyMs: number;
   rowCount: number | null;
   ok: boolean;
+  surveyId?: string | null;
 };
 
 export function logMcpAudit(entry: McpAuditEntry): void {
@@ -31,4 +32,20 @@ export function inferRowCount(payload: unknown): number | null {
     }
   }
   return payload == null ? 0 : 1;
+}
+
+export function inferSurveyId(input: unknown, payload: unknown): string | null {
+  const fromInput = readSurveyId(input);
+  if (fromInput) {
+    return fromInput;
+  }
+  return readSurveyId(payload);
+}
+
+function readSurveyId(value: unknown): string | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+  const surveyId = (value as Record<string, unknown>).survey_id;
+  return typeof surveyId === "string" && surveyId.length > 0 ? surveyId : null;
 }

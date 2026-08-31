@@ -34,7 +34,8 @@ export default async function McpConnectPage({
       <h1 className="text-2xl font-medium">Action Board MCP 接続</h1>
       <p className="text-center text-sm text-muted-foreground">
         maisonmarc.com の Google アカウントでログインしてください。
-        許可された人だけが、他のAIから公開データを読めます。
+        許可リストのスコープに応じて、公開データに加え集計・Slack
+        ID・個別回答も読めます。 個別回答を他AIに渡すと会話ログに残ります。
       </p>
 
       {error ? (
