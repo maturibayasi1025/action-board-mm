@@ -8,7 +8,7 @@ import {
 export type AwardQuarter = MvvAwardQuarter;
 
 export type AwardQuarterOption = {
-  /** Q1 の年度（4月を含む年） */
+  /** Q1 の年度（3月を含む年） */
   year: number;
   quarter: AwardQuarter;
   label: string;
@@ -55,20 +55,9 @@ export function fiscalYearAndQuarterFromYearMonth(
 }
 
 export function getMonthsForQuarter(quarter: AwardQuarter): number[] {
-  switch (quarter) {
-    case 1:
-      return [4, 5, 6];
-    case 2:
-      return [7, 8];
-    case 3:
-      return [9, 10, 11];
-    case 4:
-      return [12, 1, 2];
-    default: {
-      const _exhaustive: never = quarter;
-      return _exhaustive;
-    }
-  }
+  return getAwardQuarterYearMonthKeys(2000, quarter).map((key) =>
+    Number(key.slice(5)),
+  );
 }
 
 export function formatQuarterLabel(

@@ -1,7 +1,14 @@
+/** @jest-environment node */
 import { PHASE1_FORBIDDEN_TOOL_NAMES } from "@/lib/mcp/forbidden-tools";
 import { handleMcpHttp } from "@/lib/mcp/http";
 import { dispatchJsonRpc, listToolsForPrincipal } from "@/lib/mcp/protocol";
 import { MCP_TOOLS } from "@/lib/mcp/tools";
+
+jest.mock("@/lib/mcp/client", () => ({
+  createMcpDb: jest.fn(() => {
+    throw new Error("db should not be created");
+  }),
+}));
 
 const PUBLIC_KEYS = JSON.stringify([
   {
