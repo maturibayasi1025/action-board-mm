@@ -1,4 +1,5 @@
 import { getSiteUrl } from "@/lib/env";
+import { isAllowedOAuthRedirectUri } from "@/lib/mcp/oauth";
 
 export const OAUTH_CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -21,15 +22,18 @@ export function oauthJson(body: unknown, status = 200): Response {
 
 export function oauthErrorRedirect(
   reason: string,
-  extra?: Record<string, string>,
+  client?: { redirectUri: string; state?: string },
 ): Response {
+  if (client && isAllowedOAuthRedirectUri(client.redirectUri)) {
+    const url = new URL(client.redirectUri);
+    url.searchParams.set("error", reason);
+    if (client.state) {
+      url.searchParams.set("state", client.state);
+    }
+    return Response.redirect(url.toString(), 302);
+  }
   const url = new URL("/mcp/connect", `${getSiteUrl()}/`);
   url.searchParams.set("error", reason);
-  if (extra) {
-    for (const [key, value] of Object.entries(extra)) {
-      url.searchParams.set(key, value);
-    }
-  }
   return Response.redirect(url.toString(), 302);
 }
 

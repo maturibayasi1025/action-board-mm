@@ -22,18 +22,25 @@ export async function GET(request: Request) {
   const code = url.searchParams.get("code");
   const stateToken = url.searchParams.get("state");
   const googleError = url.searchParams.get("error");
+  const state = stateToken
+    ? await readGoogleOAuthState(stateToken, env.jwtSecret)
+    : null;
+  const mcpClient =
+    state?.mode === "mcp"
+      ? { redirectUri: state.redirectUri, state: state.state }
+      : undefined;
+
   if (googleError || !code || !stateToken) {
-    return oauthErrorRedirect("google_token");
+    return oauthErrorRedirect("google_token", mcpClient);
   }
 
-  const state = await readGoogleOAuthState(stateToken, env.jwtSecret);
   if (!state) {
     return oauthErrorRedirect("invalid_request");
   }
 
   const granted = await grantFromGoogleCode(code, env);
   if (!granted.ok) {
-    return oauthErrorRedirect(granted.reason);
+    return oauthErrorRedirect(granted.reason, mcpClient);
   }
 
   if (state.mode === "connect") {
