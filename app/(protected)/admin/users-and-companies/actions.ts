@@ -305,7 +305,7 @@ export async function inviteUser(input: {
         .from("user_invitations")
         .select("id")
         .eq("status", "pending")
-        .ilike("email", email)
+        .eq("email", email)
         .maybeSingle();
       const decision = decideExistingAuthInvite({
         hasProfile: Boolean(profile),
@@ -321,7 +321,7 @@ export async function inviteUser(input: {
       .from("user_invitations")
       .select("id")
       .eq("status", "pending")
-      .ilike("email", email)
+      .eq("email", email)
       .maybeSingle();
     if (pending) {
       return {
@@ -408,30 +408,12 @@ export async function resendInvitation(
         return { success: false, error: "この招待はすでに登録済みです" };
       }
 
-      const { data: authUserResult } = await supabase.auth.admin.getUserById(
+      const { error: deleteError } = await supabase.auth.admin.deleteUser(
         invitation.auth_user_id,
       );
-      if (
-        !canDeleteUnusedInviteAuthUser({
-          hasProfile: false,
-          lastSignInAt: authUserResult.user?.last_sign_in_at,
-        })
-      ) {
-        return {
-          success: false,
-          error:
-            "この招待先はすでにログイン済みです。再送せず、本人にパスワード設定またはログインを案内してください。",
-        };
-      }
-
-      if (authUserResult.user) {
-        const { error: deleteError } = await supabase.auth.admin.deleteUser(
-          invitation.auth_user_id,
-        );
-        if (deleteError) {
-          console.error("resendInvitation deleteUser:", deleteError);
-          return { success: false, error: "招待メールの再送に失敗しました" };
-        }
+      if (deleteError) {
+        console.error("resendInvitation deleteUser:", deleteError);
+        return { success: false, error: "招待メールの再送に失敗しました" };
       }
     }
 
@@ -502,13 +484,9 @@ export async function cancelInvitation(
         .select("id")
         .eq("id", invitation.auth_user_id)
         .maybeSingle();
-      const { data: authUserResult } = await supabase.auth.admin.getUserById(
-        invitation.auth_user_id,
-      );
       if (
         canDeleteUnusedInviteAuthUser({
           hasProfile: Boolean(profile),
-          lastSignInAt: authUserResult.user?.last_sign_in_at,
         })
       ) {
         const { error: deleteError } = await supabase.auth.admin.deleteUser(

@@ -25,6 +25,7 @@ import {
   isValidReferralCode,
 } from "@/lib/validation/referral";
 
+import { findPendingInvitation } from "@/lib/services/user-invitations";
 import { isSuspendedUser } from "@/lib/services/user-status";
 import { USER_SUSPENDED_ERROR } from "@/lib/utils/user-status";
 import { validateReturnUrl } from "@/lib/validation/url";
@@ -357,6 +358,16 @@ export const acceptInvitePasswordAction = async (
     };
   }
 
+  const invitation = await findPendingInvitation({
+    authUserId: user.id,
+    email: user.email,
+  });
+  if (!invitation) {
+    return {
+      error: "招待リンクが無効か期限切れです。経営者に再送を依頼してください。",
+    };
+  }
+
   const validatedFields = setPasswordFormSchema.safeParse({
     password: formData.get("password")?.toString(),
     confirmPassword: formData.get("confirmPassword")?.toString(),
@@ -380,42 +391,23 @@ export const acceptInvitePasswordAction = async (
 
   const serviceSupabase = await createServiceClient();
   const now = new Date().toISOString();
-  const { data: invitation } = await serviceSupabase
+  await serviceSupabase
     .from("user_invitations")
-    .select("id, business_unit_id")
-    .eq("status", "pending")
-    .eq("auth_user_id", user.id)
-    .maybeSingle();
+    .update({
+      status: "accepted",
+      accepted_at: now,
+      updated_at: now,
+      auth_user_id: user.id,
+    })
+    .eq("id", invitation.id);
 
-  if (invitation) {
-    await serviceSupabase
-      .from("user_invitations")
-      .update({
-        status: "accepted",
-        accepted_at: now,
-        updated_at: now,
-      })
-      .eq("id", invitation.id);
-
-    if (invitation.business_unit_id) {
-      await serviceSupabase.auth.admin.updateUserById(user.id, {
-        user_metadata: {
-          ...user.user_metadata,
-          business_unit_id: invitation.business_unit_id,
-        },
-      });
-    }
-  } else {
-    await serviceSupabase
-      .from("user_invitations")
-      .update({
-        status: "accepted",
-        accepted_at: now,
-        updated_at: now,
-        auth_user_id: user.id,
-      })
-      .eq("status", "pending")
-      .ilike("email", user.email);
+  if (invitation.business_unit_id) {
+    await serviceSupabase.auth.admin.updateUserById(user.id, {
+      user_metadata: {
+        ...user.user_metadata,
+        business_unit_id: invitation.business_unit_id,
+      },
+    });
   }
 
   await getOrInitializeUserLevel(user.id);

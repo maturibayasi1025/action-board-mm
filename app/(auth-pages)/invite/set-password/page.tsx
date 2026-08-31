@@ -1,4 +1,5 @@
 import { FormMessage } from "@/components/form-message";
+import { findPendingInvitation } from "@/lib/services/user-invitations";
 import { createClient } from "@/lib/supabase/server";
 import Image from "next/image";
 import Link from "next/link";
@@ -11,6 +12,13 @@ export default async function InviteSetPasswordPage() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  const pendingInvitation = user
+    ? await findPendingInvitation({
+        authUserId: user.id,
+        email: user.email,
+      })
+    : null;
+  const canSetPassword = Boolean(user && pendingInvitation);
 
   return (
     <div className="flex-1 flex flex-col min-w-72">
@@ -23,7 +31,7 @@ export default async function InviteSetPasswordPage() {
         />
       </div>
       <div className="flex justify-center">
-        {user ? (
+        {canSetPassword ? (
           <InviteSetPasswordForm />
         ) : (
           <div className="flex flex-col items-center gap-4 min-w-72 max-w-72">

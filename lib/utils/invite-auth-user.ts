@@ -1,3 +1,7 @@
+export function normalizeInviteEmail(email: string): string {
+  return email.trim().toLowerCase();
+}
+
 export type ExistingAuthInviteDecision =
   | "already_registered"
   | "pending_invite"
@@ -29,12 +33,11 @@ export function decideExistingAuthInvite(input: {
 }
 
 /**
- * 招待で作った未使用 Auth ユーザーだけ再送・取消で削除してよい。
- * ログイン済みやプロフィール済みは消さない。
+ * 招待で作った Auth ユーザーは、プロフィール未作成なら再送・取消で削除してよい。
+ * 招待リンクのクリックで last_sign_in_at が付いても、パスワード未設定のままなので消してよい。
  */
 export function canDeleteUnusedInviteAuthUser(input: {
   hasProfile: boolean;
-  lastSignInAt: string | null | undefined;
 }): boolean {
-  return !input.hasProfile && !input.lastSignInAt;
+  return !input.hasProfile;
 }

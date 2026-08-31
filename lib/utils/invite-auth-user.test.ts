@@ -2,7 +2,16 @@ import {
   EXISTING_AUTH_INVITE_MESSAGES,
   canDeleteUnusedInviteAuthUser,
   decideExistingAuthInvite,
+  normalizeInviteEmail,
 } from "./invite-auth-user";
+
+describe("normalizeInviteEmail", () => {
+  it("lowercases and trims without treating underscore as a wildcard", () => {
+    expect(normalizeInviteEmail("  First_Last@Company.com  ")).toBe(
+      "first_last@company.com",
+    );
+  });
+});
 
 describe("decideExistingAuthInvite", () => {
   it("does not invite or delete a registered profile", () => {
@@ -28,30 +37,11 @@ describe("decideExistingAuthInvite", () => {
 });
 
 describe("canDeleteUnusedInviteAuthUser", () => {
-  it("allows deleting an unused invite Auth user", () => {
-    expect(
-      canDeleteUnusedInviteAuthUser({
-        hasProfile: false,
-        lastSignInAt: null,
-      }),
-    ).toBe(true);
-  });
-
-  it("does not delete after the invitee has signed in", () => {
-    expect(
-      canDeleteUnusedInviteAuthUser({
-        hasProfile: false,
-        lastSignInAt: "2026-08-30T00:00:00Z",
-      }),
-    ).toBe(false);
+  it("allows deleting an invite Auth user without a profile", () => {
+    expect(canDeleteUnusedInviteAuthUser({ hasProfile: false })).toBe(true);
   });
 
   it("does not delete a user who already has a profile", () => {
-    expect(
-      canDeleteUnusedInviteAuthUser({
-        hasProfile: true,
-        lastSignInAt: null,
-      }),
-    ).toBe(false);
+    expect(canDeleteUnusedInviteAuthUser({ hasProfile: true })).toBe(false);
   });
 });
