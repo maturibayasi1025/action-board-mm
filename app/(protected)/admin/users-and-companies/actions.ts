@@ -314,16 +314,11 @@ export async function inviteUser(input: {
         };
       }
 
-      const { error: deleteOrphanError } = await supabase.auth.admin.deleteUser(
-        existingAuthUser.id,
-      );
-      if (deleteOrphanError) {
-        console.error("inviteUser delete orphan:", deleteOrphanError);
-        return {
-          success: false,
-          error: "未完了のアカウントが残っているため招待できません",
-        };
-      }
+      return {
+        success: false,
+        error:
+          "このメールアドレスには、プロフィール未完了のアカウントがあります。招待ではなく、本人にログインまたはパスワード再設定を案内してください。",
+      };
     }
 
     const { data: pending } = await supabase
@@ -416,11 +411,26 @@ export async function resendInvitation(
       if (profile) {
         return { success: false, error: "この招待はすでに登録済みです" };
       }
-      const { error: deleteError } = await supabase.auth.admin.deleteUser(
+
+      const { data: authUserResult } = await supabase.auth.admin.getUserById(
         invitation.auth_user_id,
       );
-      if (deleteError) {
-        console.error("resendInvitation deleteUser:", deleteError);
+      if (authUserResult.user?.last_sign_in_at) {
+        return {
+          success: false,
+          error:
+            "この招待先はすでにログイン済みです。再送せず、本人にパスワード設定またはログインを案内してください。",
+        };
+      }
+
+      if (authUserResult.user) {
+        const { error: deleteError } = await supabase.auth.admin.deleteUser(
+          invitation.auth_user_id,
+        );
+        if (deleteError) {
+          console.error("resendInvitation deleteUser:", deleteError);
+          return { success: false, error: "招待メールの再送に失敗しました" };
+        }
       }
     }
 
