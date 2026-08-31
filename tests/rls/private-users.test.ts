@@ -92,6 +92,30 @@ describe("private_users テーブルのRLSテスト", () => {
     expect(data?.slack_user_id).toBe(slackId);
   });
 
+  test("認証されたユーザーは自分の deleted_at を解除できない", async () => {
+    await adminClient
+      .from("private_users")
+      .update({ deleted_at: new Date().toISOString() })
+      .eq("id", user1.user.userId);
+
+    const { data: updateData } = await user1.client
+      .from("private_users")
+      .update({ deleted_at: null })
+      .eq("id", user1.user.userId)
+      .select("deleted_at")
+      .maybeSingle();
+
+    expect(updateData).toBeNull();
+
+    const { data: checkData } = await adminClient
+      .from("private_users")
+      .select("deleted_at")
+      .eq("id", user1.user.userId)
+      .single();
+
+    expect(checkData?.deleted_at).not.toBeNull();
+  });
+
   test("認証されたユーザーは他のユーザーのprivate_usersレコードを更新できない", async () => {
     // ユーザー1がユーザー2のデータを更新しようとする
     const { data: updateData } = await user1.client

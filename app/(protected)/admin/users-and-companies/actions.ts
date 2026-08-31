@@ -126,6 +126,7 @@ export async function adminDeleteUser(
     );
     if (banError) {
       console.error("adminDeleteUser auth ban:", banError);
+      return { success: false, error: "ログイン停止に失敗しました" };
     }
     revalidatePath("/admin/users-and-companies");
     return { success: true };

@@ -108,6 +108,20 @@ describe("adminDeleteUser", () => {
     expect(revalidatePath).toHaveBeenCalledWith("/admin/users-and-companies");
   });
 
+  it("Auth の停止に失敗したらエラーを返す", async () => {
+    const service = createServiceMock({
+      banError: { message: "ban failed" },
+    });
+    (createServiceClient as jest.Mock).mockResolvedValue(service);
+
+    const result = await adminDeleteUser("target-user");
+    expect(result).toEqual({
+      success: false,
+      error: "ログイン停止に失敗しました",
+    });
+    expect(revalidatePath).not.toHaveBeenCalled();
+  });
+
   it("プロフィール更新に失敗したらエラーを返す", async () => {
     const service = createServiceMock({
       updateError: { message: "db error" },
