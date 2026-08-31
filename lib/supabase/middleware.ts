@@ -42,6 +42,20 @@ export const updateSession = async (request: NextRequest) => {
     // https://supabase.com/docs/guides/auth/server-side/nextjs
     const user = await supabase.auth.getUser();
 
+    if (user.data.user) {
+      const { data: profile } = await supabase
+        .from("public_user_profiles")
+        .select("deleted_at")
+        .eq("id", user.data.user.id)
+        .maybeSingle();
+      if (profile?.deleted_at) {
+        await supabase.auth.signOut();
+        if (!request.nextUrl.pathname.startsWith("/sign-in")) {
+          return NextResponse.redirect(new URL("/sign-in", request.url));
+        }
+      }
+    }
+
     // protected routes
     if (request.nextUrl.pathname.startsWith("/protected") && user.error) {
       return NextResponse.redirect(new URL("/sign-in", request.url));

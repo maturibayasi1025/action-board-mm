@@ -179,6 +179,7 @@ export function AwardSurveyForm({
       const { data, error } = await supabase
         .from("private_users")
         .select("id, name")
+        .is("deleted_at", null)
         .order("name");
 
       if (data && !error) {

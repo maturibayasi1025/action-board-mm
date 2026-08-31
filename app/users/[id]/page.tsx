@@ -27,6 +27,7 @@ export default async function UserDetailPage({ params }: Props) {
     .from("public_user_profiles")
     .select("*, business_units(name, companies(name))")
     .eq("id", id)
+    .is("deleted_at", null)
     .single();
   if (!user) return <div>ユーザーが見つかりません</div>;
 

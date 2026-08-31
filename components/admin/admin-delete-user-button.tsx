@@ -63,7 +63,7 @@ export function AdminDeleteUserButton({
             <DialogTitle>ユーザーを削除しますか？</DialogTitle>
             <DialogDescription>
               「{userName}
-              」の認証アカウントとプロフィールを削除します。グッジョブ等の紐づくデータはデータベースの定義に従って消える場合があります。取り消しはできません。
+              」を削除します。投稿したグッジョブや付与済みポイントは残ります。ログインできなくなり、管理一覧・ランキングからは外れます。
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

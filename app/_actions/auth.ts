@@ -2,6 +2,10 @@
 
 // Edge Runtime互換のCrypto APIを使用
 import {
+  USER_DELETED_ERROR,
+  assertUserNotDeleted,
+} from "@/lib/services/user-status";
+import {
   getOrInitializeUserLevel,
   grantMissionCompletionXp,
 } from "@/lib/services/userLevel";
@@ -107,6 +111,19 @@ export const signInActionWithState = async (
       console.log("[Sign In Debug] No user or session returned");
       return {
         error: "ユーザーまたはセッションが見つかりません",
+        formData: currentFormData,
+      };
+    }
+
+    try {
+      await assertUserNotDeleted(data.user.id);
+    } catch (deletedError) {
+      await supabase.auth.signOut();
+      return {
+        error:
+          deletedError instanceof Error
+            ? deletedError.message
+            : USER_DELETED_ERROR,
         formData: currentFormData,
       };
     }
@@ -384,6 +401,17 @@ export async function handleLineAuthAction(
         // LINEで作成されたユーザーの場合：ログイン処理
         userId = userWithEmail.id;
         isNewUser = false;
+        try {
+          await assertUserNotDeleted(userId);
+        } catch (deletedError) {
+          return {
+            success: false,
+            error:
+              deletedError instanceof Error
+                ? deletedError.message
+                : USER_DELETED_ERROR,
+          };
+        }
 
         // LINE関連のメタデータを更新
         await supabase.auth.admin.updateUserById(userId, {
