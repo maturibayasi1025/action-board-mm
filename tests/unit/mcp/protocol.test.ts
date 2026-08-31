@@ -1,3 +1,6 @@
+/**
+ * @jest-environment node
+ */
 import {
   NEVER_REGISTERED_TOOL_NAMES,
   RESTRICTED_TOOL_NAMES,

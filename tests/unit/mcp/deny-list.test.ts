@@ -1,3 +1,6 @@
+/**
+ * @jest-environment node
+ */
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { NEVER_REGISTERED_TOOL_NAMES } from "@/lib/mcp/forbidden-tools";
