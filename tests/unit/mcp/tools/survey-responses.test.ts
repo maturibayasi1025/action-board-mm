@@ -81,7 +81,48 @@ describe("list_enps_responses", () => {
 });
 
 describe("list_award_responses", () => {
+  beforeEach(() => {
+    listAwardResponses.mockReset();
+    listSlackIdsByUserIds.mockReset();
+    listAwardResponses.mockResolvedValue({
+      items: [
+        {
+          id: "r1",
+          survey_id: surveyId,
+          question_id: "q1",
+          user_id: "u1",
+          nominee_user_id: "u2",
+          text_value: "推薦",
+        },
+      ],
+      survey_id: surveyId,
+      limit: 50,
+      offset: 0,
+    });
+    listSlackIdsByUserIds.mockResolvedValue(
+      new Map([
+        ["u1", "U123"],
+        ["u2", "U456"],
+      ]),
+    );
+  });
+
   it("requires survey_id", () => {
     expect(listAwardResponsesTool.input.safeParse({}).success).toBe(false);
+  });
+
+  it("attaches respondent and nominee slack ids when the principal has slack_directory", async () => {
+    const result = (await listAwardResponsesTool.execute(
+      { survey_id: surveyId },
+      { db: {} as never, principal: googleRawAndSlack },
+    )) as {
+      items: Array<{
+        slack_user_id?: string | null;
+        nominee_slack_user_id?: string | null;
+      }>;
+    };
+    expect(listSlackIdsByUserIds).toHaveBeenCalledWith(["u1", "u2"]);
+    expect(result.items[0]?.slack_user_id).toBe("U123");
+    expect(result.items[0]?.nominee_slack_user_id).toBe("U456");
   });
 });

@@ -24,7 +24,11 @@ async function attachSlackIds<T extends { user_id: string }>(
   rows: T[],
   context: McpToolContext,
   extraIds: (row: T) => Array<string | null | undefined> = () => [],
-): Promise<Array<T & { slack_user_id?: string | null }>> {
+): Promise<
+  Array<
+    T & { slack_user_id?: string | null; nominee_slack_user_id?: string | null }
+  >
+> {
   if (!canExposeSlackUserId(context.principal) || rows.length === 0) {
     return rows;
   }
@@ -32,10 +36,18 @@ async function attachSlackIds<T extends { user_id: string }>(
   const slackIds = await listSlackIdsByUserIds(
     ids.filter((id): id is string => typeof id === "string" && id.length > 0),
   );
-  return rows.map((row) => ({
-    ...row,
-    slack_user_id: slackIds.get(row.user_id) ?? null,
-  }));
+  return rows.map((row) => {
+    const extraId = extraIds(row).find(
+      (id): id is string => typeof id === "string" && id.length > 0,
+    );
+    return {
+      ...row,
+      slack_user_id: slackIds.get(row.user_id) ?? null,
+      ...(extraId !== undefined
+        ? { nominee_slack_user_id: slackIds.get(extraId) ?? null }
+        : {}),
+    };
+  });
 }
 
 export const listEnpsResponsesTool: McpToolDefinition<{
