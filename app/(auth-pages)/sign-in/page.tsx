@@ -26,12 +26,12 @@ export default async function Login(props: {
         />
       </div>
       <h1 className="text-2xl font-medium text-center mb-2">ログイン</h1>
-      {/* <p className="text-sm text-foreground text-center">
+      <p className="text-sm text-foreground text-center">
         まだ登録していない方は{" "}
-        <Link className="text-foreground font-medium underline" href="/sign-up">
+        <Link className="text-primary font-medium underline" href="/sign-up">
           こちら
         </Link>
-      </p> */}
+      </p>
       <FormMessage className="mt-8" message={message} />
       <SignInForm returnUrl={returnUrl} />
     </div>

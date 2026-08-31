@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { FormMessage, type Message } from "../../../components/form-message";
 import { SubmitButton } from "../../../components/submit-button";
 import { Input } from "../../../components/ui/input";
@@ -34,6 +35,11 @@ export default async function ForgotPassword(props: {
           <SubmitButton formAction={forgotPasswordAction}>
             パスワードリセットメールを送信
           </SubmitButton>
+          <p className="text-sm text-center mt-2">
+            <Link className="text-primary underline" href="/sign-in">
+              ログイン画面に戻る
+            </Link>
+          </p>
           <FormMessage message={searchParams} />
         </div>
       </form>

@@ -109,6 +109,9 @@ export default async function AuthButton() {
             <DropdownMenuItem asChild>
               <Link href="/settings/profile">アカウント</Link>
             </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/settings/password">パスワード変更</Link>
+            </DropdownMenuItem>
             <DropdownMenuItem asChild>お知らせ</DropdownMenuItem>
           </DropdownMenuGroup>
           <DropdownMenuSeparator />
@@ -131,9 +134,9 @@ export default async function AuthButton() {
       <Button asChild size="sm" variant="outline">
         <Link href="/sign-in">ログイン</Link>
       </Button>
-      {/* <Button asChild size="sm" variant="default">
+      <Button asChild size="sm" variant="default">
         <Link href="/sign-up">新規登録</Link>
-      </Button> */}
+      </Button>
     </div>
   );
 }

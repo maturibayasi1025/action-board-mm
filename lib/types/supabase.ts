@@ -1718,6 +1718,53 @@ export type Database = {
         };
         Relationships: [];
       };
+      user_invitations: {
+        Row: {
+          accepted_at: string | null;
+          auth_user_id: string | null;
+          business_unit_id: string | null;
+          cancelled_at: string | null;
+          created_at: string;
+          email: string;
+          id: string;
+          invited_by: string;
+          status: string;
+          updated_at: string;
+        };
+        Insert: {
+          accepted_at?: string | null;
+          auth_user_id?: string | null;
+          business_unit_id?: string | null;
+          cancelled_at?: string | null;
+          created_at?: string;
+          email: string;
+          id?: string;
+          invited_by: string;
+          status?: string;
+          updated_at?: string;
+        };
+        Update: {
+          accepted_at?: string | null;
+          auth_user_id?: string | null;
+          business_unit_id?: string | null;
+          cancelled_at?: string | null;
+          created_at?: string;
+          email?: string;
+          id?: string;
+          invited_by?: string;
+          status?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "user_invitations_business_unit_id_fkey";
+            columns: ["business_unit_id"];
+            isOneToOne: false;
+            referencedRelation: "business_units";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       user_levels: {
         Row: {
           last_notified_level: number | null;

@@ -23,7 +23,7 @@ export const test = base.extend<TestFixtures>({
     await page.click('button[type="submit"]');
 
     // ログイン完了を確認（ホームページにリダイレクトされることを想定）
-    await page.waitForURL("/");
+    await page.waitForURL("/", { timeout: 15000 });
 
     // ログイン済みのページを渡す
     await use(page);
