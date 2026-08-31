@@ -17,16 +17,16 @@ const baseURL = `http://localhost:${PORT}`;
 export default defineConfig({
   testDir: "./tests/e2e",
   /* 各テスト実行の最大タイムアウト時間 */
-  workers: 2,
+  workers: process.env.CI ? 4 : 2,
   timeout: 30 * 1000,
   expect: {
     /* テストアサーションのタイムアウト時間 */
     timeout: 5000,
   },
   /* CI環境での失敗時のリトライ回数 */
-  retries: 2,
+  retries: process.env.CI ? 1 : 2,
   /* テスト結果のレポーター設定 */
-  reporter: "html",
+  reporter: process.env.CI ? [["list"], ["html"]] : "html",
   /* 共有の設定 */
   use: {
     baseURL,
@@ -61,9 +61,9 @@ export default defineConfig({
     },
   ],
 
-  /* Webサーバーの設定 */
+  /* Webサーバーの設定。CI では workflow 側の next build 成果物を再利用する */
   webServer: {
-    command: process.env.CI ? "npm run build && npm run start" : "npm run dev",
+    command: process.env.CI ? "npm run start" : "npm run dev",
     url: baseURL,
     timeout: 180 * 1000,
     reuseExistingServer: !process.env.CI,

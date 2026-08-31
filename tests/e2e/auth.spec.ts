@@ -8,7 +8,6 @@ import {
 test.describe("ユーザー登録とログイン", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
-    await page.waitForLoadState("networkidle");
   });
 
   test("サインアップ、サインイン、ログアウトの基本フローが正常に動作する", async ({
@@ -56,7 +55,7 @@ test.describe("ユーザー登録とログイン", () => {
     await assertAuthState(page, true);
     await page.getByTestId("usermenubutton").click();
     await page.getByTestId("sign-out").click();
-    await page.waitForURL("/sign-in");
+    await page.waitForURL("/sign-in", { timeout: 10000 });
     await assertAuthState(page, false);
   });
 

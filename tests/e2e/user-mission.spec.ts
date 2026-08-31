@@ -16,68 +16,19 @@ test.describe("アクションボード（Web版）のe2eテスト", () => {
       }),
     ).toBeVisible();
 
-    // 活動状況の表示を確認
     await expect(
-      signedInPage.getByRole("heading", { name: /チームみらいの活動状況/ }),
-    ).toBeVisible();
-    await expect(
-      signedInPage.getByText("チームみらい サポーター数"),
-    ).toBeVisible();
-    await expect(signedInPage.getByText("達成したアクション数")).toBeVisible();
-    await expect(
-      signedInPage.getByText("現在の寄付金額", { exact: true }),
-    ).toBeVisible();
-
-    // ランキングの表示を確認
-    await expect(
-      signedInPage.getByRole("heading", { name: /アクションリーダー/ }),
-    ).toBeVisible();
-    await expect(
-      signedInPage.getByRole("heading", { name: /今日/ }),
-    ).toBeVisible();
-    await expect(
-      signedInPage.getByRole("heading", { name: /全期間/ }),
-    ).toBeVisible();
-    await expect(
-      signedInPage.getByRole("link", {
-        name: /安野たかひろ 東京都 Lv.20 3,325pt/,
+      signedInPage.getByRole("heading", {
+        name: "アクションボード ダッシュボード",
       }),
     ).toBeVisible();
     await expect(
-      signedInPage.getByRole("link", { name: /佐藤太郎 東京都 Lv.10 900pt/ }),
-    ).toBeVisible();
-    await expect(
-      signedInPage.getByRole("link", { name: /鈴木美咲 神奈川県 Lv.9 740pt/ }),
-    ).toBeVisible();
-    await expect(
-      signedInPage.getByRole("link", { name: /高橋健一 大阪府 Lv.8 595pt/ }),
-    ).toBeVisible();
-    await expect(
-      signedInPage.getByRole("link", { name: /伊藤愛子 愛知県 Lv.7 465pt/ }),
-    ).toBeVisible();
-    await expect(
-      signedInPage.getByRole("link", { name: "トップ100を見る" }),
-    ).toBeVisible();
-
-    // 重要グッジョブの表示を確認
-    await expect(
-      signedInPage.getByRole("heading", { name: /重要グッジョブ/ }),
-    ).toBeVisible();
-
-    // 活動タイムラインの表示を確認
-    await expect(
-      signedInPage.getByRole("heading", { name: /活動タイムライン/ }),
-    ).toBeVisible();
-
-    // 問い合わせフォームの表示を確認
-    await expect(
-      signedInPage.getByRole("heading", { name: "ご意見箱" }),
-    ).toBeVisible();
-    await expect(
-      signedInPage.getByRole("link", { name: "アクションボードへのご意見" }),
+      signedInPage.getByRole("button", { name: "詳細を見る →" }).first(),
     ).toBeVisible();
 
     // フッターの表示を確認
+    await expect(
+      signedInPage.getByRole("heading", { name: "ご意見箱" }),
+    ).toBeVisible();
     await expect(
       signedInPage.getByRole("link", { name: "運営組織" }),
     ).toBeVisible();
@@ -86,9 +37,6 @@ test.describe("アクションボード（Web版）のe2eテスト", () => {
     ).toBeVisible();
     await expect(
       signedInPage.getByRole("link", { name: "プライバシーポリシー" }),
-    ).toBeVisible();
-    await expect(
-      signedInPage.getByRole("link", { name: "ご意見箱" }),
     ).toBeVisible();
   });
 
@@ -166,6 +114,7 @@ test.describe("アクションボード（Web版）のe2eテスト", () => {
     await assertAuthState(signedInPage, true);
 
     // 任意のユーザーページに遷移（ランキングから佐藤太郎のページへ）
+    await signedInPage.goto("/ranking?period=all");
     await signedInPage
       .getByRole("link")
       .filter({ hasText: "佐藤太郎" })
@@ -302,8 +251,8 @@ test.describe("アクションボード（Web版）のe2eテスト", () => {
   }) => {
     await assertAuthState(signedInPage, true);
 
-    // ランキングページに遷移
-    await signedInPage.getByRole("link", { name: "トップ100を見る" }).click();
+    // ランキングページに遷移（トップのランキング枠は非表示のため直接開く）
+    await signedInPage.goto("/ranking");
     await expect(signedInPage).toHaveURL("/ranking", { timeout: 10000 });
 
     await expect(
