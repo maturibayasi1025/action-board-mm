@@ -8,6 +8,7 @@ const principal: McpPrincipal = {
   keyId: "ops-public",
   scopes: ["public"],
   label: "public",
+  email: null,
 };
 
 function createThenQuery(result: { data: unknown; error: null }) {

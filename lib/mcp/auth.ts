@@ -1,3 +1,4 @@
+import { verifyHs256Jwt } from "@/lib/mcp/jwt";
 import { type McpScope, isMcpScope } from "@/lib/mcp/scopes";
 import { z } from "zod";
 
@@ -5,6 +6,7 @@ export type McpPrincipal = {
   keyId: string;
   scopes: McpScope[];
   label: string | null;
+  email: string | null;
 };
 
 const keySchema = z.object({
@@ -47,6 +49,7 @@ export function parseMcpApiKeys(raw: string | undefined): McpPrincipalSecret[] {
       secret: result.data.secret,
       scopes,
       label: result.data.label ?? null,
+      email: null,
     });
   }
   return keys;
@@ -68,15 +71,24 @@ export function extractBearerToken(
   return token && token.length > 0 ? token : null;
 }
 
+export type AuthenticateMcpOptions = {
+  rawKeys?: string;
+  jwtSecret?: string;
+};
+
 export async function authenticateMcpRequest(
   authorization: string | null,
-  rawKeys: string | undefined = process.env.MCP_API_KEYS,
+  rawKeysOrOptions?: string | AuthenticateMcpOptions,
 ): Promise<McpPrincipal | null> {
   const token = extractBearerToken(authorization);
   if (!token) {
     return null;
   }
-  const keys = parseMcpApiKeys(rawKeys);
+  const options: AuthenticateMcpOptions =
+    typeof rawKeysOrOptions === "string" || rawKeysOrOptions === undefined
+      ? { rawKeys: rawKeysOrOptions }
+      : rawKeysOrOptions;
+  const keys = parseMcpApiKeys(options.rawKeys ?? process.env.MCP_API_KEYS);
   const tokenDigest = await sha256Bytes(token);
   let matched: McpPrincipal | null = null;
   for (const key of keys) {
@@ -86,10 +98,36 @@ export async function authenticateMcpRequest(
         keyId: key.keyId,
         scopes: key.scopes,
         label: key.label,
+        email: null,
       };
     }
   }
-  return matched;
+  if (matched) {
+    return matched;
+  }
+  const jwtSecret = options.jwtSecret ?? process.env.MCP_JWT_SECRET;
+  if (!jwtSecret) {
+    return null;
+  }
+  const payload = await verifyHs256Jwt<{
+    typ?: string;
+    email?: string;
+    scopes?: string[];
+    sub?: string;
+  }>(token, jwtSecret);
+  if (!payload || payload.typ !== "mcp_at" || !payload.email) {
+    return null;
+  }
+  const scopes = (payload.scopes ?? []).filter(isMcpScope);
+  if (scopes.length === 0) {
+    return null;
+  }
+  return {
+    keyId: `google:${payload.email}`,
+    scopes,
+    label: payload.email,
+    email: payload.email,
+  };
 }
 
 async function sha256Bytes(value: string): Promise<Uint8Array> {

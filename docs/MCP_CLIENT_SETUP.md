@@ -1,21 +1,20 @@
-# Action Board MCP 接続手順（Phase 1）
+# Action Board MCP 接続手順
 
 読み取り専用のリモート MCP です。公開データ（ミッション、ランキング、公開プロフィール、承認済みグッジョブ）だけが取れます。
 
-URL: `https://mm-actionboard.jp/api/mcp`  
-（プレビュー環境ではその Pages のオリジン + `/api/mcp`）
+URL: `https://mm-actionboard.jp/api/mcp`
 
-## 前提
+## 推奨: Google Workspace で接続（Phase 1.5）
 
-1. 運用者が `MCP_API_KEYS` を Cloudflare のシークレットに設定している
-2. 自分用のキー（`secret`）を口頭やパスワードマネージャで受け取っている
-3. キーはチャット・Git・スクリーンショットに置かない
-
-Phase 1 のキーは接続確認用です。Google Workspace ログインは次の段階で必須にする予定です。
-
-## Cursor
-
-`~/.cursor/mcp.json`（またはプロジェクトの `.cursor/mcp.json`）:
+1. 運用者が Cloudflare に次を設定する（Encrypt）
+   - `MCP_JWT_SECRET`
+   - `MCP_GOOGLE_CLIENT_ID` / `MCP_GOOGLE_CLIENT_SECRET`
+   - `MCP_ALLOWED_GOOGLE_DOMAIN=maisonmarc.com`
+   - `MCP_ALLOWED_GOOGLE_EMAILS`（例: `owner@maisonmarc.com`。空だと誰も入れない）
+2. Google Cloud の OAuth クライアント（ウェブ）のリダイレクト URI に  
+   `https://mm-actionboard.jp/api/mcp/oauth/google/callback` を登録する
+3. ブラウザで [MCP 接続ページ](https://mm-actionboard.jp/mcp/connect) を開き、会社の Google アカウントでログインする
+4. 表示されたトークンを Cursor に貼る
 
 ```json
 {
@@ -23,18 +22,47 @@ Phase 1 のキーは接続確認用です。Google Workspace ログインは次�
     "action-board": {
       "url": "https://mm-actionboard.jp/api/mcp",
       "headers": {
-        "Authorization": "Bearer <受け取ったキー>"
+        "Authorization": "Bearer <接続ページのトークン>"
       }
     }
   }
 }
 ```
 
-Cursor を再起動し、Tools & MCP で `action-board` が繋がっていることを確認する。
+Cursor の Connect（OAuth）にも対応しています。その場合は URL だけ置けます。
 
-試しに「公式ミッションを3件教えて」「今日の XP ランキング上位を教えて」と聞く。`list_missions` / `get_xp_ranking` が呼ばれるはずです。
+```json
+{
+  "mcpServers": {
+    "action-board": {
+      "url": "https://mm-actionboard.jp/api/mcp"
+    }
+  }
+}
+```
 
-## このキーで取れないもの
+Connect を押すとブラウザが開き、`@maisonmarc.com` でログインします。許可リスト外と個人 Gmail は入れません。
+
+トークンの有効期限は 8 時間です。切れたら接続ページで再ログインするか、Cursor で再 Connect します。
+
+## 暫定: 配布キー（Phase 1）
+
+Google 設定前の接続確認用です。キーはコピーで広がるので、本番の本人確認にはしません。
+
+```json
+{
+  "mcpServers": {
+    "action-board": {
+      "url": "https://mm-actionboard.jp/api/mcp",
+      "headers": {
+        "Authorization": "Bearer <MCP_API_KEYS の secret>"
+      }
+    }
+  }
+}
+```
+
+## この接続で取れないもの
 
 - メール、生年月日、HubSpot ID、Slack ID
 - eNPS / 表彰の個別回答
@@ -45,6 +73,7 @@ Cursor を再起動し、Tools & MCP で `action-board` が繋がっているこ
 
 | 症状 | 確認 |
 |------|------|
-| 401 Unauthorized | `Authorization: Bearer ...` が付いているか。キーが `MCP_API_KEYS` の `secret` と一致するか |
-| ツールが一覧に出ない | キーの `scopes` に `public` があるか |
-| 405 | POST 以外で叩いている。ブラウザで GET しただけでは使えない |
+| 401 Unauthorized | Bearer が付いているか。トークン期限切れなら再ログイン |
+| 接続ページでドメインエラー | `@maisonmarc.com` の Workspace アカウントか |
+| 許可リストにない | `MCP_ALLOWED_GOOGLE_EMAILS` にそのメールがあるか |
+| 405 | POST 以外で叩いている |

@@ -1,5 +1,6 @@
 export type McpAuditEntry = {
   keyId: string;
+  email: string | null;
   tool: string;
   latencyMs: number;
   rowCount: number | null;

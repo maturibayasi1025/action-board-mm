@@ -189,6 +189,7 @@ async function callTool(params: unknown, context: McpDispatchContext) {
     );
     logMcpAudit({
       keyId: context.principal.keyId,
+      email: context.principal.email,
       tool: name,
       latencyMs: Date.now() - started,
       rowCount: inferRowCount(payload),
@@ -206,6 +207,7 @@ async function callTool(params: unknown, context: McpDispatchContext) {
         : "tool failed";
     logMcpAudit({
       keyId: context.principal.keyId,
+      email: context.principal.email,
       tool: name,
       latencyMs: Date.now() - started,
       rowCount: null,

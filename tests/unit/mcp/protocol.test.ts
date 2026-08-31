@@ -112,7 +112,12 @@ describe("MCP protocol", () => {
         params: { name: "list_enps_responses", arguments: {} },
       },
       {
-        principal: { keyId: "ops-public", scopes: ["public"], label: "public" },
+        principal: {
+          keyId: "ops-public",
+          scopes: ["public"],
+          label: "public",
+          email: null,
+        },
         getDb: () => {
           throw new Error("db should not be created");
         },
@@ -138,6 +143,7 @@ describe("tool registry", () => {
       keyId: "x",
       scopes: ["public"],
       label: null,
+      email: null,
     });
     expect(tools.some((tool) => tool.name === "list_missions")).toBe(true);
   });
