@@ -44,9 +44,9 @@ async function getUserMissionById(id: string) {
     return null;
   }
 
-  // 作成者情報を別途取得
+  // 作成者情報を別途取得（公開プロフィール。匿名可、停止ユーザーは RLS で除外）
   const { data: userProfile } = await supabase
-    .from("private_users")
+    .from("public_user_profiles")
     .select("name")
     .eq("id", data.created_by)
     .single();
@@ -54,6 +54,10 @@ async function getUserMissionById(id: string) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  if (!userProfile && user?.id !== data.created_by) {
+    return null;
+  }
 
   // 外部ユーザー（メンバー以外）を取得
   const { data: praisedExternalUsers, error: praisedExternalError } =

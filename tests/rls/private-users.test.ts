@@ -110,4 +110,42 @@ describe("private_users テーブルのRLSテスト", () => {
 
     expect(checkData?.name).toBe("テストユーザー");
   });
+
+  test("停止ユーザーは他の認証ユーザーから見えない", async () => {
+    const { error: suspendError } = await adminClient
+      .from("private_users")
+      .update({ suspended_at: new Date().toISOString() })
+      .eq("id", user2.user.userId);
+    expect(suspendError).toBeNull();
+
+    const { data } = await user1.client
+      .from("private_users")
+      .select("id")
+      .eq("id", user2.user.userId);
+    expect(data ?? []).toHaveLength(0);
+
+    const { data: ownRow, error: ownError } = await user2.client
+      .from("private_users")
+      .select("id, suspended_at")
+      .eq("id", user2.user.userId)
+      .single();
+    expect(ownError).toBeNull();
+    expect(ownRow?.suspended_at).toBeTruthy();
+  });
+
+  test("一般ユーザーは自分の suspended_at を変更できない", async () => {
+    const { error } = await user1.client
+      .from("private_users")
+      .update({ suspended_at: new Date().toISOString() })
+      .eq("id", user1.user.userId);
+
+    expect(error).toBeTruthy();
+
+    const { data } = await adminClient
+      .from("private_users")
+      .select("suspended_at")
+      .eq("id", user1.user.userId)
+      .single();
+    expect(data?.suspended_at).toBeNull();
+  });
 });

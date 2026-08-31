@@ -113,14 +113,19 @@ export async function getUserMissionsServer(
   } = await supabase.auth.getUser();
 
   const creatorIds = Array.from(new Set(data.map((m) => m.created_by)));
+  // 匿名でも読める公開プロフィールを使う。RLS が停止ユーザーを隠す。
   const { data: creators } = await supabase
-    .from("private_users")
+    .from("public_user_profiles")
     .select("id, name")
     .in("id", creatorIds);
 
   const creatorMap = new Map(creators?.map((c) => [c.id, c.name]) || []);
+  const visibleCreatorIds = new Set(creators?.map((c) => c.id) || []);
+  const missionsForDisplay = createdBy
+    ? data
+    : data.filter((mission) => visibleCreatorIds.has(mission.created_by));
 
-  const missionIds = data.map((m) => m.id);
+  const missionIds = missionsForDisplay.map((m) => m.id);
   const { data: allExternalUsers, error: externalUsersError } = await supabase
     .from("user_mission_praised_external_users")
     .select("user_mission_id, praised_person_name")
@@ -141,7 +146,7 @@ export async function getUserMissionsServer(
     }
   }
 
-  return data.map((mission) => ({
+  return missionsForDisplay.map((mission) => ({
     id: mission.id,
     createdBy: mission.created_by,
     createdByName: creatorMap.get(mission.created_by) || "不明なユーザー",

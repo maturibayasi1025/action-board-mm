@@ -108,7 +108,8 @@ export async function getSurveyResponses(surveyId: string) {
     const excludedUserIds = await fetchGlobalExcludedUserIds(supabase);
     const { data: allPrivateIds } = await supabase
       .from("private_users")
-      .select("id");
+      .select("id")
+      .is("suspended_at", null);
     eligibleUserIds = new Set(
       (allPrivateIds ?? [])
         .map((r) => r.id)
@@ -352,7 +353,8 @@ export async function getUnansweredUsers(surveyId: string) {
   // 全ユーザーを取得
   const { data: allUsers } = await supabase
     .from("private_users")
-    .select("id, name");
+    .select("id, name")
+    .is("suspended_at", null);
 
   return filterUnansweredPrivateUsers(
     allUsers ?? [],

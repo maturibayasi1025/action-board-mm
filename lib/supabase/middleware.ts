@@ -47,6 +47,30 @@ export const updateSession = async (request: NextRequest) => {
       return NextResponse.redirect(new URL("/sign-in", request.url));
     }
 
+    const authUser = user.data.user;
+    if (authUser) {
+      const { data: profile } = await supabase
+        .from("private_users")
+        .select("suspended_at")
+        .eq("id", authUser.id)
+        .maybeSingle();
+      if (profile?.suspended_at) {
+        await supabase.auth.signOut();
+        if (request.nextUrl.pathname.startsWith("/sign-in")) {
+          return response;
+        }
+        const url = request.nextUrl.clone();
+        url.pathname = "/sign-in";
+        url.search = "";
+        url.searchParams.set("error", "suspended");
+        const redirectResponse = NextResponse.redirect(url);
+        for (const cookie of response.cookies.getAll()) {
+          redirectResponse.cookies.set(cookie);
+        }
+        return redirectResponse;
+      }
+    }
+
     return response;
   } catch (e) {
     // If you are here, a Supabase client could not be created!

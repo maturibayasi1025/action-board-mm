@@ -1,3 +1,4 @@
+import { isSuspendedUser } from "@/lib/services/user-status";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/server";
 
@@ -9,7 +10,10 @@ export async function isValidReferralCode(code: string): Promise<boolean> {
     .eq("referral_code", code)
     .eq("del_flg", false)
     .maybeSingle();
-  return !!data;
+  if (!data) {
+    return false;
+  }
+  return !(await isSuspendedUser(data.user_id));
 }
 
 export async function isEmailAlreadyUsedInReferral(

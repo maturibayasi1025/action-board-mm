@@ -1,3 +1,4 @@
+import { filterActiveUserIds } from "@/lib/services/user-status";
 import {
   ensureSlackUserIdStored,
   findPrivateUserIdForSlackMention,
@@ -436,6 +437,7 @@ async function awardPointsForMissionCreation(
   supabase: Awaited<ReturnType<typeof createServiceClient>>,
 ) {
   try {
+    const activePraisedIds = await filterActiveUserIds(praisedUserIds);
     // 作成者に5ポイント
     await supabase.from("xp_transactions").insert({
       user_id: creatorId,
@@ -448,6 +450,7 @@ async function awardPointsForMissionCreation(
     // 賞賛対象者に各々5ポイント
     for (const userId of praisedUserIds) {
       if (userId === creatorId) continue;
+      if (!activePraisedIds.has(userId)) continue;
       await supabase.from("xp_transactions").insert({
         user_id: userId,
         xp_amount: 5,

@@ -1,5 +1,7 @@
 export {
   adminDeleteUser,
+  adminSuspendUser,
+  adminUnsuspendUser,
   inviteUser,
   resendInvitation,
   cancelInvitation,

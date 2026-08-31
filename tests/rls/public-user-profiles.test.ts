@@ -1,4 +1,9 @@
-import { cleanupTestUser, createTestUser, getAnonClient } from "./utils";
+import {
+  adminClient,
+  cleanupTestUser,
+  createTestUser,
+  getAnonClient,
+} from "./utils";
 
 describe("public_user_profiles テーブルのRLSテスト", () => {
   let user1: Awaited<ReturnType<typeof createTestUser>>;
@@ -90,5 +95,30 @@ describe("public_user_profiles テーブルのRLSテスト", () => {
 
     expect(error).toBeNull();
     expect(data?.name).toBe(newName);
+  });
+
+  test("停止ユーザーの公開プロフィールは匿名・他ユーザーから見えない", async () => {
+    const { error: suspendError } = await adminClient
+      .from("private_users")
+      .update({ suspended_at: new Date().toISOString() })
+      .eq("id", user1.user.userId);
+    expect(suspendError).toBeNull();
+
+    const { data: anonData } = await getAnonClient()
+      .from("public_user_profiles")
+      .select("id")
+      .eq("id", user1.user.userId);
+    expect(anonData ?? []).toHaveLength(0);
+
+    const other = await createTestUser(`${crypto.randomUUID()}@example.com`);
+    try {
+      const { data: otherData } = await other.client
+        .from("public_user_profiles")
+        .select("id")
+        .eq("id", user1.user.userId);
+      expect(otherData ?? []).toHaveLength(0);
+    } finally {
+      await cleanupTestUser(other.user.userId);
+    }
   });
 });
