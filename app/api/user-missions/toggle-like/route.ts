@@ -1,3 +1,4 @@
+import { assertUserActive } from "@/lib/services/user-status";
 import { grantXp } from "@/lib/services/userLevel";
 import { isLikeExpired } from "@/lib/utils/user-mission-likes";
 import { createClient } from "@supabase/supabase-js";
@@ -39,6 +40,20 @@ export async function POST(request: NextRequest) {
 
     if (authError || !user) {
       return NextResponse.json({ error: "認証が必要です" }, { status: 401 });
+    }
+
+    try {
+      await assertUserActive(user.id);
+    } catch (error) {
+      return NextResponse.json(
+        {
+          error:
+            error instanceof Error
+              ? error.message
+              : "アカウントが停止されています",
+        },
+        { status: 403 },
+      );
     }
 
     const { data: mission } = await supabase

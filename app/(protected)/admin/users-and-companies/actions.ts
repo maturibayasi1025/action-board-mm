@@ -10,6 +10,7 @@ export type UserWithCompanyRow = {
   businessUnitId: string | null;
   businessUnitName: string | null;
   companyName: string | null;
+  suspendedAt: string | null;
 };
 
 export async function listUsersWithCompanies(): Promise<
@@ -26,6 +27,7 @@ export async function listUsersWithCompanies(): Promise<
         `
         id,
         name,
+        suspended_at,
         business_unit_id,
         business_units (
           id,
@@ -60,6 +62,7 @@ export async function listUsersWithCompanies(): Promise<
         businessUnitId: row.business_unit_id,
         businessUnitName: unit?.name ?? null,
         companyName,
+        suspendedAt: row.suspended_at,
       };
     });
 
@@ -150,5 +153,115 @@ export async function adminDeleteUser(
     }
     console.error(error);
     return { success: false, error: "ユーザーの削除に失敗しました" };
+  }
+}
+
+async function assertSuspendTarget(
+  targetUserId: string,
+): Promise<{ operatorId: string } | { error: string }> {
+  await requireOwner();
+  const supabaseAnon = await createClient();
+  const {
+    data: { user: operator },
+  } = await supabaseAnon.auth.getUser();
+  if (!operator?.id) {
+    return { error: "ログインが必要です" };
+  }
+  if (targetUserId === operator.id) {
+    return { error: "自分自身は停止できません" };
+  }
+  if (await isUserIdOwner(targetUserId)) {
+    return { error: "経営者アカウントは停止できません" };
+  }
+  return { operatorId: operator.id };
+}
+
+/**
+ * 経営者がユーザーを停止する。XP・達成データは残し、公開面と集計から除外する。
+ */
+export async function adminSuspendUser(
+  targetUserId: string,
+): Promise<{ success: true } | { success: false; error: string }> {
+  try {
+    const gate = await assertSuspendTarget(targetUserId);
+    if ("error" in gate) {
+      return { success: false, error: gate.error };
+    }
+    const supabase = await createServiceClient();
+    const { error: updateError } = await supabase
+      .from("private_users")
+      .update({ suspended_at: new Date().toISOString() })
+      .eq("id", targetUserId);
+    if (updateError) {
+      console.error("adminSuspendUser private_users:", updateError);
+      return { success: false, error: "停止状態の更新に失敗しました" };
+    }
+    const { error: referralError } = await supabase
+      .from("user_referral")
+      .update({ del_flg: true })
+      .eq("user_id", targetUserId);
+    if (referralError) {
+      console.error("adminSuspendUser user_referral:", referralError);
+    }
+    const { error: banError } = await supabase.auth.admin.updateUserById(
+      targetUserId,
+      { ban_duration: "876600h" },
+    );
+    if (banError) {
+      console.error("adminSuspendUser auth ban:", banError);
+    }
+    revalidatePath("/admin/users-and-companies");
+    return { success: true };
+  } catch (error) {
+    if (error instanceof Error && error.message === "経営者権限が必要です") {
+      return { success: false, error: "経営者権限が必要です" };
+    }
+    console.error(error);
+    return { success: false, error: "ユーザーの停止に失敗しました" };
+  }
+}
+
+/**
+ * 経営者が停止ユーザーを再開する。
+ */
+export async function adminUnsuspendUser(
+  targetUserId: string,
+): Promise<{ success: true } | { success: false; error: string }> {
+  try {
+    const gate = await assertSuspendTarget(targetUserId);
+    if ("error" in gate) {
+      return { success: false, error: gate.error };
+    }
+    const supabase = await createServiceClient();
+    const { error: updateError } = await supabase
+      .from("private_users")
+      .update({ suspended_at: null })
+      .eq("id", targetUserId);
+    if (updateError) {
+      console.error("adminUnsuspendUser private_users:", updateError);
+      return { success: false, error: "再開状態の更新に失敗しました" };
+    }
+    const { error: referralError } = await supabase
+      .from("user_referral")
+      .update({ del_flg: false })
+      .eq("user_id", targetUserId);
+    if (referralError) {
+      console.error("adminUnsuspendUser user_referral:", referralError);
+    }
+    const { error: banError } = await supabase.auth.admin.updateUserById(
+      targetUserId,
+      { ban_duration: "none" },
+    );
+    if (banError) {
+      console.error("adminUnsuspendUser auth unban:", banError);
+    }
+    revalidatePath("/admin/users-and-companies");
+    return { success: true };
+  } catch (error) {
+    if (error instanceof Error && error.message === "経営者権限が必要です") {
+      return { success: false, error: "経営者権限が必要です" };
+    }
+    console.error(error);
+    return { success: false, error: "ユーザーの再開に失敗しました" };
   }
 }

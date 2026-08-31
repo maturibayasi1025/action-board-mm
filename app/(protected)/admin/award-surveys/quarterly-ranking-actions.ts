@@ -62,7 +62,10 @@ function resolveNomineeKey(
 ): { key: string; name: string } | null {
   if (question.question_type === "user_select") {
     if (response.nominee_user_id) {
-      const name = userNameById.get(response.nominee_user_id) ?? "不明";
+      const name = userNameById.get(response.nominee_user_id);
+      if (!name) {
+        return null;
+      }
       return { key: `uid:${response.nominee_user_id}`, name };
     }
     const legacy = response.text_value?.trim();
@@ -223,7 +226,8 @@ export async function getAwardQuarterlyNominationRanking(
     const { data: users } = await supabase
       .from("private_users")
       .select("id, name")
-      .in("id", nomineeIds);
+      .in("id", nomineeIds)
+      .is("suspended_at", null);
     for (const u of users ?? []) {
       userNameById.set(u.id, u.name);
     }

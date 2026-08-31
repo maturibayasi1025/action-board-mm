@@ -36,7 +36,7 @@ function sortUsersForCsv(users: UserWithCompanyRow[]): UserWithCompanyRow[] {
 }
 
 function buildCsvContent(users: UserWithCompanyRow[]): string {
-  const headers = ["ユーザーID", "表示名", "会社", "事業部"];
+  const headers = ["ユーザーID", "表示名", "会社", "事業部", "停止"];
   const sorted = sortUsersForCsv(users);
   const dataLines = sorted.map((u) =>
     [
@@ -44,6 +44,7 @@ function buildCsvContent(users: UserWithCompanyRow[]): string {
       escapeCsvCell(u.name),
       escapeCsvCell(companyLabelForExport(u.companyName)),
       escapeCsvCell(u.businessUnitName ?? ""),
+      escapeCsvCell(u.suspendedAt ? "停止" : ""),
     ].join(","),
   );
   return [headers.join(","), ...dataLines].join("\n");

@@ -3,6 +3,7 @@ import {
   listUsersWithCompanies,
 } from "@/app/(protected)/admin/users-and-companies/actions";
 import { AdminDeleteUserButton } from "@/components/admin/admin-delete-user-button";
+import { AdminSuspendUserButton } from "@/components/admin/admin-suspend-user-button";
 import { UsersAndCompaniesCsvDownload } from "@/components/admin/users-and-companies-csv-download";
 import { createClient } from "@/lib/supabase/server";
 import { isOwner } from "@/lib/utils/isOwner";
@@ -80,7 +81,7 @@ export default async function UsersAndCompaniesPage() {
               ユーザー一覧（会社・事業部）
             </h1>
             <p className="text-muted-foreground">
-              登録ユーザーを会社ごとにまとめて表示します。プロフィールに事業部が未設定の場合は「（会社未設定）」に含まれます。CSVでは全登録者を会社・表示名順でダウンロードできます。各行からユーザーを削除できます（経営者のみ。自分自身と経営者アカウントは削除できません）。
+              登録ユーザーを会社ごとにまとめて表示します。プロフィールに事業部が未設定の場合は「（会社未設定）」に含まれます。CSVでは全登録者を会社・表示名順でダウンロードできます。各行からユーザーを停止・再開できます（経営者のみ。自分自身と経営者アカウントは対象外）。物理削除は最終手段として残しています。
             </p>
           </div>
           <UsersAndCompaniesCsvDownload users={users} />
@@ -138,8 +139,11 @@ export default async function UsersAndCompaniesPage() {
                           <th className="px-4 py-2 font-medium" scope="col">
                             事業部
                           </th>
+                          <th className="px-4 py-2 font-medium" scope="col">
+                            状態
+                          </th>
                           <th
-                            className="px-4 py-2 font-medium w-[120px] text-right"
+                            className="px-4 py-2 font-medium w-[200px] text-right"
                             scope="col"
                           >
                             操作
@@ -150,7 +154,11 @@ export default async function UsersAndCompaniesPage() {
                         {group.users.map((u) => (
                           <tr
                             key={u.id}
-                            className="border-b border-border last:border-0 hover:bg-muted/30"
+                            className={`border-b border-border last:border-0 hover:bg-muted/30${
+                              u.suspendedAt
+                                ? " bg-muted/40 text-muted-foreground"
+                                : ""
+                            }`}
                           >
                             <td className="px-4 py-2.5">
                               <Link
@@ -163,12 +171,31 @@ export default async function UsersAndCompaniesPage() {
                             <td className="px-4 py-2.5 text-muted-foreground">
                               {u.businessUnitName ?? "—"}
                             </td>
+                            <td className="px-4 py-2.5">
+                              {u.suspendedAt ? (
+                                <span className="inline-flex items-center rounded-full bg-destructive/10 px-2 py-0.5 text-xs font-medium text-destructive">
+                                  停止中
+                                </span>
+                              ) : (
+                                <span className="text-xs text-muted-foreground">
+                                  有効
+                                </span>
+                              )}
+                            </td>
                             <td className="px-4 py-2.5 text-right">
-                              <AdminDeleteUserButton
-                                userId={u.id}
-                                userName={u.name}
-                                currentUserId={currentUserId}
-                              />
+                              <div className="flex justify-end gap-2">
+                                <AdminSuspendUserButton
+                                  userId={u.id}
+                                  userName={u.name}
+                                  currentUserId={currentUserId}
+                                  isSuspended={u.suspendedAt !== null}
+                                />
+                                <AdminDeleteUserButton
+                                  userId={u.id}
+                                  userName={u.name}
+                                  currentUserId={currentUserId}
+                                />
+                              </div>
                             </td>
                           </tr>
                         ))}

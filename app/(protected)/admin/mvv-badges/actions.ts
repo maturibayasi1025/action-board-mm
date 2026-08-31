@@ -15,6 +15,7 @@ export interface SearchUserResult {
   id: string;
   name: string;
   email?: string;
+  isSuspended?: boolean;
 }
 
 /**
@@ -39,7 +40,7 @@ export async function searchUsers(
     // public_user_profilesから名前で検索
     const { data: profiles, error: profilesError } = await supabase
       .from("public_user_profiles")
-      .select("id, name")
+      .select("id, name, suspended_at")
       .ilike("name", searchTerm)
       .limit(20);
 
@@ -74,6 +75,7 @@ export async function searchUsers(
           results.push({
             id: profile.id,
             name: profile.name,
+            isSuspended: profile.suspended_at !== null,
           });
         }
       }
@@ -87,7 +89,7 @@ export async function searchUsers(
         // プロフィール情報を取得
         const { data: profile } = await supabase
           .from("public_user_profiles")
-          .select("name")
+          .select("name, suspended_at")
           .eq("id", emailUser.id)
           .single();
 
@@ -95,6 +97,7 @@ export async function searchUsers(
           id: emailUser.id,
           name: profile?.name || emailUser.email || "不明",
           email: emailUser.email,
+          isSuspended: profile?.suspended_at != null,
         });
       }
     }
