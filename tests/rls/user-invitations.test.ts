@@ -79,8 +79,8 @@ describe("user_invitations RLS Policies", () => {
       .select("id")
       .limit(1);
 
-    expect(data === null || data.length === 0).toBe(true);
-    expect(error).not.toBeNull();
+    expect(error).toBeNull();
+    expect(data ?? []).toHaveLength(0);
   });
 
   it("認証済みユーザーは招待を参照できない", async () => {
@@ -89,8 +89,8 @@ describe("user_invitations RLS Policies", () => {
       .select("id")
       .limit(1);
 
-    expect(data === null || data.length === 0).toBe(true);
-    expect(error).not.toBeNull();
+    expect(error).toBeNull();
+    expect(data ?? []).toHaveLength(0);
   });
 
   it("認証済みユーザーは招待を作成できない", async () => {

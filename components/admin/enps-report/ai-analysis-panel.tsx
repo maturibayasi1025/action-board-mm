@@ -57,8 +57,7 @@ export function AiAnalysisPanel({
         <p className="text-sm text-muted-foreground">
           分析は画面表示時ではなく、GitHub Actions の「Build Monthly eNPS
           Report」ワークフロー実行時にだけ生成されます。Repository Secret の
-          ENPS_REPORT_AI_API_KEY
-          を設定したうえで、対象月を指定して force
+          ENPS_REPORT_AI_API_KEY を設定したうえで、対象月を指定して force
           付きでワークフローを再実行してください。Cloudflare / Vercel
           のプレビュー環境変数にキーを設定しても反映されません。
         </p>
