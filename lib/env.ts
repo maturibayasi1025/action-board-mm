@@ -17,6 +17,7 @@ const envSchema = z.object({
   LINE_CLIENT_SECRET: z.string().optional(),
   NEXT_PUBLIC_LINE_CLIENT_ID: z.string().optional(),
   BATCH_ADMIN_KEY: z.string().optional(),
+  MCP_API_KEYS: z.string().optional(),
   SLACK_WEBHOOK_URL: z.string().optional(),
   SLACK_WEBHOOK_URL_ENPS: z.string().optional(),
   SLACK_WEBHOOK_URL_AWARD: z.string().optional(),
