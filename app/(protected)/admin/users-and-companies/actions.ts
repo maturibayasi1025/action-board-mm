@@ -2,6 +2,11 @@
 
 import { getSiteUrl } from "@/lib/env";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
+import {
+  EXISTING_AUTH_INVITE_MESSAGES,
+  canDeleteUnusedInviteAuthUser,
+  decideExistingAuthInvite,
+} from "@/lib/utils/invite-auth-user";
 import { isUserIdOwner, requireOwner } from "@/lib/utils/isOwner";
 import { inviteUserFormSchema } from "@/lib/validation/auth";
 import { revalidatePath } from "next/cache";
@@ -293,31 +298,19 @@ export async function inviteUser(input: {
         .select("id")
         .eq("id", existingAuthUser.id)
         .maybeSingle();
-      if (profile) {
-        return {
-          success: false,
-          error: "このメールアドレスは既に登録されています",
-        };
-      }
-
       const { data: pendingForExisting } = await supabase
         .from("user_invitations")
         .select("id")
         .eq("status", "pending")
         .ilike("email", email)
         .maybeSingle();
-      if (pendingForExisting) {
-        return {
-          success: false,
-          error:
-            "このメールアドレスには未完了の招待があります。再送してください。",
-        };
-      }
-
+      const decision = decideExistingAuthInvite({
+        hasProfile: Boolean(profile),
+        hasPendingInvite: Boolean(pendingForExisting),
+      });
       return {
         success: false,
-        error:
-          "このメールアドレスには、プロフィール未完了のアカウントがあります。招待ではなく、本人にログインまたはパスワード再設定を案内してください。",
+        error: EXISTING_AUTH_INVITE_MESSAGES[decision],
       };
     }
 
@@ -415,7 +408,12 @@ export async function resendInvitation(
       const { data: authUserResult } = await supabase.auth.admin.getUserById(
         invitation.auth_user_id,
       );
-      if (authUserResult.user?.last_sign_in_at) {
+      if (
+        !canDeleteUnusedInviteAuthUser({
+          hasProfile: false,
+          lastSignInAt: authUserResult.user?.last_sign_in_at,
+        })
+      ) {
         return {
           success: false,
           error:
@@ -501,7 +499,15 @@ export async function cancelInvitation(
         .select("id")
         .eq("id", invitation.auth_user_id)
         .maybeSingle();
-      if (!profile) {
+      const { data: authUserResult } = await supabase.auth.admin.getUserById(
+        invitation.auth_user_id,
+      );
+      if (
+        canDeleteUnusedInviteAuthUser({
+          hasProfile: Boolean(profile),
+          lastSignInAt: authUserResult.user?.last_sign_in_at,
+        })
+      ) {
         const { error: deleteError } = await supabase.auth.admin.deleteUser(
           invitation.auth_user_id,
         );
