@@ -56,6 +56,7 @@ SLACK_WEBHOOK_URL            # Slack通知用WebhookURL（グッジョブ等）
 SLACK_WEBHOOK_URL_ENPS       # eNPSサーベイ通知（対象チャンネル用。未設定時は通知しない）
 SLACK_WEBHOOK_URL_AWARD      # 表彰サーベイ通知（対象チャンネル用。未設定時は通知しない）
 BATCH_ADMIN_KEY             # バッチ処理認証用キー
+MCP_API_KEYS                # MCP 読み取りキー（JSON配列。id/secret/scopes/label）。Encrypt すること
 HUBSPOT_API_KEY             # HubSpot APIキー
 HUBSPOT_CONTACT_LIST_ID     # HubSpotコンタクトリストID
 ```
