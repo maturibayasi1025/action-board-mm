@@ -396,6 +396,7 @@ export async function getAwardNominationRanking(input: {
           .from("award_responses")
           .select(AWARD_RANKING_RESPONSE_SELECT)
           .in("survey_id", surveyIds)
+          .order("id", { ascending: true })
           .range(from, to),
       ),
     ]);

@@ -54,6 +54,7 @@ export async function fetchAllAwardResponses<T>(
     return [];
   }
 
+  // range ページングは id で安定させないと、同一 created_at の提出が欠けたり重複したりする
   if (surveyIds.length === 1) {
     return fetchAllRows<T>((from, to) =>
       asPageResult<T>(
@@ -61,6 +62,7 @@ export async function fetchAllAwardResponses<T>(
           .from("award_responses")
           .select(columns)
           .eq("survey_id", surveyIds[0])
+          .order("id", { ascending: true })
           .range(from, to),
       ),
     );
@@ -72,6 +74,7 @@ export async function fetchAllAwardResponses<T>(
         .from("award_responses")
         .select(columns)
         .in("survey_id", surveyIds)
+        .order("id", { ascending: true })
         .range(from, to),
     ),
   );
@@ -89,8 +92,10 @@ export async function fetchAwardResponsesForSurvey<T>(
       .select(columns)
       .eq("survey_id", surveyId);
     const ordered = options?.orderByCreatedAtDesc
-      ? query.order("created_at", { ascending: false })
-      : query;
+      ? query
+          .order("created_at", { ascending: false })
+          .order("id", { ascending: false })
+      : query.order("id", { ascending: true });
     return asPageResult<T>(ordered.range(from, to));
   });
 }
@@ -99,7 +104,11 @@ export async function fetchAllPrivateUserNames(
   supabase: AwardDb,
 ): Promise<Map<string, string>> {
   const rows = await fetchAllRows<{ id: string; name: string }>((from, to) =>
-    supabase.from("private_users").select("id, name").range(from, to),
+    supabase
+      .from("private_users")
+      .select("id, name")
+      .order("id", { ascending: true })
+      .range(from, to),
   );
   return new Map(rows.map((row) => [row.id, row.name]));
 }

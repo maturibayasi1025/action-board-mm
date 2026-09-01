@@ -74,6 +74,7 @@ async function fetchSelfEvalResponses(
       .select("user_id, survey_id, question_id, text_value")
       .in("survey_id", surveyIds)
       .in("question_id", questionIds)
+      .order("id", { ascending: true })
       .range(from, to),
   );
 

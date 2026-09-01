@@ -362,6 +362,7 @@ export async function getAwardUnansweredUsers(surveyId: string) {
         .from("private_users")
         .select("id, name")
         .is("suspended_at", null)
+        .order("id", { ascending: true })
         .range(from, to),
   );
 
