@@ -3,7 +3,6 @@
 import { parseAuthHashTokens } from "@/lib/auth/parse-auth-hash-tokens";
 import { createClient } from "@/lib/supabase/client";
 import { INVITE_SET_PASSWORD_PATH } from "@/lib/utils/invite-auth-user";
-import { useRouter } from "next/navigation";
 import { type ReactNode, useEffect, useState } from "react";
 
 type Props = {
@@ -13,7 +12,6 @@ type Props = {
 const RECOVERY_TIMEOUT_MS = 8000;
 
 export function InviteAuthHashBootstrap({ children }: Props) {
-  const router = useRouter();
   const [status, setStatus] = useState<"checking" | "ready">("checking");
 
   useEffect(() => {
@@ -32,6 +30,8 @@ export function InviteAuthHashBootstrap({ children }: Props) {
         return;
       }
 
+      window.clearTimeout(timeoutId);
+
       const supabase = createClient();
       await supabase.auth.signOut();
       const { error } = await supabase.auth.setSession(tokens);
@@ -47,9 +47,7 @@ export function InviteAuthHashBootstrap({ children }: Props) {
         setStatus("ready");
         return;
       }
-      router.replace(INVITE_SET_PASSWORD_PATH);
-      router.refresh();
-      setStatus("ready");
+      window.location.replace(INVITE_SET_PASSWORD_PATH);
     }
 
     void recoverSession().catch(() => {
@@ -62,7 +60,7 @@ export function InviteAuthHashBootstrap({ children }: Props) {
       cancelled = true;
       window.clearTimeout(timeoutId);
     };
-  }, [router]);
+  }, []);
 
   if (status === "checking") {
     return (
