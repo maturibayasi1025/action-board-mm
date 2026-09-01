@@ -1,3 +1,4 @@
+import { InviteAuthHashBootstrap } from "@/components/auth/invite-auth-hash-bootstrap";
 import { FormMessage } from "@/components/form-message";
 import { SubmitButton } from "@/components/submit-button";
 import { signOutAction } from "@/lib/actions";
@@ -36,7 +37,11 @@ export default async function InviteSetPasswordPage() {
           height={96}
         />
       </div>
-      <div className="flex justify-center">{renderInviteAccess(access)}</div>
+      <div className="flex justify-center">
+        <InviteAuthHashBootstrap>
+          {renderInviteAccess(access)}
+        </InviteAuthHashBootstrap>
+      </div>
     </div>
   );
 }

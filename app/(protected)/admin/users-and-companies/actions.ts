@@ -4,6 +4,7 @@ import { getSiteUrl } from "@/lib/env";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import {
   EXISTING_AUTH_INVITE_MESSAGES,
+  INVITE_SET_PASSWORD_PATH,
   canDeleteUnusedInviteAuthUser,
   decideExistingAuthInvite,
   userInvitationsQueryErrorMessage,
@@ -366,7 +367,7 @@ export async function inviteUser(input: {
           invited_by: operator.id,
           ...(businessUnitId ? { business_unit_id: businessUnitId } : {}),
         },
-        redirectTo: `${siteUrl}/auth/callback?redirect_to=/invite/set-password`,
+        redirectTo: `${siteUrl}/auth/callback?redirect_to=${INVITE_SET_PASSWORD_PATH}`,
       });
 
     if (inviteError || !invited.user) {
@@ -466,7 +467,7 @@ export async function resendInvitation(
             ? { business_unit_id: invitation.business_unit_id }
             : {}),
         },
-        redirectTo: `${siteUrl}/auth/callback?redirect_to=/invite/set-password`,
+        redirectTo: `${siteUrl}/auth/callback?redirect_to=${INVITE_SET_PASSWORD_PATH}`,
       });
 
     if (inviteError || !invited.user) {

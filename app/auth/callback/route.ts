@@ -1,5 +1,6 @@
 import { parseEmailOtpType } from "@/lib/auth/email-otp-type";
 import { createClient } from "@/lib/supabase/server";
+import { INVITE_SET_PASSWORD_PATH } from "@/lib/utils/invite-auth-user";
 import { NextResponse } from "next/server";
 
 export const runtime = "edge";
@@ -15,7 +16,7 @@ export async function GET(request: Request) {
   const origin = process.env.NEXT_PUBLIC_SITE_URL ?? requestUrl.origin;
   const redirectTo = requestUrl.searchParams.get("redirect_to")?.toString();
   const isInviteFlow =
-    redirectTo === "/invite/set-password" || otpType === "invite";
+    redirectTo === INVITE_SET_PASSWORD_PATH || otpType === "invite";
 
   const supabase = await createClient();
 
@@ -30,7 +31,7 @@ export async function GET(request: Request) {
       token_hash: tokenHash,
     });
     if (error && isInviteFlow) {
-      return NextResponse.redirect(`${origin}/invite/set-password`);
+      return NextResponse.redirect(`${origin}${INVITE_SET_PASSWORD_PATH}`);
     }
   } else if (code) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
@@ -45,14 +46,33 @@ export async function GET(request: Request) {
           const resetUrl = `${origin}/reset-password`;
           return NextResponse.redirect(resetUrl);
         }
-        if (redirectTo === "/invite/set-password") {
-          return NextResponse.redirect(`${origin}/invite/set-password`);
+        if (redirectTo === INVITE_SET_PASSWORD_PATH) {
+          return NextResponse.redirect(`${origin}${INVITE_SET_PASSWORD_PATH}`);
         }
 
         const loginUrl = `${origin}/sign-in?success=${encodeURIComponent("メール認証が完了しました。ログインしてください。")}`;
         return NextResponse.redirect(loginUrl);
       }
     }
+  } else if (isInviteFlow) {
+    // デフォルト招待メールはトークンを URL ハッシュに付ける。サーバーには届かないので
+    // HTML を返してブラウザ側でハッシュをパスワード設定画面へ持ち込む。
+    const nextUrl = `${origin}${INVITE_SET_PASSWORD_PATH}`;
+    return new NextResponse(
+      `<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8"><title>招待を確認しています</title></head><body><p>招待を確認しています…</p><script>
+(function () {
+  var next = ${JSON.stringify(nextUrl)};
+  var hash = window.location.hash || "";
+  window.location.replace(hash.indexOf("access_token") >= 0 ? next + hash : next);
+})();
+</script></body></html>`,
+      {
+        headers: {
+          "content-type": "text/html; charset=utf-8",
+          "cache-control": "no-store",
+        },
+      },
+    );
   }
 
   if (redirectTo) {

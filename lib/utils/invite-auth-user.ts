@@ -1,3 +1,5 @@
+export const INVITE_SET_PASSWORD_PATH = "/invite/set-password";
+
 export function normalizeInviteEmail(email: string): string {
   return email.trim().toLowerCase();
 }
