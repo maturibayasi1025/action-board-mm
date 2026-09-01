@@ -4,6 +4,15 @@ import {
   type PrivateUserOrgRow,
   companyAndBusinessUnitFromPrivateUserRow,
 } from "@/lib/admin/private-user-org";
+import {
+  fetchAwardResponsesForSurvey,
+  fetchPrivateUsersByIds,
+} from "@/lib/award/fetch-award-rows";
+import {
+  buildNormalizedNameIndex,
+  resolveNominee,
+} from "@/lib/award/nomination-ranking";
+import { fetchAllRows } from "@/lib/supabase/fetch-all-rows";
 import { createServiceClient } from "@/lib/supabase/server";
 import {
   fetchGlobalExcludedUserIds,
@@ -59,15 +68,23 @@ export async function getAwardSurveyResponses(surveyId: string) {
     .eq("is_active", true)
     .order("display_order", { ascending: true });
 
-  const { data: responses, error } = await supabase
-    .from("award_responses")
-    .select(
+  let responses: Array<{
+    id: string;
+    question_id: string;
+    text_value: string | null;
+    nominee_user_id: string | null;
+    created_at: string;
+    user_id: string;
+    is_late_submission: boolean | null;
+  }> = [];
+  try {
+    responses = await fetchAwardResponsesForSurvey(
+      supabase,
+      surveyId,
       "id, question_id, text_value, nominee_user_id, created_at, user_id, is_late_submission",
-    )
-    .eq("survey_id", surveyId)
-    .order("created_at", { ascending: false });
-
-  if (error) {
+      { orderByCreatedAtDesc: true },
+    );
+  } catch (error) {
     console.error("回答の取得エラー:", error);
     return {
       questions: questions || [],
@@ -80,8 +97,8 @@ export async function getAwardSurveyResponses(surveyId: string) {
 
   const userIds = Array.from(
     new Set([
-      ...(responses || []).map((r) => r.user_id),
-      ...(responses || [])
+      ...responses.map((r) => r.user_id),
+      ...responses
         .map((r) => r.nominee_user_id)
         .filter((id): id is string => id != null),
     ]),
@@ -92,12 +109,17 @@ export async function getAwardSurveyResponses(surveyId: string) {
     business_unit_name: string;
   };
   let userMap = new Map<string, UserFields>();
-  const suspendedUserIds = new Set<string>();
   if (userIds.length > 0) {
-    const { data: users } = await supabase
-      .from("private_users")
-      .select(
-        `
+    const users = await fetchPrivateUsersByIds<
+      {
+        id: string;
+        name: string;
+        suspended_at: string | null;
+      } & PrivateUserOrgRow
+    >(
+      supabase,
+      userIds,
+      `
         id,
         name,
         suspended_at,
@@ -110,14 +132,10 @@ export async function getAwardSurveyResponses(surveyId: string) {
           )
         )
       `,
-      )
-      .in("id", userIds);
+    );
 
     userMap = new Map(
-      (users || []).map((u) => {
-        if (u.suspended_at) {
-          suspendedUserIds.add(u.id);
-        }
+      users.map((u) => {
         const { company_name, business_unit_name } =
           companyAndBusinessUnitFromPrivateUserRow(u as PrivateUserOrgRow);
         return [
@@ -135,6 +153,7 @@ export async function getAwardSurveyResponses(surveyId: string) {
       : undefined;
     return {
       ...r,
+      is_late_submission: Boolean(r.is_late_submission),
       user_name: u?.name ?? "不明",
       company_name: u?.company_name ?? "",
       business_unit_name: u?.business_unit_name ?? "",
@@ -163,25 +182,35 @@ export async function getAwardSurveyResponses(surveyId: string) {
     nominationQuestions.map((q) => [q.id, q.question_group]),
   );
 
+  const userNameById = new Map(
+    Array.from(userMap.entries()).map(([id, fields]) => [id, fields.name]),
+  );
+  const nameIndex = buildNormalizedNameIndex(userNameById);
+
   function resolveNomineeKey(response: (typeof responsesWithUsers)[number]): {
     key: string;
     name: string;
   } | null {
-    if (response.nominee_user_id) {
-      if (suspendedUserIds.has(response.nominee_user_id)) {
-        return null;
-      }
-      const name =
-        response.nominee_user_name ??
-        userMap.get(response.nominee_user_id)?.name ??
-        "不明";
-      return { key: `uid:${response.nominee_user_id}`, name };
+    const question = nominationQuestions.find(
+      (q) => q.id === response.question_id,
+    );
+    if (!question) {
+      return null;
     }
-    const legacy = response.text_value?.trim();
-    if (legacy) {
-      return { key: `text:${legacy}`, name: legacy };
+    const resolved = resolveNominee(
+      {
+        question_id: response.question_id,
+        text_value: response.text_value,
+        nominee_user_id: response.nominee_user_id,
+      },
+      question,
+      userNameById,
+      nameIndex,
+    );
+    if (!resolved) {
+      return null;
     }
-    return null;
+    return { key: resolved.key, name: resolved.name };
   }
 
   function aggregateNominations(
@@ -319,19 +348,22 @@ export async function getAwardUnansweredUsers(surveyId: string) {
   await requireOwner();
   const supabase = await createServiceClient();
 
-  const { data: answeredUsers } = await supabase
-    .from("award_responses")
-    .select("user_id")
-    .eq("survey_id", surveyId);
+  const answeredUsers = await fetchAwardResponsesForSurvey<{
+    user_id: string;
+  }>(supabase, surveyId, "user_id");
 
-  const answeredUserIds = new Set(answeredUsers?.map((u) => u.user_id) || []);
+  const answeredUserIds = new Set(answeredUsers.map((u) => u.user_id));
 
   const excludedUserIds = await fetchGlobalExcludedUserIds(supabase);
 
-  const { data: allUsers } = await supabase
-    .from("private_users")
-    .select("id, name")
-    .is("suspended_at", null);
+  const allUsers = await fetchAllRows<{ id: string; name: string }>(
+    (from, to) =>
+      supabase
+        .from("private_users")
+        .select("id, name")
+        .is("suspended_at", null)
+        .range(from, to),
+  );
 
   return filterUnansweredPrivateUsers(
     allUsers ?? [],

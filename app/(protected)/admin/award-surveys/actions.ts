@@ -1,5 +1,6 @@
 "use server";
 
+import { fetchAwardResponsesForSurvey } from "@/lib/award/fetch-award-rows";
 import { createServiceClient } from "@/lib/supabase/server";
 import { requireOwner } from "@/lib/utils/isOwner";
 import { revalidatePath } from "next/cache";
@@ -21,25 +22,28 @@ export async function getAwardSurveys() {
   // ユニーク回答者数を取得
   const surveysWithCount = await Promise.all(
     (surveys || []).map(async (survey) => {
-      const { data: responders, error: respondersError } = await supabase
-        .from("award_responses")
-        .select("user_id")
-        .eq("survey_id", survey.id);
+      try {
+        const responders = await fetchAwardResponsesForSurvey<{
+          user_id: string;
+        }>(supabase, survey.id, "user_id");
 
-      if (respondersError) {
+        const uniqueUsers = new Set(
+          responders
+            .map((responder) => responder.user_id)
+            .filter((userId): userId is string => typeof userId === "string"),
+        ).size;
+
+        return {
+          ...survey,
+          unique_response_count: uniqueUsers,
+        };
+      } catch (respondersError) {
         console.error("ユニーク回答者数の取得エラー:", respondersError);
+        return {
+          ...survey,
+          unique_response_count: 0,
+        };
       }
-
-      const uniqueUsers = new Set(
-        (responders || [])
-          .map((responder) => responder.user_id)
-          .filter((userId): userId is string => typeof userId === "string"),
-      ).size;
-
-      return {
-        ...survey,
-        unique_response_count: uniqueUsers,
-      };
     }),
   );
 
