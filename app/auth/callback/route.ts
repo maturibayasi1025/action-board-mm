@@ -19,9 +19,7 @@ export async function GET(request: Request) {
     redirectTo === INVITE_SET_PASSWORD_PATH || otpType === "invite";
 
   const supabase = await createClient();
-
-  // 経営者がログインしたまま招待リンクを開くと、招待先ではなく経営者セッションのまま進む
-  if (isInviteFlow) {
+  if (isInviteFlow && (tokenHash || code)) {
     await supabase.auth.signOut();
   }
 
@@ -31,7 +29,9 @@ export async function GET(request: Request) {
       token_hash: tokenHash,
     });
     if (error && isInviteFlow) {
-      return NextResponse.redirect(`${origin}${INVITE_SET_PASSWORD_PATH}`);
+      return NextResponse.redirect(
+        new URL(INVITE_SET_PASSWORD_PATH, requestUrl.origin),
+      );
     }
   } else if (code) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
@@ -47,7 +47,9 @@ export async function GET(request: Request) {
           return NextResponse.redirect(resetUrl);
         }
         if (redirectTo === INVITE_SET_PASSWORD_PATH) {
-          return NextResponse.redirect(`${origin}${INVITE_SET_PASSWORD_PATH}`);
+          return NextResponse.redirect(
+            new URL(INVITE_SET_PASSWORD_PATH, requestUrl.origin),
+          );
         }
 
         const loginUrl = `${origin}/sign-in?success=${encodeURIComponent("メール認証が完了しました。ログインしてください。")}`;
@@ -55,23 +57,11 @@ export async function GET(request: Request) {
       }
     }
   } else if (isInviteFlow) {
-    // デフォルト招待メールはトークンを URL ハッシュに付ける。サーバーには届かないので
-    // HTML を返してブラウザ側でハッシュをパスワード設定画面へ持ち込む。
-    const nextUrl = `${origin}${INVITE_SET_PASSWORD_PATH}`;
-    return new NextResponse(
-      `<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8"><title>招待を確認しています</title></head><body><p>招待を確認しています…</p><script>
-(function () {
-  var next = ${JSON.stringify(nextUrl)};
-  var hash = window.location.hash || "";
-  window.location.replace(hash.indexOf("access_token") >= 0 ? next + hash : next);
-})();
-</script></body></html>`,
-      {
-        headers: {
-          "content-type": "text/html; charset=utf-8",
-          "cache-control": "no-store",
-        },
-      },
+    // デフォルト招待メールはトークンを URL ハッシュに付ける。
+    // インラインスクリプトは CSP 等で動かず止まることがあるので、
+    // 302 でパスワード設定画面へ送り、ハッシュはブラウザが引き継ぐ。
+    return NextResponse.redirect(
+      new URL(INVITE_SET_PASSWORD_PATH, requestUrl.origin),
     );
   }
 
