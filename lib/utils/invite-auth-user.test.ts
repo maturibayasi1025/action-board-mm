@@ -3,6 +3,7 @@ import {
   USER_INVITATIONS_MISSING_TABLE_MESSAGE,
   canDeleteUnusedInviteAuthUser,
   decideExistingAuthInvite,
+  decideInviteSetPasswordAccess,
   isMissingUserInvitationsRelation,
   normalizeInviteEmail,
   userInvitationsQueryErrorMessage,
@@ -87,5 +88,34 @@ describe("userInvitationsQueryErrorMessage", () => {
         "招待の保存に失敗しました",
       ),
     ).toBe(USER_INVITATIONS_MISSING_TABLE_MESSAGE);
+  });
+});
+
+describe("decideInviteSetPasswordAccess", () => {
+  it("allows password setup when the logged-in user has a pending invite", () => {
+    expect(
+      decideInviteSetPasswordAccess({
+        hasUser: true,
+        hasPendingInvitation: true,
+      }),
+    ).toBe("can_set_password");
+  });
+
+  it("treats a logged-in user without a pending invite as the wrong account", () => {
+    expect(
+      decideInviteSetPasswordAccess({
+        hasUser: true,
+        hasPendingInvitation: false,
+      }),
+    ).toBe("wrong_account");
+  });
+
+  it("treats a missing session as an invalid link", () => {
+    expect(
+      decideInviteSetPasswordAccess({
+        hasUser: false,
+        hasPendingInvitation: false,
+      }),
+    ).toBe("invalid_link");
   });
 });

@@ -81,3 +81,24 @@ export function userInvitationsQueryErrorMessage(
   }
   return fallback;
 }
+
+export type InviteSetPasswordAccess =
+  | "can_set_password"
+  | "wrong_account"
+  | "invalid_link";
+
+/**
+ * 招待パスワード設定画面を出せるか。経営者のままリンクを開くと wrong_account になる。
+ */
+export function decideInviteSetPasswordAccess(input: {
+  hasUser: boolean;
+  hasPendingInvitation: boolean;
+}): InviteSetPasswordAccess {
+  if (input.hasUser && input.hasPendingInvitation) {
+    return "can_set_password";
+  }
+  if (input.hasUser) {
+    return "wrong_account";
+  }
+  return "invalid_link";
+}

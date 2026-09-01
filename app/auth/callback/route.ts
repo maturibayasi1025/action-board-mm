@@ -1,3 +1,4 @@
+import { parseEmailOtpType } from "@/lib/auth/email-otp-type";
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 
@@ -9,11 +10,29 @@ export async function GET(request: Request) {
   // https://supabase.com/docs/guides/auth/server-side/nextjs
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
+  const tokenHash = requestUrl.searchParams.get("token_hash");
+  const otpType = parseEmailOtpType(requestUrl.searchParams.get("type"));
   const origin = process.env.NEXT_PUBLIC_SITE_URL ?? requestUrl.origin;
   const redirectTo = requestUrl.searchParams.get("redirect_to")?.toString();
+  const isInviteFlow =
+    redirectTo === "/invite/set-password" || otpType === "invite";
 
-  if (code) {
-    const supabase = await createClient();
+  const supabase = await createClient();
+
+  // 経営者がログインしたまま招待リンクを開くと、招待先ではなく経営者セッションのまま進む
+  if (isInviteFlow) {
+    await supabase.auth.signOut();
+  }
+
+  if (tokenHash && otpType) {
+    const { error } = await supabase.auth.verifyOtp({
+      type: otpType,
+      token_hash: tokenHash,
+    });
+    if (error && isInviteFlow) {
+      return NextResponse.redirect(`${origin}/invite/set-password`);
+    }
+  } else if (code) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (error) {
@@ -40,7 +59,6 @@ export async function GET(request: Request) {
     return NextResponse.redirect(`${origin}${redirectTo}`);
   }
 
-  const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
