@@ -41,3 +41,43 @@ export function canDeleteUnusedInviteAuthUser(input: {
 }): boolean {
   return !input.hasProfile;
 }
+
+export const USER_INVITATIONS_MISSING_TABLE_MESSAGE =
+  "招待テーブルが未作成です。Supabase にマイグレーション 20260830000000_add_user_invitations.sql を適用してください（supabase db push）。";
+
+type PostgrestLikeError = {
+  code?: string | null;
+  message?: string | null;
+};
+
+/**
+ * user_invitations が未作成、または PostgREST のスキーマキャッシュに無いときの判定。
+ */
+export function isMissingUserInvitationsRelation(
+  error: PostgrestLikeError | null | undefined,
+): boolean {
+  if (!error) {
+    return false;
+  }
+  const code = error.code ?? "";
+  if (code === "42P01" || code === "PGRST205") {
+    return true;
+  }
+  const message = (error.message ?? "").toLowerCase();
+  return (
+    message.includes("user_invitations") &&
+    (message.includes("does not exist") ||
+      message.includes("could not find the table") ||
+      message.includes("schema cache"))
+  );
+}
+
+export function userInvitationsQueryErrorMessage(
+  error: PostgrestLikeError | null | undefined,
+  fallback: string,
+): string {
+  if (isMissingUserInvitationsRelation(error)) {
+    return USER_INVITATIONS_MISSING_TABLE_MESSAGE;
+  }
+  return fallback;
+}

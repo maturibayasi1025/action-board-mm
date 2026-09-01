@@ -6,6 +6,7 @@ import {
   EXISTING_AUTH_INVITE_MESSAGES,
   canDeleteUnusedInviteAuthUser,
   decideExistingAuthInvite,
+  userInvitationsQueryErrorMessage,
 } from "@/lib/utils/invite-auth-user";
 import { isUserIdOwner, requireOwner } from "@/lib/utils/isOwner";
 import { inviteUserFormSchema } from "@/lib/validation/auth";
@@ -211,7 +212,10 @@ export async function listPendingInvitations(): Promise<
 
     if (error) {
       console.error("listPendingInvitations:", error);
-      return { success: false, error: error.message };
+      return {
+        success: false,
+        error: userInvitationsQueryErrorMessage(error, error.message),
+      };
     }
 
     const invitations: InvitationRow[] = (data ?? []).map((row) => {
@@ -301,12 +305,26 @@ export async function inviteUser(input: {
         .select("id")
         .eq("id", existingAuthUser.id)
         .maybeSingle();
-      const { data: pendingForExisting } = await supabase
-        .from("user_invitations")
-        .select("id")
-        .eq("status", "pending")
-        .eq("email", email)
-        .maybeSingle();
+      const { data: pendingForExisting, error: pendingForExistingError } =
+        await supabase
+          .from("user_invitations")
+          .select("id")
+          .eq("status", "pending")
+          .eq("email", email)
+          .maybeSingle();
+      if (pendingForExistingError) {
+        console.error(
+          "inviteUser pending lookup for existing user:",
+          pendingForExistingError,
+        );
+        return {
+          success: false,
+          error: userInvitationsQueryErrorMessage(
+            pendingForExistingError,
+            "招待の確認に失敗しました",
+          ),
+        };
+      }
       const decision = decideExistingAuthInvite({
         hasProfile: Boolean(profile),
         hasPendingInvite: Boolean(pendingForExisting),
@@ -317,12 +335,22 @@ export async function inviteUser(input: {
       };
     }
 
-    const { data: pending } = await supabase
+    const { data: pending, error: pendingError } = await supabase
       .from("user_invitations")
       .select("id")
       .eq("status", "pending")
       .eq("email", email)
       .maybeSingle();
+    if (pendingError) {
+      console.error("inviteUser pending lookup:", pendingError);
+      return {
+        success: false,
+        error: userInvitationsQueryErrorMessage(
+          pendingError,
+          "招待の確認に失敗しました",
+        ),
+      };
+    }
     if (pending) {
       return {
         success: false,
@@ -373,7 +401,13 @@ export async function inviteUser(input: {
       if (deleteError) {
         console.error("inviteUser rollback deleteUser:", deleteError);
       }
-      return { success: false, error: "招待の保存に失敗しました" };
+      return {
+        success: false,
+        error: userInvitationsQueryErrorMessage(
+          insertError,
+          "招待の保存に失敗しました",
+        ),
+      };
     }
 
     revalidatePath("/admin/users-and-companies");
