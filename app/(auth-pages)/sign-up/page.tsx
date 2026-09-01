@@ -1,6 +1,6 @@
 import Image from "next/image";
 import type { Message } from "../../../components/form-message";
-import TwoStepSignUpForm from "./TwoStepSignUpForm";
+import SignUpForm from "./SignUpForm";
 
 export const runtime = "edge";
 
@@ -19,7 +19,7 @@ export default async function Signup(props: {
           height={96}
         />
       </div>
-      <TwoStepSignUpForm searchParams={searchParams} />
+      <SignUpForm searchParams={searchParams} />
     </div>
   );
 }

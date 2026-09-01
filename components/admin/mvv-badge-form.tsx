@@ -402,7 +402,14 @@ export function MvvBadgeForm() {
                   selectedUser?.id === user.id ? "bg-blue-100" : ""
                 }`}
               >
-                <div className="font-medium">{user.name}</div>
+                <div className="font-medium">
+                  {user.name}
+                  {user.isSuspended ? (
+                    <span className="ml-2 text-xs text-destructive">
+                      停止中
+                    </span>
+                  ) : null}
+                </div>
                 {user.email && (
                   <div className="text-sm text-gray-500">{user.email}</div>
                 )}
@@ -416,7 +423,10 @@ export function MvvBadgeForm() {
       {selectedUser && (
         <div className="border rounded-md p-4 bg-gray-50">
           <div className="font-medium">選択中のユーザー</div>
-          <div className="text-sm text-gray-600">{selectedUser.name}</div>
+          <div className="text-sm text-gray-600">
+            {selectedUser.name}
+            {selectedUser.isSuspended ? "（停止中）" : ""}
+          </div>
           {selectedUser.email && (
             <div className="text-sm text-gray-500">{selectedUser.email}</div>
           )}

@@ -1353,6 +1353,7 @@ export type Database = {
           name: string;
           registered_at: string;
           slack_user_id: string | null;
+          suspended_at: string | null;
           updated_at: string;
           x_username: string | null;
         };
@@ -1367,6 +1368,7 @@ export type Database = {
           name: string;
           registered_at?: string;
           slack_user_id?: string | null;
+          suspended_at?: string | null;
           updated_at?: string;
           x_username?: string | null;
         };
@@ -1381,6 +1383,7 @@ export type Database = {
           name?: string;
           registered_at?: string;
           slack_user_id?: string | null;
+          suspended_at?: string | null;
           updated_at?: string;
           x_username?: string | null;
         };
@@ -1403,6 +1406,7 @@ export type Database = {
           github_username: string | null;
           id: string;
           name: string;
+          suspended_at: string | null;
           x_username: string | null;
         };
         Insert: {
@@ -1413,6 +1417,7 @@ export type Database = {
           github_username?: string | null;
           id: string;
           name: string;
+          suspended_at?: string | null;
           x_username?: string | null;
         };
         Update: {
@@ -1423,6 +1428,7 @@ export type Database = {
           github_username?: string | null;
           id?: string;
           name?: string;
+          suspended_at?: string | null;
           x_username?: string | null;
         };
         Relationships: [
@@ -1711,6 +1717,53 @@ export type Database = {
           user_id?: string;
         };
         Relationships: [];
+      };
+      user_invitations: {
+        Row: {
+          accepted_at: string | null;
+          auth_user_id: string | null;
+          business_unit_id: string | null;
+          cancelled_at: string | null;
+          created_at: string;
+          email: string;
+          id: string;
+          invited_by: string;
+          status: string;
+          updated_at: string;
+        };
+        Insert: {
+          accepted_at?: string | null;
+          auth_user_id?: string | null;
+          business_unit_id?: string | null;
+          cancelled_at?: string | null;
+          created_at?: string;
+          email: string;
+          id?: string;
+          invited_by: string;
+          status?: string;
+          updated_at?: string;
+        };
+        Update: {
+          accepted_at?: string | null;
+          auth_user_id?: string | null;
+          business_unit_id?: string | null;
+          cancelled_at?: string | null;
+          created_at?: string;
+          email?: string;
+          id?: string;
+          invited_by?: string;
+          status?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "user_invitations_business_unit_id_fkey";
+            columns: ["business_unit_id"];
+            isOneToOne: false;
+            referencedRelation: "business_units";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       user_levels: {
         Row: {
@@ -2202,6 +2255,7 @@ export type Database = {
     };
     Functions: {
       calculate_level_from_xp: { Args: { xp: number }; Returns: number };
+      is_active_user: { Args: { uid: string }; Returns: boolean };
       get_daily_user_mission_counts: {
         Args: { p_end_date: string; p_start_date: string };
         Returns: {

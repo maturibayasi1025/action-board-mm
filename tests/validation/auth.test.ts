@@ -1,5 +1,8 @@
 import {
+  changePasswordFormSchema,
+  inviteUserFormSchema,
   passwordSchema,
+  setPasswordFormSchema,
   signInAndLoginFormSchema,
   signUpAndLoginFormSchema,
 } from "@/lib/validation/auth";
@@ -147,12 +150,22 @@ describe("パスワードバリデーション", () => {
     const validBaseData = {
       email: "test@example.com",
       password: "password123",
-      date_of_birth: "1990-01-01",
     };
 
     test("正常なデータでサインアップ成功", () => {
       const result = signUpAndLoginFormSchema.safeParse(validBaseData);
       expect(result.success).toBe(true);
+    });
+
+    test("メールアドレスを小文字に正規化する", () => {
+      const result = signUpAndLoginFormSchema.safeParse({
+        ...validBaseData,
+        email: "Test.User@Example.COM",
+      });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.email).toBe("test.user@example.com");
+      }
     });
 
     test("無効なパスワードでサインアップ失敗", () => {
@@ -172,14 +185,60 @@ describe("パスワードバリデーション", () => {
       const result = signUpAndLoginFormSchema.safeParse(invalidData);
       expect(result.success).toBe(false);
     });
+  });
 
-    test("18歳未満でサインアップ失敗", () => {
-      const currentYear = new Date().getFullYear();
-      const invalidData = {
-        ...validBaseData,
-        date_of_birth: `${currentYear - 17}-01-01`,
-      };
-      const result = signUpAndLoginFormSchema.safeParse(invalidData);
+  describe("setPasswordFormSchema", () => {
+    test("一致するパスワードで成功", () => {
+      const result = setPasswordFormSchema.safeParse({
+        password: "password123",
+        confirmPassword: "password123",
+      });
+      expect(result.success).toBe(true);
+    });
+
+    test("不一致で失敗", () => {
+      const result = setPasswordFormSchema.safeParse({
+        password: "password123",
+        confirmPassword: "password124",
+      });
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("changePasswordFormSchema", () => {
+    test("現在と異なる新しいパスワードで成功", () => {
+      const result = changePasswordFormSchema.safeParse({
+        currentPassword: "oldpass123",
+        newPassword: "newpass123",
+        confirmPassword: "newpass123",
+      });
+      expect(result.success).toBe(true);
+    });
+
+    test("現在と同じパスワードは失敗", () => {
+      const result = changePasswordFormSchema.safeParse({
+        currentPassword: "password123",
+        newPassword: "password123",
+        confirmPassword: "password123",
+      });
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("inviteUserFormSchema", () => {
+    test("メールのみで成功", () => {
+      const result = inviteUserFormSchema.safeParse({
+        email: "invite@example.com",
+        business_unit_id: "",
+      });
+      expect(result.success).toBe(true);
+    });
+
+    test("不正な事業部IDは失敗", () => {
+      const result = inviteUserFormSchema.safeParse({
+        email: "invite@example.com",
+        business_unit_id: "not-a-uuid",
+      });
       expect(result.success).toBe(false);
     });
   });

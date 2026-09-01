@@ -7,21 +7,14 @@ import {
 } from "@/lib/services/userLevel";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { deleteCookie, getCookie } from "@/lib/utils/server-cookies";
-import { calculateAge, encodedRedirect } from "@/lib/utils/utils";
-import {
-  forgotPasswordFormSchema,
-  signInAndLoginFormSchema,
-  signUpAndLoginFormSchema,
-} from "@/lib/validation/auth";
+import { encodedRedirect } from "@/lib/utils/utils";
+import { signUpAndLoginFormSchema } from "@/lib/validation/auth";
 import { headers } from "next/headers";
-import { redirect } from "next/navigation";
 
 import {
   isEmailAlreadyUsedInReferral,
   isValidReferralCode,
 } from "@/lib/validation/referral";
-
-import { validateReturnUrl } from "@/lib/validation/url";
 
 export const signUpActionWithState = async (
   prevState: {
@@ -66,7 +59,6 @@ export const signUpActionWithState = async (
   const validatedFields = signUpAndLoginFormSchema.safeParse({
     email,
     password,
-    date_of_birth,
   });
   if (!validatedFields.success) {
     return {
@@ -80,19 +72,15 @@ export const signUpActionWithState = async (
   const supabase = await createClient();
   const origin = (await headers()).get("origin");
 
-  if (!email || !password) {
-    return {
-      error: "メールアドレスとパスワードが必要です",
-      formData: currentFormData,
-    };
-  }
+  const normalizedEmail = validatedFields.data.email;
+  const validatedPassword = validatedFields.data.password;
 
   const { data, error } = await supabase.auth.signUp({
-    email,
-    password,
+    email: normalizedEmail,
+    password: validatedPassword,
     options: {
       data: {
-        date_of_birth, // 生年月日をユーザーデータに保存。プロフィール作成時に固定で設定される
+        ...(date_of_birth ? { date_of_birth } : {}),
       },
       emailRedirectTo: `${origin}/auth/callback`,
     },
@@ -122,7 +110,7 @@ export const signUpActionWithState = async (
     try {
       const [isValid, isDuplicate] = await Promise.all([
         isValidReferralCode(referralCode),
-        isEmailAlreadyUsedInReferral(email?.toLowerCase() ?? ""),
+        isEmailAlreadyUsedInReferral(normalizedEmail),
       ]);
 
       if (isValid && !isDuplicate) {
@@ -166,7 +154,7 @@ export const signUpActionWithState = async (
             user_id: referrerUserId,
             achievement_id: achievement.id,
             artifact_type: "REFERRAL",
-            text_content: email.toLowerCase(),
+            text_content: normalizedEmail,
           });
           // グッジョブ達成時にXPを付与
           await grantMissionCompletionXp(
@@ -278,37 +266,14 @@ export const emailSignUpActionWithState = async (
   const dateOfBirth = formData.get("date_of_birth")?.toString();
   const referralCode = formData.get("ref")?.toString();
 
-  // フォームデータを保存（エラー時の状態復元用）
-  const currentFormData = {
-    email: email || "",
-    password: "",
-  };
-
-  if (!dateOfBirth) {
-    return {
-      error: "セッション情報が見つかりません。最初からやり直してください。",
-      formData: currentFormData,
-    };
-  }
-
-  // サーバーサイドで年齢チェック（LINEログインと同様）
-  const age = calculateAge(dateOfBirth);
-  if (age < 18) {
-    const yearsToWait = 18 - age;
-    const waitText = yearsToWait > 1 ? `あと${yearsToWait}年で` : "もうすぐ";
-    return {
-      error: `18歳以上の方のみご登録いただけます。${waitText}登録できますので、その日を楽しみにお待ちください！`,
-      formData: currentFormData,
-    };
-  }
-
-  // 新しいFormDataを作成して、既存のsignUpActionWithStateを呼び出し
   const newFormData = new FormData();
   newFormData.set("email", email || "");
   newFormData.set("password", password || "");
-  newFormData.set("date_of_birth", dateOfBirth);
-  newFormData.set("terms_agreed", "true"); // 事前に同意済み
-  newFormData.set("privacy_agreed", "true"); // 事前に同意済み
+  if (dateOfBirth) {
+    newFormData.set("date_of_birth", dateOfBirth);
+  }
+  newFormData.set("terms_agreed", "true");
+  newFormData.set("privacy_agreed", "true");
   if (referralCode) {
     newFormData.set("ref", referralCode);
   }

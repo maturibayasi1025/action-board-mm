@@ -1,5 +1,22 @@
 // Jest setup file
+const { webcrypto } = require("node:crypto");
+const { TextDecoder, TextEncoder } = require("node:util");
 const React = require("react");
+
+if (typeof globalThis.TextEncoder === "undefined") {
+  globalThis.TextEncoder = TextEncoder;
+}
+if (typeof globalThis.TextDecoder === "undefined") {
+  globalThis.TextDecoder = TextDecoder;
+}
+if (typeof globalThis.crypto === "undefined") {
+  globalThis.crypto = webcrypto;
+} else if (!globalThis.crypto.subtle) {
+  Object.defineProperty(globalThis.crypto, "subtle", {
+    value: webcrypto.subtle,
+    configurable: true,
+  });
+}
 
 require("@testing-library/jest-dom");
 

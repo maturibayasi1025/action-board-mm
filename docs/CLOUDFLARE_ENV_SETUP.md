@@ -60,6 +60,13 @@ SLACK_WEBHOOK_URL            # Slack通知用WebhookURL（グッジョブ等）
 SLACK_WEBHOOK_URL_ENPS       # eNPSサーベイ通知（対象チャンネル用。未設定時は通知しない）
 SLACK_WEBHOOK_URL_AWARD      # 表彰サーベイ通知（対象チャンネル用。未設定時は通知しない）
 BATCH_ADMIN_KEY             # バッチ処理認証用キー
+MCP_API_KEYS                # MCP 読み取りキー（JSON配列。id/secret/scopes/label）。Encrypt すること
+MCP_JWT_SECRET              # MCP 用 JWT 署名。Google ログインに必須。Encrypt すること
+MCP_GOOGLE_CLIENT_ID        # MCP 専用 Google OAuth クライアント ID
+MCP_GOOGLE_CLIENT_SECRET    # MCP 専用 Google OAuth クライアントシークレット。Encrypt すること
+MCP_ALLOWED_GOOGLE_DOMAIN   # 既定: maisonmarc.com
+MCP_ALLOWED_GOOGLE_EMAILS   # 許可メール（カンマ区切りは public のみ。制限データは JSON で scopes）。空なら誰も入れない
+                            # 例: [{"email":"owner@maisonmarc.com","scopes":["public","survey_agg","slack_directory","survey_raw"]}]
 HUBSPOT_API_KEY             # HubSpot APIキー
 HUBSPOT_CONTACT_LIST_ID     # HubSpotコンタクトリストID
 ```

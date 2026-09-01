@@ -597,7 +597,8 @@ export async function getMvvBadgesWithUsers(
     const { data: users, error: usersError } = await supabase
       .from("public_user_profiles")
       .select("id, name, avatar_url")
-      .in("id", userIds);
+      .in("id", userIds)
+      .is("suspended_at", null);
 
     if (usersError) {
       console.error("Error fetching user profiles:", usersError);

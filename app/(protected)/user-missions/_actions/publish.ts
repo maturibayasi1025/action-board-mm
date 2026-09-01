@@ -1,5 +1,6 @@
 "use server";
 
+import { assertUserActive } from "@/lib/services/user-status";
 import { createClient } from "@/lib/supabase/server";
 import type { Json } from "@/lib/types/supabase";
 import { excludeCreatorFromPraisedUserIds } from "@/lib/utils/user-mission-praised";
@@ -33,6 +34,8 @@ export async function publishDraftUserMissionAction(draftId: string) {
         "ログインが必要です。ログインしてから再度お試しください。",
       );
     }
+
+    await assertUserActive(user.id);
 
     // 下書きを取得
     const { data: draft, error: fetchError } = await supabase

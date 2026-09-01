@@ -5,6 +5,7 @@ import { hasAchievementInActiveSurveyPeriod } from "@/app/(protected)/surveys/_l
 import { userRespondedActiveAwardSurvey } from "@/app/(protected)/surveys/_lib/user-responded-active-award-survey";
 import { userRespondedActiveEnpsSurvey } from "@/app/(protected)/surveys/_lib/user-responded-active-enps-survey";
 import { ARTIFACT_TYPES } from "@/lib/artifactTypes"; // パス変更
+import { assertUserActive } from "@/lib/services/user-status";
 import {
   getUserXpBonus,
   grantMissionCompletionXp,
@@ -81,6 +82,16 @@ export const achieveMissionAction = async (formData: FormData) => {
     return {
       success: false,
       error: "認証エラーが発生しました。",
+    };
+  }
+
+  try {
+    await assertUserActive(authUser.id);
+  } catch (error) {
+    return {
+      success: false,
+      error:
+        error instanceof Error ? error.message : "アカウントが停止されています",
     };
   }
 

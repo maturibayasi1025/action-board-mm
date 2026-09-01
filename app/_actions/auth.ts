@@ -7,16 +7,17 @@ import {
 } from "@/lib/services/userLevel";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { deleteCookie, getCookie } from "@/lib/utils/server-cookies";
-import { calculateAge, encodedRedirect } from "@/lib/utils/utils";
+import { encodedRedirect } from "@/lib/utils/utils";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import {
+  changePasswordFormSchema,
   forgotPasswordFormSchema,
   lineAuthSchema,
+  setPasswordFormSchema,
   signInAndLoginFormSchema,
-  signUpAndLoginFormSchema,
 } from "@/lib/validation/auth";
 
 import {
@@ -24,6 +25,9 @@ import {
   isValidReferralCode,
 } from "@/lib/validation/referral";
 
+import { findPendingInvitation } from "@/lib/services/user-invitations";
+import { isSuspendedUser } from "@/lib/services/user-status";
+import { USER_SUSPENDED_ERROR } from "@/lib/utils/user-status";
 import { validateReturnUrl } from "@/lib/validation/url";
 
 import { handleReferralCode } from "./referral";
@@ -111,17 +115,36 @@ export const signInActionWithState = async (
       };
     }
 
-    // Validate returnUrl before redirecting
+    if (await isSuspendedUser(data.user.id)) {
+      await supabase.auth.signOut();
+      return {
+        error: USER_SUSPENDED_ERROR,
+        formData: currentFormData,
+      };
+    }
+
     const validatedReturnUrl = validateReturnUrl(returnUrl);
+    let redirectUrl = validatedReturnUrl || "/";
+
+    if (!validatedReturnUrl) {
+      const { data: privateUser } = await supabase
+        .from("private_users")
+        .select("id")
+        .eq("id", data.user.id)
+        .maybeSingle();
+      if (!privateUser) {
+        redirectUrl = "/settings/profile?new=true";
+      }
+    }
 
     console.log(
       "[Sign In Debug] Login successful, redirecting to:",
-      validatedReturnUrl || "/",
+      redirectUrl,
     );
 
     return {
       success: "ログインに成功しました",
-      redirectUrl: validatedReturnUrl || "/",
+      redirectUrl,
     };
   } catch (error) {
     console.error("[Sign In Debug] Unexpected error:", error);
@@ -208,28 +231,39 @@ export const forgotPasswordAction = async (formData: FormData) => {
 
 export const resetPasswordAction = async (formData: FormData) => {
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  const password = formData.get("password") as string;
-  const confirmPassword = formData.get("confirmPassword") as string;
-
-  if (!password || !confirmPassword) {
-    encodedRedirect(
+  if (!user) {
+    return encodedRedirect(
       "error",
-      "/reset-password",
-      "パスワードとパスワード確認が必要です",
+      "/forgot-password",
+      "パスワード再設定の有効期限が切れています。もう一度メールを送信してください。",
     );
   }
 
-  if (password !== confirmPassword) {
-    encodedRedirect("error", "/reset-password", "パスワードが一致しません");
+  const password = formData.get("password")?.toString();
+  const confirmPassword = formData.get("confirmPassword")?.toString();
+  const validatedFields = setPasswordFormSchema.safeParse({
+    password,
+    confirmPassword,
+  });
+
+  if (!validatedFields.success) {
+    return encodedRedirect(
+      "error",
+      "/reset-password",
+      validatedFields.error.errors.map((error) => error.message).join("\n"),
+    );
   }
 
   const { error } = await supabase.auth.updateUser({
-    password: password,
+    password: validatedFields.data.password,
   });
 
   if (error) {
-    encodedRedirect(
+    return encodedRedirect(
       "error",
       "/reset-password",
       error.code === "same_password"
@@ -238,7 +272,150 @@ export const resetPasswordAction = async (formData: FormData) => {
     );
   }
 
-  encodedRedirect("success", "/sign-in", "パスワードを更新しました");
+  await supabase.auth.signOut();
+  return encodedRedirect("success", "/sign-in", "パスワードを更新しました");
+};
+
+export const changePasswordAction = async (
+  prevState: {
+    error?: string;
+    success?: string;
+  } | null,
+  formData: FormData,
+): Promise<{ error?: string; success?: string }> => {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user?.email) {
+    return { error: "ログインが必要です" };
+  }
+
+  const metadata = user.user_metadata as { provider?: string } | undefined;
+  if (metadata?.provider === "line") {
+    return {
+      error:
+        "LINEで登録したアカウントは、この画面からパスワードを変更できません。",
+    };
+  }
+
+  const validatedFields = changePasswordFormSchema.safeParse({
+    currentPassword: formData.get("currentPassword")?.toString(),
+    newPassword: formData.get("newPassword")?.toString(),
+    confirmPassword: formData.get("confirmPassword")?.toString(),
+  });
+
+  if (!validatedFields.success) {
+    return {
+      error: validatedFields.error.errors
+        .map((error) => error.message)
+        .join("\n"),
+    };
+  }
+
+  const { currentPassword, newPassword } = validatedFields.data;
+  const { error: verifyError } = await supabase.auth.signInWithPassword({
+    email: user.email,
+    password: currentPassword,
+  });
+
+  if (verifyError) {
+    return { error: "現在のパスワードが正しくありません" };
+  }
+
+  const { error } = await supabase.auth.updateUser({
+    password: newPassword,
+  });
+
+  if (error) {
+    return {
+      error:
+        error.code === "same_password"
+          ? "新しいパスワードは現在のパスワードと異なるものを設定してください"
+          : "パスワードの更新に失敗しました",
+    };
+  }
+
+  return { success: "パスワードを変更しました" };
+};
+
+export const acceptInvitePasswordAction = async (
+  prevState: {
+    error?: string;
+    success?: string;
+  } | null,
+  formData: FormData,
+): Promise<{ error?: string; success?: string; redirectUrl?: string }> => {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user?.id || !user.email) {
+    return {
+      error: "招待リンクが無効か期限切れです。経営者に再送を依頼してください。",
+    };
+  }
+
+  const invitation = await findPendingInvitation({
+    authUserId: user.id,
+    email: user.email,
+  });
+  if (!invitation) {
+    return {
+      error: "招待リンクが無効か期限切れです。経営者に再送を依頼してください。",
+    };
+  }
+
+  const validatedFields = setPasswordFormSchema.safeParse({
+    password: formData.get("password")?.toString(),
+    confirmPassword: formData.get("confirmPassword")?.toString(),
+  });
+
+  if (!validatedFields.success) {
+    return {
+      error: validatedFields.error.errors
+        .map((error) => error.message)
+        .join("\n"),
+    };
+  }
+
+  const { error } = await supabase.auth.updateUser({
+    password: validatedFields.data.password,
+  });
+
+  if (error) {
+    return { error: "パスワードの設定に失敗しました" };
+  }
+
+  const serviceSupabase = await createServiceClient();
+  const now = new Date().toISOString();
+  await serviceSupabase
+    .from("user_invitations")
+    .update({
+      status: "accepted",
+      accepted_at: now,
+      updated_at: now,
+      auth_user_id: user.id,
+    })
+    .eq("id", invitation.id);
+
+  if (invitation.business_unit_id) {
+    await serviceSupabase.auth.admin.updateUserById(user.id, {
+      user_metadata: {
+        ...user.user_metadata,
+        business_unit_id: invitation.business_unit_id,
+      },
+    });
+  }
+
+  await getOrInitializeUserLevel(user.id);
+
+  return {
+    success: "パスワードを設定しました",
+    redirectUrl: "/settings/profile?new=true",
+  };
 };
 
 export const signOutAction = async () => {

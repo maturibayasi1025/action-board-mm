@@ -138,7 +138,8 @@ export async function getMatrixData(
     const { data: users, error: usersError } = await supabase
       .from("private_users")
       .select("id, name")
-      .in("id", userIds);
+      .in("id", userIds)
+      .is("suspended_at", null);
 
     if (usersError) {
       console.error("ユーザー取得エラー:", usersError);
@@ -153,6 +154,9 @@ export async function getMatrixData(
     // MatrixRowに変換
     const matrixData: MatrixRow[] = [];
     for (const [userId, typeMap] of Array.from(countMap.entries())) {
+      if (!userMap.has(userId)) {
+        continue;
+      }
       const passionateExecution =
         typeMap.get("passionate_execution")?.size || 0;
       const supremeRelationships =
@@ -299,7 +303,8 @@ export async function getGoodjobDetails(
     const { data: creators, error: creatorsError } = await supabase
       .from("private_users")
       .select("id, name")
-      .in("id", creatorIds);
+      .in("id", creatorIds)
+      .is("suspended_at", null);
 
     if (creatorsError) {
       console.error("作成者取得エラー:", creatorsError);

@@ -10,6 +10,10 @@ export default async function Login(props: {
 }) {
   const searchParams = await props.searchParams;
   const returnUrl = searchParams.returnUrl;
+  const message =
+    "error" in searchParams && searchParams.error === "suspended"
+      ? { error: "このアカウントは停止されています" }
+      : searchParams;
 
   return (
     <div className="flex-1 flex flex-col min-w-72">
@@ -22,13 +26,13 @@ export default async function Login(props: {
         />
       </div>
       <h1 className="text-2xl font-medium text-center mb-2">ログイン</h1>
-      {/* <p className="text-sm text-foreground text-center">
+      <p className="text-sm text-foreground text-center">
         まだ登録していない方は{" "}
-        <Link className="text-foreground font-medium underline" href="/sign-up">
+        <Link className="text-primary font-medium underline" href="/sign-up">
           こちら
         </Link>
-      </p> */}
-      <FormMessage className="mt-8" message={searchParams} />
+      </p>
+      <FormMessage className="mt-8" message={message} />
       <SignInForm returnUrl={returnUrl} />
     </div>
   );
