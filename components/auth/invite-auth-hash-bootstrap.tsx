@@ -21,18 +21,21 @@ export function InviteAuthHashBootstrap({ children }: Props) {
     }
 
     const supabase = createClient();
-    void supabase.auth.signOut().then(() =>
-      supabase.auth.setSession(tokens).then(({ error }) => {
+    void supabase.auth
+      .signOut({ scope: "local" })
+      .then(() => supabase.auth.setSession(tokens))
+      .then(({ error }) => {
         const url = new URL(window.location.href);
         url.hash = "";
         window.history.replaceState(null, "", `${url.pathname}${url.search}`);
-        if (error) {
-          setStatus("ready");
-          return;
+        if (!error) {
+          router.refresh();
         }
-        router.refresh();
-      }),
-    );
+        setStatus("ready");
+      })
+      .catch(() => {
+        setStatus("ready");
+      });
   }, [router]);
 
   if (status === "checking") {

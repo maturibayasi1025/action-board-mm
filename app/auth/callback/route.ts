@@ -22,7 +22,7 @@ export async function GET(request: Request) {
 
   // 経営者がログインしたまま招待リンクを開くと、招待先ではなく経営者セッションのまま進む
   if (isInviteFlow) {
-    await supabase.auth.signOut();
+    await supabase.auth.signOut({ scope: "local" });
   }
 
   if (tokenHash && otpType) {
