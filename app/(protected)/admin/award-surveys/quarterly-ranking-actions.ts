@@ -11,9 +11,11 @@ import {
   yearMonthKeysForQuarter,
 } from "@/app/(protected)/admin/award-surveys/quarterly-ranking-model";
 import {
+  AWARD_RANKING_RESPONSE_COLUMNS,
   countAwardResponses,
   fetchAllAwardResponses,
   fetchAllPrivateUserNames,
+  fetchAwardResponsesForSurvey,
 } from "@/lib/award/fetch-award-rows";
 import {
   type AwardNominationQuestion,
@@ -87,12 +89,18 @@ export async function getAwardQuarterlyNominationRanking(
 
   if (surveysError) {
     console.error("四半期アンケートの取得エラー:", surveysError);
-    return empty();
+    return emptyAwardQuarterlyRankingResult(
+      year,
+      quarter,
+      label,
+      targetYearMonths,
+      "四半期アンケートの取得に失敗したため、集計結果は表示しません。",
+    );
   }
 
   const surveyRows = (surveys ?? []) as AwardSurveyForRanking[];
   const surveyIds = surveyRows.map((survey) => survey.id);
-  const withSurveysOnly = () =>
+  const withSurveysOnly = (loadError: string) =>
     buildAwardQuarterlyRanking({
       year,
       quarter,
@@ -103,6 +111,8 @@ export async function getAwardQuarterlyNominationRanking(
       responses: [],
       userNameById: new Map(),
       dbResponseCount: null,
+      loadError,
+      independentMonthlyResponses: null,
     });
 
   if (surveyIds.length === 0) {
@@ -121,7 +131,7 @@ export async function getAwardQuarterlyNominationRanking(
         fetchAllAwardResponses<AwardResponseForRanking>(
           supabase,
           surveyIds,
-          "survey_id, question_id, user_id, text_value, nominee_user_id, is_late_submission",
+          AWARD_RANKING_RESPONSE_COLUMNS,
         ),
         countAwardResponses(supabase, surveyIds),
         fetchAllPrivateUserNames(supabase),
@@ -129,8 +139,13 @@ export async function getAwardQuarterlyNominationRanking(
 
     if (questionsResult.error) {
       console.error("四半期設問の取得エラー:", questionsResult.error);
-      return withSurveysOnly();
+      return withSurveysOnly(
+        "四半期設問の取得に失敗したため、集計結果は表示しません。",
+      );
     }
+
+    const independentMonthlyResponses =
+      await fetchIndependentMonthlyAwardResponses(supabase, surveyRows);
 
     return buildAwardQuarterlyRanking({
       year,
@@ -142,9 +157,33 @@ export async function getAwardQuarterlyNominationRanking(
       responses,
       userNameById,
       dbResponseCount,
+      independentMonthlyResponses,
     });
   } catch (error) {
     console.error("四半期回答の取得エラー:", error);
-    return withSurveysOnly();
+    return withSurveysOnly(
+      "回答の全件取得に失敗したため、集計結果は表示しません。",
+    );
+  }
+}
+
+async function fetchIndependentMonthlyAwardResponses(
+  supabase: Awaited<ReturnType<typeof createServiceClient>>,
+  surveyRows: AwardSurveyForRanking[],
+): Promise<AwardResponseForRanking[] | null> {
+  try {
+    const pages = await Promise.all(
+      surveyRows.map((survey) =>
+        fetchAwardResponsesForSurvey<AwardResponseForRanking>(
+          supabase,
+          survey.id,
+          AWARD_RANKING_RESPONSE_COLUMNS,
+        ),
+      ),
+    );
+    return pages.flat();
+  } catch (error) {
+    console.error("月次回答の再取得エラー:", error);
+    return null;
   }
 }

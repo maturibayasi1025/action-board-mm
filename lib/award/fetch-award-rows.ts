@@ -22,6 +22,9 @@ async function asPageResult<T>(
   };
 }
 
+export const AWARD_RANKING_RESPONSE_COLUMNS =
+  "survey_id, question_id, user_id, text_value, nominee_user_id, is_late_submission";
+
 export async function countAwardResponses(
   supabase: AwardDb,
   surveyIds: string[],

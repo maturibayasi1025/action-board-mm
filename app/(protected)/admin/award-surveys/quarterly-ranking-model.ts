@@ -61,6 +61,14 @@ export type AwardQuarterlyRankingResult = {
   monthlyNominationSum: number;
   checksumOk: boolean;
   responseCountMismatch: boolean;
+  /** 取得件数と DB 件数が一致しない、または取得失敗。true のときはランキング行を出さない */
+  rankingBlocked: boolean;
+  rankingBlockedReason: string | null;
+  /** 四半期一括取得と、月次アンケートごとの再取得の合計が一致するか */
+  monthlyCrossCheckOk: boolean;
+  independentMonthlyRowCount: number | null;
+  independentMonthlyNominationSum: number | null;
+  monthlyCrossCheckWarning: string | null;
   months: AwardQuarterMonthBreakdown[];
   groups: AwardQuarterGroupRanking[];
   nominationQuestionCount: number;

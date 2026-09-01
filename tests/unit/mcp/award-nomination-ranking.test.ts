@@ -272,5 +272,223 @@ describe("buildAwardQuarterlyRanking checksum", () => {
     });
     expect(result.responseRowCount).toBe(1);
     expect(result.responseCountMismatch).toBe(true);
+    expect(result.rankingBlocked).toBe(true);
+    expect(result.rankingBlockedReason).toMatch(/元データ件数/);
+    expect(result.groups.every((group) => group.rows.length === 0)).toBe(true);
+  });
+
+  it("月次再取得の指名票が四半期と違うと警告し、ランキングは残す", () => {
+    const quarterlyResponses = [
+      {
+        survey_id: "s6",
+        question_id: "q1",
+        user_id: "voter1",
+        text_value: null,
+        nominee_user_id: "u1",
+        is_late_submission: false,
+      },
+      {
+        survey_id: "s7",
+        question_id: "q1",
+        user_id: "voter2",
+        text_value: null,
+        nominee_user_id: "u2",
+        is_late_submission: false,
+      },
+    ];
+    const result = buildAwardQuarterlyRanking({
+      year: 2026,
+      quarter: 2,
+      label: "Q2",
+      expectedYearMonths: ["2026-06", "2026-07", "2026-08"],
+      surveys: [
+        { id: "s6", year_month: "2026-06", title: "6月" },
+        { id: "s7", year_month: "2026-07", title: "7月" },
+      ],
+      questions,
+      responses: quarterlyResponses,
+      userNameById: new Map([
+        ["u1", "高橋聖"],
+        ["u2", "猪狩俊"],
+      ]),
+      dbResponseCount: 2,
+      independentMonthlyResponses: quarterlyResponses.slice(0, 1),
+    });
+
+    expect(result.rankingBlocked).toBe(false);
+    expect(result.monthlyCrossCheckOk).toBe(false);
+    expect(result.independentMonthlyRowCount).toBe(1);
+    expect(result.independentMonthlyNominationSum).toBe(1);
+    expect(result.monthlyCrossCheckWarning).toMatch(/一致しません/);
+    expect(
+      result.groups.some((group) =>
+        group.rows.some((row) => row.name === "高橋聖"),
+      ),
+    ).toBe(true);
+  });
+
+  it("月次再取得が四半期と一致すれば照合OK", () => {
+    const responses = [
+      {
+        survey_id: "s6",
+        question_id: "q1",
+        user_id: "voter1",
+        text_value: null,
+        nominee_user_id: "u1",
+        is_late_submission: false,
+      },
+    ];
+    const result = buildAwardQuarterlyRanking({
+      year: 2026,
+      quarter: 2,
+      label: "Q2",
+      expectedYearMonths: ["2026-06", "2026-07", "2026-08"],
+      surveys: [{ id: "s6", year_month: "2026-06", title: "6月" }],
+      questions,
+      responses,
+      userNameById: new Map([["u1", "高橋聖"]]),
+      dbResponseCount: 1,
+      independentMonthlyResponses: responses,
+    });
+    expect(result.monthlyCrossCheckOk).toBe(true);
+    expect(result.monthlyCrossCheckWarning).toBeNull();
+    expect(result.rankingBlocked).toBe(false);
+  });
+});
+
+describe("1000件超の四半期集計回帰", () => {
+  const questions = [
+    question,
+    {
+      id: "q2",
+      question_text: "至高",
+      question_type: "user_select",
+      question_group: "supreme_relations",
+      display_order: 2,
+      is_active: true,
+    },
+    {
+      id: "q3",
+      question_text: "循環",
+      question_type: "user_select",
+      question_group: "happiness_cycle",
+      display_order: 3,
+      is_active: true,
+    },
+    {
+      id: "q4",
+      question_text: "チーム",
+      question_type: "text",
+      question_group: "team_value",
+      display_order: 4,
+      is_active: true,
+    },
+  ];
+
+  function votesFor(
+    surveyId: string,
+    nomineeUserId: string,
+    count: number,
+    startIndex = 0,
+  ) {
+    return Array.from({ length: count }, (_, index) => ({
+      survey_id: surveyId,
+      question_id: "q1",
+      user_id: `voter-${surveyId}-${startIndex + index}`,
+      text_value: null,
+      nominee_user_id: nomineeUserId,
+      is_late_submission: false,
+    }));
+  }
+
+  it("先頭1000件だけだと後月の指名が消え、件数不一致ならランキングを出さない", () => {
+    const june = votesFor("s6", "u1", 1000);
+    const july = votesFor("s7", "u2", 201);
+    const all = [...june, ...july];
+    const truncated = buildAwardQuarterlyRanking({
+      year: 2026,
+      quarter: 2,
+      label: "Q2",
+      expectedYearMonths: ["2026-06", "2026-07", "2026-08"],
+      surveys: [
+        { id: "s6", year_month: "2026-06", title: "6月" },
+        { id: "s7", year_month: "2026-07", title: "7月" },
+      ],
+      questions,
+      responses: all.slice(0, 1000),
+      userNameById: new Map([
+        ["u1", "高橋聖"],
+        ["u2", "猪狩俊"],
+      ]),
+      dbResponseCount: all.length,
+    });
+    const full = buildAwardQuarterlyRanking({
+      year: 2026,
+      quarter: 2,
+      label: "Q2",
+      expectedYearMonths: ["2026-06", "2026-07", "2026-08"],
+      surveys: [
+        { id: "s6", year_month: "2026-06", title: "6月" },
+        { id: "s7", year_month: "2026-07", title: "7月" },
+      ],
+      questions,
+      responses: all,
+      userNameById: new Map([
+        ["u1", "高橋聖"],
+        ["u2", "猪狩俊"],
+      ]),
+      dbResponseCount: all.length,
+      independentMonthlyResponses: all,
+    });
+
+    expect(all.length).toBeGreaterThan(1000);
+    expect(truncated.responseCountMismatch).toBe(true);
+    expect(truncated.rankingBlocked).toBe(true);
+    expect(truncated.groups.every((group) => group.rows.length === 0)).toBe(
+      true,
+    );
+
+    const passionate = full.groups.find(
+      (group) => group.group === "passionate_execution",
+    );
+    expect(full.rankingBlocked).toBe(false);
+    expect(full.monthlyCrossCheckOk).toBe(true);
+    expect(passionate?.rows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: "高橋聖", votes: 1000 }),
+        expect.objectContaining({ name: "猪狩俊", votes: 201 }),
+      ]),
+    );
+  });
+
+  it("1Q（3–5月）でも1000件超を全件集計する", () => {
+    const march = votesFor("s3", "u1", 1000);
+    const may = votesFor("s5", "u2", 80);
+    const result = buildAwardQuarterlyRanking({
+      year: 2026,
+      quarter: 1,
+      label: "2026年 Q1（3–5月・表彰: 6月）",
+      expectedYearMonths: ["2026-03", "2026-04", "2026-05"],
+      surveys: [
+        { id: "s3", year_month: "2026-03", title: "3月" },
+        { id: "s5", year_month: "2026-05", title: "5月" },
+      ],
+      questions,
+      responses: [...march, ...may],
+      userNameById: new Map([
+        ["u1", "高橋聖"],
+        ["u2", "猪狩俊"],
+      ]),
+      dbResponseCount: 1080,
+      independentMonthlyResponses: [...march, ...may],
+    });
+
+    expect(result.rankingBlocked).toBe(false);
+    expect(result.missingYearMonths).toEqual(["2026-04"]);
+    const passionate = result.groups.find(
+      (group) => group.group === "passionate_execution",
+    );
+    expect(passionate?.rows[0]).toMatchObject({ name: "高橋聖", votes: 1000 });
+    expect(passionate?.rows[1]).toMatchObject({ name: "猪狩俊", votes: 80 });
   });
 });

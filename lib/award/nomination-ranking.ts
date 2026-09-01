@@ -289,6 +289,33 @@ export type AwardResponseForRanking = {
   is_late_submission: boolean | null;
 };
 
+export function attachSurveyMonth(
+  responses: AwardResponseForRanking[],
+  surveyById: Map<string, AwardSurveyForRanking>,
+): AwardNominationResponse[] {
+  return responses.map((response) => ({
+    ...response,
+    year_month: surveyById.get(response.survey_id)?.year_month,
+  }));
+}
+
+export function countNominationVotes(
+  responses: AwardNominationResponse[],
+  nominationQuestionById: Map<string, AwardNominationQuestion>,
+  userNameById: Map<string, string>,
+): number {
+  const nameIndex = buildNormalizedNameIndex(userNameById);
+  let total = 0;
+  for (const response of responses) {
+    const question = nominationQuestionById.get(response.question_id);
+    if (!question) continue;
+    if (resolveNominee(response, question, userNameById, nameIndex)) {
+      total += 1;
+    }
+  }
+  return total;
+}
+
 export function buildAwardQuarterlyRanking(input: {
   year: number;
   quarter: AwardQuarter;
@@ -299,6 +326,12 @@ export function buildAwardQuarterlyRanking(input: {
   responses: AwardResponseForRanking[];
   userNameById: Map<string, string>;
   dbResponseCount: number | null;
+  loadError?: string | null;
+  /**
+   * 月次画面と同じく survey 単位で取り直した回答。
+   * undefined: 照合しない / null: 再取得失敗
+   */
+  independentMonthlyResponses?: AwardResponseForRanking[] | null;
 }): AwardQuarterlyRankingResult {
   const { label } = input;
   const surveyById = new Map(
@@ -309,12 +342,7 @@ export function buildAwardQuarterlyRanking(input: {
     (yearMonth) => !foundMonths.has(yearMonth),
   );
 
-  const responsesWithMonth: AwardNominationResponse[] = input.responses.map(
-    (response) => ({
-      ...response,
-      year_month: surveyById.get(response.survey_id)?.year_month,
-    }),
-  );
+  const responsesWithMonth = attachSurveyMonth(input.responses, surveyById);
 
   const nominationQuestionById = new Map<string, AwardNominationQuestion>();
   for (const group of AWARD_QUESTION_GROUP_ORDER) {
@@ -445,6 +473,32 @@ export function buildAwardQuarterlyRanking(input: {
       .filter((userId): userId is string => typeof userId === "string"),
   ).size;
 
+  const checksumOk = monthlyNominationSum === nominationVoteCount;
+  const responseCountMismatch =
+    input.dbResponseCount != null &&
+    input.dbResponseCount !== input.responses.length;
+
+  const rankingBlockedReason = resolveRankingBlockedReason({
+    loadError: input.loadError,
+    responseCountMismatch,
+    fetchedCount: input.responses.length,
+    dbResponseCount: input.dbResponseCount,
+  });
+  const rankingBlocked = rankingBlockedReason != null;
+
+  const monthlyCrossCheck = resolveMonthlyCrossCheck({
+    independentMonthlyResponses: input.independentMonthlyResponses,
+    quarterlyRowCount: input.responses.length,
+    quarterlyNominationVoteCount: nominationVoteCount,
+    nominationQuestionById,
+    userNameById: input.userNameById,
+    surveyById,
+  });
+
+  const groupsForDisplay = rankingBlocked
+    ? groups.map((group) => ({ ...group, rows: [] }))
+    : groups;
+
   return {
     year: input.year,
     quarter: input.quarter,
@@ -460,13 +514,100 @@ export function buildAwardQuarterlyRanking(input: {
     onTimeNominationVoteCount,
     lateNominationVoteCount,
     monthlyNominationSum,
-    checksumOk: monthlyNominationSum === nominationVoteCount,
-    responseCountMismatch:
-      input.dbResponseCount != null &&
-      input.dbResponseCount !== input.responses.length,
+    checksumOk,
+    responseCountMismatch,
+    rankingBlocked,
+    rankingBlockedReason,
+    monthlyCrossCheckOk: monthlyCrossCheck.ok,
+    independentMonthlyRowCount: monthlyCrossCheck.independentRowCount,
+    independentMonthlyNominationSum: monthlyCrossCheck.independentNominationSum,
+    monthlyCrossCheckWarning: monthlyCrossCheck.warning,
     months,
-    groups,
+    groups: groupsForDisplay,
     nominationQuestionCount: nominationQuestionIds.size,
+  };
+}
+
+function resolveRankingBlockedReason(input: {
+  loadError?: string | null;
+  responseCountMismatch: boolean;
+  fetchedCount: number;
+  dbResponseCount: number | null;
+}): string | null {
+  if (input.loadError) {
+    return input.loadError;
+  }
+  if (input.responseCountMismatch) {
+    return `取得件数（${input.fetchedCount}件）が元データ件数（${input.dbResponseCount}件）と一致しないため、集計結果は表示しません。再読み込みするか、開発者に連絡してください。`;
+  }
+  return null;
+}
+
+function resolveMonthlyCrossCheck(input: {
+  independentMonthlyResponses?: AwardResponseForRanking[] | null;
+  quarterlyRowCount: number;
+  quarterlyNominationVoteCount: number;
+  nominationQuestionById: Map<string, AwardNominationQuestion>;
+  userNameById: Map<string, string>;
+  surveyById: Map<string, AwardSurveyForRanking>;
+}): {
+  ok: boolean;
+  independentRowCount: number | null;
+  independentNominationSum: number | null;
+  warning: string | null;
+} {
+  if (input.independentMonthlyResponses === undefined) {
+    return {
+      ok: true,
+      independentRowCount: null,
+      independentNominationSum: null,
+      warning: null,
+    };
+  }
+  if (input.independentMonthlyResponses === null) {
+    return {
+      ok: false,
+      independentRowCount: null,
+      independentNominationSum: null,
+      warning:
+        "月次アンケートごとの再取得に失敗したため、四半期集計との照合ができません。",
+    };
+  }
+
+  const independentRowCount = input.independentMonthlyResponses.length;
+  const independentNominationSum = countNominationVotes(
+    attachSurveyMonth(input.independentMonthlyResponses, input.surveyById),
+    input.nominationQuestionById,
+    input.userNameById,
+  );
+  const rowCountMatch = independentRowCount === input.quarterlyRowCount;
+  const voteCountMatch =
+    independentNominationSum === input.quarterlyNominationVoteCount;
+  if (rowCountMatch && voteCountMatch) {
+    return {
+      ok: true,
+      independentRowCount,
+      independentNominationSum,
+      warning: null,
+    };
+  }
+
+  const parts: string[] = [];
+  if (!rowCountMatch) {
+    parts.push(
+      `回答行数 四半期一括 ${input.quarterlyRowCount}件 / 月次再取得 ${independentRowCount}件`,
+    );
+  }
+  if (!voteCountMatch) {
+    parts.push(
+      `指名票 四半期合計 ${input.quarterlyNominationVoteCount}票 / 月次3カ月分 ${independentNominationSum}票`,
+    );
+  }
+  return {
+    ok: false,
+    independentRowCount,
+    independentNominationSum,
+    warning: `四半期集計と月次3カ月分の再取得が一致しません（${parts.join("、")}）。`,
   };
 }
 
@@ -487,6 +628,7 @@ export function emptyAwardQuarterlyRankingResult(
   quarter: AwardQuarter,
   label: string,
   expectedYearMonths: string[],
+  loadError?: string,
 ): AwardQuarterlyRankingResult {
   return buildAwardQuarterlyRanking({
     year,
@@ -497,6 +639,7 @@ export function emptyAwardQuarterlyRankingResult(
     questions: [],
     responses: [],
     userNameById: new Map(),
-    dbResponseCount: 0,
+    dbResponseCount: loadError ? null : 0,
+    loadError,
   });
 }
