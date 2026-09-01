@@ -17,6 +17,21 @@ import {
   getPrefectureRankingTool,
   getXpRankingTool,
 } from "@/lib/mcp/tools/rankings";
+import {
+  getSlackUserIdTool,
+  listSlackDirectoryTool,
+} from "@/lib/mcp/tools/slack-directory";
+import {
+  getAwardResponseTool,
+  getEnpsResponseTool,
+  listAwardResponsesTool,
+  listEnpsResponsesTool,
+} from "@/lib/mcp/tools/survey-responses";
+import {
+  getAwardNominationRankingTool,
+  getEnpsMonthlySnapshotsTool,
+  listEnpsSurveysTool,
+} from "@/lib/mcp/tools/surveys";
 import { type RegisteredMcpTool, registerTool } from "@/lib/mcp/tools/types";
 import { listUserMissionsTool } from "@/lib/mcp/tools/user-missions";
 
@@ -35,6 +50,15 @@ export const MCP_TOOLS: RegisteredMcpTool[] = [
   registerTool(getLikesRankingTool),
   registerTool(getPrefectureRankingTool),
   registerTool(listBusinessUnitsTool),
+  registerTool(listEnpsSurveysTool),
+  registerTool(getEnpsMonthlySnapshotsTool),
+  registerTool(getAwardNominationRankingTool),
+  registerTool(listSlackDirectoryTool),
+  registerTool(getSlackUserIdTool),
+  registerTool(listEnpsResponsesTool),
+  registerTool(listAwardResponsesTool),
+  registerTool(getEnpsResponseTool),
+  registerTool(getAwardResponseTool),
 ];
 
 export const MCP_TOOL_BY_NAME = new Map(

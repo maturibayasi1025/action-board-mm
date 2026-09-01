@@ -1,9 +1,9 @@
-import { inferRowCount, logMcpAudit } from "@/lib/mcp/audit";
+import { inferRowCount, inferSurveyId, logMcpAudit } from "@/lib/mcp/audit";
 import type { McpPrincipal } from "@/lib/mcp/auth";
 import type { McpDb } from "@/lib/mcp/client";
 import { isMcpToolError } from "@/lib/mcp/errors";
 import { stripForbiddenKeys } from "@/lib/mcp/redact";
-import { hasAllScopes } from "@/lib/mcp/scopes";
+import { canAccessMcpTool, canExposeSlackUserId } from "@/lib/mcp/scopes";
 import { MCP_TOOLS, MCP_TOOL_BY_NAME } from "@/lib/mcp/tools";
 
 export const MCP_PROTOCOL_VERSION = "2025-03-26";
@@ -43,7 +43,7 @@ export function isNotification(request: JsonRpcRequest): boolean {
 
 export function listToolsForPrincipal(principal: McpPrincipal) {
   return MCP_TOOLS.filter((tool) =>
-    hasAllScopes(principal.scopes, tool.scopes),
+    canAccessMcpTool(principal, tool.scopes),
   ).map((tool) => ({
     name: tool.name,
     description: tool.description,
@@ -102,7 +102,7 @@ async function dispatchMethod(
 ): Promise<unknown> {
   switch (request.method) {
     case "initialize":
-      return initializeResult(request.params);
+      return initializeResult(request.params, context.principal);
     case "ping":
       return {};
     case "tools/list":
@@ -120,7 +120,7 @@ async function dispatchMethod(
   }
 }
 
-function initializeResult(params: unknown) {
+function initializeResult(params: unknown, principal: McpPrincipal) {
   const requested =
     params && typeof params === "object"
       ? (params as { protocolVersion?: string }).protocolVersion
@@ -130,6 +130,18 @@ function initializeResult(params: unknown) {
     (SUPPORTED_PROTOCOL_VERSIONS as readonly string[]).includes(requested)
       ? requested
       : MCP_PROTOCOL_VERSION;
+  const canAgg = canAccessMcpTool(principal, ["survey_agg"]);
+  const canSlack = canAccessMcpTool(principal, ["slack_directory"]);
+  const canRaw = canAccessMcpTool(principal, ["survey_raw"]);
+  const extras = [
+    canAgg ? "eNPS/表彰の集計" : null,
+    canSlack ? "Slack ID" : null,
+    canRaw ? "サーベイ個別回答" : null,
+  ].filter((item): item is string => item != null);
+  const extraText =
+    extras.length > 0
+      ? `この接続では公開データに加え ${extras.join("・")} も取れる。個別回答は会話ログに残る。`
+      : "公開データ（ミッション、ランキング、公開プロフィール、承認済みグッジョブ）だけを返す。";
   return {
     protocolVersion,
     capabilities: {
@@ -137,10 +149,9 @@ function initializeResult(params: unknown) {
     },
     serverInfo: {
       name: "action-board-mcp",
-      version: "0.1.0",
+      version: "0.3.0",
     },
-    instructions:
-      "Action Board の読み取り専用 MCP。公開データ（ミッション、ランキング、公開プロフィール、承認済みグッジョブ）だけを返す。メール・個別サーベイ回答・Slack ID はこのキーでは取れない。",
+    instructions: `Action Board の読み取り専用 MCP。${extraText} メール・生年月日・HubSpot ID・任意 SQL・書き込みは取れない。`,
   };
 }
 
@@ -159,7 +170,7 @@ async function callTool(params: unknown, context: McpDispatchContext) {
   if (!tool) {
     throw new JsonRpcError(-32602, `Unknown tool: ${name}`);
   }
-  if (!hasAllScopes(context.principal.scopes, tool.scopes)) {
+  if (!canAccessMcpTool(context.principal, tool.scopes)) {
     throw new JsonRpcError(-32000, `Forbidden tool: ${name}`);
   }
 
@@ -186,6 +197,11 @@ async function callTool(params: unknown, context: McpDispatchContext) {
         db: context.getDb(),
         principal: context.principal,
       }),
+      {
+        allowSlackUserId:
+          tool.allowSlackUserId === true &&
+          canExposeSlackUserId(context.principal),
+      },
     );
     logMcpAudit({
       keyId: context.principal.keyId,
@@ -193,6 +209,7 @@ async function callTool(params: unknown, context: McpDispatchContext) {
       tool: name,
       latencyMs: Date.now() - started,
       rowCount: inferRowCount(payload),
+      surveyId: inferSurveyId(parsed.data, payload),
       ok: true,
     });
     return {
@@ -211,6 +228,7 @@ async function callTool(params: unknown, context: McpDispatchContext) {
       tool: name,
       latencyMs: Date.now() - started,
       rowCount: null,
+      surveyId: inferSurveyId(parsed.data, null),
       ok: false,
     });
     return {

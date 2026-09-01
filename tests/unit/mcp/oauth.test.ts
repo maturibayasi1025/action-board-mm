@@ -1,3 +1,6 @@
+/**
+ * @jest-environment node
+ */
 import { authenticateMcpRequest } from "@/lib/mcp/auth";
 import { sha256Base64Url, signHs256Jwt, verifyHs256Jwt } from "@/lib/mcp/jwt";
 import {

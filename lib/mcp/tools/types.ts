@@ -22,6 +22,7 @@ export type McpToolDefinition<TInput = unknown> = {
   inputSchema: McpJsonSchema;
   input: z.ZodType<TInput>;
   execute: (input: TInput, context: McpToolContext) => Promise<unknown>;
+  allowSlackUserId?: boolean;
 };
 
 export type RegisteredMcpTool = {
@@ -31,6 +32,7 @@ export type RegisteredMcpTool = {
   inputSchema: McpJsonSchema;
   input: z.ZodType<unknown>;
   execute: (input: unknown, context: McpToolContext) => Promise<unknown>;
+  allowSlackUserId?: boolean;
 };
 
 export function registerTool<TInput>(

@@ -18,3 +18,35 @@ export function hasAllScopes(
 ): boolean {
   return required.every((scope) => granted.includes(scope));
 }
+
+/** API キーだけでは出さない。Google JWT（email あり）が必要。 */
+export const GOOGLE_REQUIRED_SCOPES: readonly McpScope[] = [
+  "slack_directory",
+  "survey_raw",
+];
+
+export function requiresGoogleIdentity(required: readonly McpScope[]): boolean {
+  return required.some((scope) =>
+    (GOOGLE_REQUIRED_SCOPES as readonly McpScope[]).includes(scope),
+  );
+}
+
+export function canAccessMcpTool(
+  principal: { scopes: readonly McpScope[]; email: string | null },
+  required: readonly McpScope[],
+): boolean {
+  if (!hasAllScopes(principal.scopes, required)) {
+    return false;
+  }
+  if (requiresGoogleIdentity(required) && principal.email == null) {
+    return false;
+  }
+  return true;
+}
+
+export function canExposeSlackUserId(principal: {
+  scopes: readonly McpScope[];
+  email: string | null;
+}): boolean {
+  return canAccessMcpTool(principal, ["slack_directory"]);
+}

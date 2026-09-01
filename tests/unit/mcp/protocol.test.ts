@@ -1,5 +1,9 @@
 /** @jest-environment node */
-import { PHASE1_FORBIDDEN_TOOL_NAMES } from "@/lib/mcp/forbidden-tools";
+import {
+  NEVER_REGISTERED_TOOL_NAMES,
+  RESTRICTED_TOOL_NAMES,
+  SURVEY_AGG_TOOL_NAMES,
+} from "@/lib/mcp/forbidden-tools";
 import { handleMcpHttp } from "@/lib/mcp/http";
 import { dispatchJsonRpc, listToolsForPrincipal } from "@/lib/mcp/protocol";
 import { MCP_TOOLS } from "@/lib/mcp/tools";
@@ -16,6 +20,12 @@ const PUBLIC_KEYS = JSON.stringify([
     secret: "public-secret",
     scopes: ["public"],
     label: "public",
+  },
+  {
+    id: "ops-restricted-key",
+    secret: "restricted-secret",
+    scopes: ["public", "survey_agg", "slack_directory", "survey_raw"],
+    label: "key-with-restricted-scopes",
   },
 ]);
 
@@ -88,8 +98,29 @@ describe("MCP protocol", () => {
     const names = listedBody.result.tools.map((tool) => tool.name);
     expect(names).toContain("list_missions");
     expect(names).toContain("get_xp_ranking");
-    for (const forbidden of PHASE1_FORBIDDEN_TOOL_NAMES) {
+    for (const forbidden of [
+      ...RESTRICTED_TOOL_NAMES,
+      ...SURVEY_AGG_TOOL_NAMES,
+      ...NEVER_REGISTERED_TOOL_NAMES,
+    ]) {
       expect(names).not.toContain(forbidden);
+    }
+  });
+
+  it("hides restricted tools from an API key even if scopes are present", async () => {
+    const listed = await handleMcpHttp(
+      mcpRequest(
+        { jsonrpc: "2.0", id: 2, method: "tools/list" },
+        { Authorization: "Bearer restricted-secret" },
+      ),
+    );
+    const listedBody = (await listed.json()) as {
+      result: { tools: { name: string }[] };
+    };
+    const names = listedBody.result.tools.map((tool) => tool.name);
+    expect(names).toContain("list_enps_surveys");
+    for (const restricted of RESTRICTED_TOOL_NAMES) {
+      expect(names).not.toContain(restricted);
     }
   });
 
@@ -110,7 +141,7 @@ describe("MCP protocol", () => {
     expect(response.status).toBe(405);
   });
 
-  it("forbids tools outside granted scopes", async () => {
+  it("forbids restricted tools for a public principal", async () => {
     const response = await dispatchJsonRpc(
       {
         jsonrpc: "2.0",
@@ -130,17 +161,69 @@ describe("MCP protocol", () => {
         },
       },
     );
+    expect(response?.error?.code).toBe(-32000);
+  });
+
+  it("forbids survey_raw on an API key even when the scope is granted", async () => {
+    const response = await dispatchJsonRpc(
+      {
+        jsonrpc: "2.0",
+        id: 4,
+        method: "tools/call",
+        params: {
+          name: "list_enps_responses",
+          arguments: { survey_id: "11111111-1111-1111-1111-111111111111" },
+        },
+      },
+      {
+        principal: {
+          keyId: "ops-restricted-key",
+          scopes: ["public", "survey_raw"],
+          label: "key",
+          email: null,
+        },
+        getDb: () => {
+          throw new Error("db should not be created");
+        },
+      },
+    );
+    expect(response?.error?.code).toBe(-32000);
+  });
+
+  it("does not register write or SQL tools", async () => {
+    const response = await dispatchJsonRpc(
+      {
+        jsonrpc: "2.0",
+        id: 5,
+        method: "tools/call",
+        params: { name: "execute_sql", arguments: { sql: "select 1" } },
+      },
+      {
+        principal: {
+          keyId: "ops-public",
+          scopes: ["public"],
+          label: "public",
+          email: null,
+        },
+        getDb: () => {
+          throw new Error("db should not be created");
+        },
+      },
+    );
     expect(response?.error?.code).toBe(-32602);
   });
 });
 
 describe("tool registry", () => {
-  it("registers only public-scoped tools in Phase 1", () => {
-    expect(MCP_TOOLS.every((tool) => tool.scopes.includes("public"))).toBe(
-      true,
-    );
+  it("registers Phase 3 tools and never registers SQL/write tools", () => {
     const names = MCP_TOOLS.map((tool) => tool.name);
-    for (const forbidden of PHASE1_FORBIDDEN_TOOL_NAMES) {
+    for (const name of SURVEY_AGG_TOOL_NAMES) {
+      expect(names).toContain(name);
+    }
+    for (const name of RESTRICTED_TOOL_NAMES) {
+      expect(names).toContain(name);
+    }
+    for (const forbidden of NEVER_REGISTERED_TOOL_NAMES) {
       expect(names).not.toContain(forbidden);
     }
   });
@@ -152,6 +235,23 @@ describe("tool registry", () => {
       label: null,
       email: null,
     });
-    expect(tools.some((tool) => tool.name === "list_missions")).toBe(true);
+    const names = tools.map((tool) => tool.name);
+    expect(names).toContain("list_missions");
+    for (const restricted of RESTRICTED_TOOL_NAMES) {
+      expect(names).not.toContain(restricted);
+    }
+  });
+
+  it("lists restricted tools only for a Google principal with scopes", () => {
+    const tools = listToolsForPrincipal({
+      keyId: "google:owner@maisonmarc.com",
+      scopes: ["public", "survey_agg", "slack_directory", "survey_raw"],
+      label: "owner@maisonmarc.com",
+      email: "owner@maisonmarc.com",
+    });
+    const names = tools.map((tool) => tool.name);
+    expect(names).toContain("list_enps_surveys");
+    expect(names).toContain("list_slack_directory");
+    expect(names).toContain("list_enps_responses");
   });
 });

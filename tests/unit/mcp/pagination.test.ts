@@ -1,8 +1,11 @@
 import {
   DEFAULT_LIMIT,
   MAX_LIMIT,
+  SURVEY_RAW_DEFAULT_LIMIT,
+  SURVEY_RAW_MAX_LIMIT,
   clampLimit,
   clampOffset,
+  clampSurveyRawLimit,
   toRange,
 } from "@/lib/mcp/pagination";
 
@@ -30,5 +33,13 @@ describe("toRange", () => {
   it("builds inclusive supabase ranges", () => {
     expect(toRange(20, 0)).toEqual({ from: 0, to: 19 });
     expect(toRange(20, 20)).toEqual({ from: 20, to: 39 });
+  });
+});
+
+describe("clampSurveyRawLimit", () => {
+  it("defaults to 50 and caps at 200", () => {
+    expect(clampSurveyRawLimit(undefined)).toBe(SURVEY_RAW_DEFAULT_LIMIT);
+    expect(clampSurveyRawLimit(500)).toBe(SURVEY_RAW_MAX_LIMIT);
+    expect(clampSurveyRawLimit(80)).toBe(80);
   });
 });
