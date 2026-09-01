@@ -1,5 +1,8 @@
 import { parseEmailOtpType } from "@/lib/auth/email-otp-type";
-import { shouldRewriteInviteAuthCallback } from "@/lib/auth/invite-callback-rewrite";
+import {
+  authCallbackRedirectPath,
+  shouldRewriteInviteAuthCallback,
+} from "@/lib/auth/invite-callback-rewrite";
 import { inviteHashFallbackHtml } from "@/lib/auth/invite-hash-fallback";
 import { createClient } from "@/lib/supabase/server";
 import { INVITE_SET_PASSWORD_PATH } from "@/lib/utils/invite-auth-user";
@@ -79,8 +82,14 @@ export async function GET(request: Request) {
     }
   }
 
-  if (redirectTo && redirectTo !== INVITE_SET_PASSWORD_PATH) {
-    return NextResponse.redirect(`${origin}${redirectTo}`);
+  const postAuthRedirect = authCallbackRedirectPath({
+    pathname: requestUrl.pathname,
+    code,
+    tokenHash,
+    redirectTo,
+  });
+  if (postAuthRedirect) {
+    return NextResponse.redirect(`${origin}${postAuthRedirect}`);
   }
 
   const {
