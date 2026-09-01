@@ -8,6 +8,8 @@ import {
   isAllowedOAuthRedirectUri,
   issueAccessToken,
   issueAuthorizationCode,
+  issueRefreshToken,
+  refreshGrantedAccess,
 } from "@/lib/mcp/oauth";
 
 describe("JWT", () => {
@@ -29,16 +31,79 @@ describe("JWT", () => {
 });
 
 describe("OAuth helpers", () => {
-  it("allows Cursor and localhost redirects only", () => {
+  it("allows Cursor, Claude, ChatGPT, and localhost redirects", () => {
     expect(
       isAllowedOAuthRedirectUri("cursor://anysphere.cursor-mcp/oauth/callback"),
     ).toBe(true);
     expect(isAllowedOAuthRedirectUri("http://127.0.0.1:8734/callback")).toBe(
       true,
     );
+    expect(
+      isAllowedOAuthRedirectUri(
+        "https://chatgpt.com/connector_platform_oauth_redirect",
+      ),
+    ).toBe(true);
+    expect(
+      isAllowedOAuthRedirectUri(
+        "https://chatgpt.com/connector/oauth/callback-id-123",
+      ),
+    ).toBe(true);
+    expect(
+      isAllowedOAuthRedirectUri(
+        "https://platform.openai.com/apps-manage/oauth",
+      ),
+    ).toBe(true);
+    expect(
+      isAllowedOAuthRedirectUri("https://claude.ai/api/mcp/auth_callback"),
+    ).toBe(true);
     expect(isAllowedOAuthRedirectUri("https://evil.example/callback")).toBe(
       false,
     );
+  });
+
+  it("refreshes access from a refresh token and re-checks the allowlist", async () => {
+    const refresh = await issueRefreshToken(
+      {
+        ok: true,
+        email: "owner@maisonmarc.com",
+        scopes: ["public"],
+      },
+      "jwt-secret",
+    );
+    const granted = await refreshGrantedAccess(
+      refresh,
+      "jwt-secret",
+      JSON.stringify([
+        {
+          email: "owner@maisonmarc.com",
+          scopes: ["public", "survey_agg"],
+        },
+      ]),
+    );
+    expect(granted).toEqual({
+      ok: true,
+      email: "owner@maisonmarc.com",
+      scopes: ["public", "survey_agg"],
+    });
+    await expect(
+      refreshGrantedAccess(refresh, "jwt-secret", "other@maisonmarc.com"),
+    ).resolves.toBeNull();
+    await expect(
+      refreshGrantedAccess(refresh, "other-secret", "owner@maisonmarc.com"),
+    ).resolves.toBeNull();
+  });
+
+  it("does not accept a refresh token as an MCP access token", async () => {
+    const refresh = await issueRefreshToken(
+      { ok: true, email: "owner@maisonmarc.com", scopes: ["public"] },
+      "jwt-secret",
+    );
+    await expect(
+      authenticateMcpRequest(`Bearer ${refresh}`, {
+        rawKeys: "[]",
+        jwtSecret: "jwt-secret",
+      }),
+    ).resolves.toBeNull();
   });
 
   it("round-trips PKCE authorization codes", async () => {

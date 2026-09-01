@@ -52,7 +52,21 @@ Cursor の Connect（OAuth）にも対応しています。その場合は URL �
 
 Connect を押すとブラウザが開き、`@maisonmarc.com` でログインします。許可リスト外と個人 Gmail は入れません。
 
-トークンの有効期限は 8 時間です。切れたら接続ページで再ログインするか、Cursor で再 Connect します。
+アクセストークンの有効期限は 8 時間です。OAuth（Cursor Connect / ChatGPT）では refresh token（30日）で更新します。接続ページの手貼りトークンは refresh しないので、切れたら再ログインしてください。
+
+## ChatGPT（Developer mode / Apps）
+
+Cursor のように `mcp.json` へ Bearer を書く方式は使えません。ChatGPT のコネクタに URL を登録し、OAuth でつなぎます。
+
+1. ChatGPT Business / Enterprise / Edu（Pro は Developer mode の読み取りまで）で Developer mode をオンにする
+2. Settings → Apps → Create（または Workspace settings → Apps → Create）
+3. MCP サーバー URL に `https://mm-actionboard.jp/api/mcp` を入れる
+4. 認証は OAuth。Scan Tools のあと、会社の Google でログインする
+5. 新しいチャットのツール一覧からそのアプリを選ぶ
+
+ChatGPT の OAuth コールバック（`https://chatgpt.com/connector_platform_oauth_redirect` など）を許可しています。許可リスト外と個人 Gmail は入れません。
+
+個別回答を ChatGPT に渡すと会話ログに自由記述が残ります。`survey_raw` は必要な人だけに付けてください。
 
 ## 暫定: 配布キー（Phase 1）
 
