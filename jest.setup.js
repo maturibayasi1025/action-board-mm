@@ -180,6 +180,7 @@ jest.mock("@/lib/supabase/server", () => ({
       };
     }),
   })),
+  getCurrentUserSafe: jest.fn(() => Promise.resolve(null)),
 }));
 
 jest.mock("@/lib/supabase/client", () => ({
