@@ -16,7 +16,7 @@ export async function GET(request: Request) {
   const tokenHash = requestUrl.searchParams.get("token_hash");
   const otpType = parseEmailOtpType(requestUrl.searchParams.get("type"));
   const origin = process.env.NEXT_PUBLIC_SITE_URL ?? requestUrl.origin;
-  const redirectTo = requestUrl.searchParams.get("redirect_to")?.toString();
+  const redirectTo = requestUrl.searchParams.get("redirect_to");
   const isInviteFlow =
     redirectTo === INVITE_SET_PASSWORD_PATH || otpType === "invite";
 
