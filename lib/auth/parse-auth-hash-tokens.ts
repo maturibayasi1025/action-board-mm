@@ -17,3 +17,7 @@ export function parseAuthHashTokens(hash: string): {
     refresh_token: refreshToken,
   };
 }
+
+export function parseAuthCallbackTokens(hash: string, search: string) {
+  return parseAuthHashTokens(hash) ?? parseAuthHashTokens(search);
+}

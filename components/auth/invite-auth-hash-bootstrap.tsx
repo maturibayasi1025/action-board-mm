@@ -1,9 +1,8 @@
 "use client";
 
-import { parseAuthHashTokens } from "@/lib/auth/parse-auth-hash-tokens";
-import { createClient } from "@/lib/supabase/client";
+import { parseAuthCallbackTokens } from "@/lib/auth/parse-auth-hash-tokens";
+import { recoverInviteSessionFromLocation } from "@/lib/auth/recover-invite-session";
 import { INVITE_SET_PASSWORD_PATH } from "@/lib/utils/invite-auth-user";
-import { useRouter } from "next/navigation";
 import { type ReactNode, useEffect, useState } from "react";
 
 type Props = {
@@ -13,10 +12,18 @@ type Props = {
 const RECOVERY_TIMEOUT_MS = 8000;
 
 export function InviteAuthHashBootstrap({ children }: Props) {
-  const router = useRouter();
   const [status, setStatus] = useState<"checking" | "ready">("checking");
 
   useEffect(() => {
+    const tokens = parseAuthCallbackTokens(
+      window.location.hash,
+      window.location.search,
+    );
+    if (!tokens) {
+      setStatus("ready");
+      return;
+    }
+
     let cancelled = false;
 
     const timeoutId = window.setTimeout(() => {
@@ -25,44 +32,28 @@ export function InviteAuthHashBootstrap({ children }: Props) {
       }
     }, RECOVERY_TIMEOUT_MS);
 
-    async function recoverSession() {
-      const tokens = parseAuthHashTokens(window.location.hash);
-      if (!tokens) {
+    void recoverInviteSessionFromLocation()
+      .then((result) => {
+        if (cancelled) {
+          return;
+        }
+        if (result === "recovered") {
+          window.location.replace(INVITE_SET_PASSWORD_PATH);
+          return;
+        }
         setStatus("ready");
-        return;
-      }
-
-      const supabase = createClient();
-      await supabase.auth.signOut();
-      const { error } = await supabase.auth.setSession(tokens);
-      window.history.replaceState(
-        null,
-        "",
-        `${window.location.pathname}${window.location.search}`,
-      );
-      if (cancelled) {
-        return;
-      }
-      if (error) {
-        setStatus("ready");
-        return;
-      }
-      router.replace(INVITE_SET_PASSWORD_PATH);
-      router.refresh();
-      setStatus("ready");
-    }
-
-    void recoverSession().catch(() => {
-      if (!cancelled) {
-        setStatus("ready");
-      }
-    });
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setStatus("ready");
+        }
+      });
 
     return () => {
       cancelled = true;
       window.clearTimeout(timeoutId);
     };
-  }, [router]);
+  }, []);
 
   if (status === "checking") {
     return (
