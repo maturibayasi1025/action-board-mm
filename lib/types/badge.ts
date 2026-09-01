@@ -127,13 +127,13 @@ export function getBadgeRankingUrl(badge: UserBadge): string | null {
   }
 }
 
-/** MVV表彰サイクルの四半期（Q1: 4–6月 … Q4: 12–2月） */
+/** MVV表彰サイクルの四半期（Q1: 3–5月 … Q4: 12–2月） */
 export type MvvAwardQuarter = 1 | 2 | 3 | 4;
 
 /**
  * 暦年月から MVV 表彰四半期（年度・Q）を求める
- * Q1: 4月〜6月（表彰: 6月）
- * Q2: 7月〜8月（表彰: 9月）
+ * Q1: 3月〜5月（表彰: 6月）
+ * Q2: 6月〜8月（表彰: 9月）
  * Q3: 9月〜11月（表彰: 12月）
  * Q4: 12月〜2月（表彰: 3月）
  */
@@ -141,10 +141,10 @@ export function getFiscalYearAndQuarterFromMonth(
   year: number,
   month: number,
 ): { fiscalYear: number; quarter: MvvAwardQuarter } {
-  if (month >= 4 && month <= 6) {
+  if (month >= 3 && month <= 5) {
     return { fiscalYear: year, quarter: 1 };
   }
-  if (month >= 7 && month <= 8) {
+  if (month >= 6 && month <= 8) {
     return { fiscalYear: year, quarter: 2 };
   }
   if (month >= 9 && month <= 11) {
@@ -163,11 +163,13 @@ export function getAwardQuarterYearMonthKeys(
 ): string[] {
   switch (quarter) {
     case 1:
-      return [4, 5, 6].map(
+      return [3, 4, 5].map(
         (m) => `${fiscalYear}-${String(m).padStart(2, "0")}`,
       );
     case 2:
-      return [7, 8].map((m) => `${fiscalYear}-${String(m).padStart(2, "0")}`);
+      return [6, 7, 8].map(
+        (m) => `${fiscalYear}-${String(m).padStart(2, "0")}`,
+      );
     case 3:
       return [9, 10, 11].map(
         (m) => `${fiscalYear}-${String(m).padStart(2, "0")}`,
@@ -185,16 +187,16 @@ export function getAwardQuarterYearMonthKeys(
   }
 }
 
-/** 表彰四半期の表示ラベル（年度は Q1 の年＝4月を含む年） */
+/** 表彰四半期の表示ラベル（年度は Q1 の年＝3月を含む年） */
 export function formatAwardQuarterPeriodLabel(
   fiscalYear: number,
   quarter: MvvAwardQuarter,
 ): string {
   switch (quarter) {
     case 1:
-      return `${fiscalYear}年 Q1（4–6月・表彰: 6月）`;
+      return `${fiscalYear}年 Q1（3–5月・表彰: 6月）`;
     case 2:
-      return `${fiscalYear}年 Q2（7–8月・表彰: 9月）`;
+      return `${fiscalYear}年 Q2（6–8月・表彰: 9月）`;
     case 3:
       return `${fiscalYear}年 Q3（9–11月・表彰: 12月）`;
     case 4:
@@ -208,8 +210,8 @@ export function formatAwardQuarterPeriodLabel(
 
 /**
  * 四半期を計算する
- * Q1: 4月〜6月
- * Q2: 7月〜8月
+ * Q1: 3月〜5月
+ * Q2: 6月〜8月
  * Q3: 9月〜11月
  * Q4: 12月〜2月（次の年度）
  * @param date 日付（省略時は現在日時）
@@ -237,9 +239,9 @@ export function getCurrentQuarter(): string {
 
 /**
  * 表彰すべき四半期を取得
- * 各四半期の終了月にその四半期を表彰する
- * - 6月に表彰されるのはQ1（4月〜6月）
- * - 9月に表彰されるのはQ2（7月〜8月）
+ * 各四半期の終了翌月にその四半期を表彰する
+ * - 6月に表彰されるのはQ1（3月〜5月）
+ * - 9月に表彰されるのはQ2（6月〜8月）
  * - 12月に表彰されるのはQ3（9月〜11月）
  * - 3月に表彰されるのはQ4（12月〜2月）
  * その他の月（四半期の途中）の場合は、現在の四半期を返す
@@ -260,11 +262,11 @@ export function getAwardQuarter(date?: Date): string {
 
   // 表彰月の判定
   if (month === 6) {
-    // 6月に表彰されるのはQ1（4月〜6月）
+    // 6月に表彰されるのはQ1（3月〜5月）
     quarter = 1;
     fiscalYear = year;
   } else if (month === 9) {
-    // 9月に表彰されるのはQ2（7月〜8月）
+    // 9月に表彰されるのはQ2（6月〜8月）
     quarter = 2;
     fiscalYear = year;
   } else if (month === 12) {
@@ -293,9 +295,9 @@ export function getAvailableQuarters(): string[] {
   const currentYear = now.getFullYear();
   const currentMonth = now.getMonth() + 1;
 
-  // 現在の年度を計算（4月が年度開始月）
+  // 現在の年度を計算（3月が年度開始月）
   let fiscalYear = currentYear;
-  if (currentMonth < 4) {
+  if (currentMonth < 3) {
     fiscalYear = currentYear - 1;
   }
 

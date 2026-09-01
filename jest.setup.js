@@ -9,8 +9,13 @@ if (typeof globalThis.TextEncoder === "undefined") {
 if (typeof globalThis.TextDecoder === "undefined") {
   globalThis.TextDecoder = TextDecoder;
 }
-if (!globalThis.crypto?.subtle) {
+if (typeof globalThis.crypto === "undefined") {
   globalThis.crypto = webcrypto;
+} else if (!globalThis.crypto.subtle) {
+  Object.defineProperty(globalThis.crypto, "subtle", {
+    value: webcrypto.subtle,
+    configurable: true,
+  });
 }
 
 require("@testing-library/jest-dom");

@@ -121,10 +121,10 @@ export const getAwardNominationRankingTool: McpToolDefinition<{
         type: "string",
         description: "表彰サーベイ UUID。指定時はその1件だけ集計",
       },
-      year: { type: "number", description: "会計年度（4月始まり）" },
+      year: { type: "number", description: "年度（Q1 が属する年）" },
       quarter: {
         type: "number",
-        description: "四半期 1-4（Q1=4-6月）",
+        description: "四半期 1-4（Q1=3-5月）",
       },
     },
     additionalProperties: false,
