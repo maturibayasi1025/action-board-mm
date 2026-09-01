@@ -1,4 +1,8 @@
-import { filterActiveUserIds } from "@/lib/services/user-status";
+import {
+  USER_SUSPENDED_ERROR,
+  filterActiveUserIds,
+  isSuspendedUser,
+} from "@/lib/services/user-status";
 import {
   ensureSlackUserIdStored,
   findPrivateUserIdForSlackMention,
@@ -275,6 +279,13 @@ async function createGoodJobFromSlack(
       return {
         success: false,
         error: `投稿者のユーザーが見つかりませんでした: ${slackUserName}`,
+      };
+    }
+
+    if (await isSuspendedUser(creatorId)) {
+      return {
+        success: false,
+        error: USER_SUSPENDED_ERROR,
       };
     }
 

@@ -366,6 +366,13 @@ export async function inviteUser(input: {
       });
     if (insertError) {
       console.error("inviteUser insert:", insertError);
+      // 招待メール送信後に行が作れないと、Auth ユーザーだけ残って再招待不能になる
+      const { error: deleteError } = await supabase.auth.admin.deleteUser(
+        invited.user.id,
+      );
+      if (deleteError) {
+        console.error("inviteUser rollback deleteUser:", deleteError);
+      }
       return { success: false, error: "招待の保存に失敗しました" };
     }
 
