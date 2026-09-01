@@ -15,22 +15,55 @@ export type AwardQuarterOption = {
 };
 
 export type AwardQuarterRankingRow = {
+  key: string;
   name: string;
   votes: number;
+  onTimeVotes: number;
+  lateVotes: number;
+  unmatched: boolean;
+  votesByMonth: Record<string, number>;
 };
 
 export type AwardQuarterGroupRanking = {
   group: string;
   label: string;
   rows: AwardQuarterRankingRow[];
+  totalVotes: number;
+  unmatchedVotes: number;
+};
+
+export type AwardQuarterMonthBreakdown = {
+  yearMonth: string;
+  surveyId: string | null;
+  surveyTitle: string | null;
+  responseRowCount: number;
+  uniqueResponderCount: number;
+  nominationVoteCount: number;
+  onTimeNominationVoteCount: number;
+  lateNominationVoteCount: number;
+  unmatchedVoteCount: number;
 };
 
 export type AwardQuarterlyRankingResult = {
   year: number;
   quarter: AwardQuarter;
   label: string;
+  expectedSurveyCount: number;
   surveyCount: number;
+  missingYearMonths: string[];
+  responseRowCount: number;
+  dbResponseCount: number | null;
+  uniqueResponderCount: number;
+  nominationVoteCount: number;
+  unmatchedVoteCount: number;
+  onTimeNominationVoteCount: number;
+  lateNominationVoteCount: number;
+  monthlyNominationSum: number;
+  checksumOk: boolean;
+  responseCountMismatch: boolean;
+  months: AwardQuarterMonthBreakdown[];
   groups: AwardQuarterGroupRanking[];
+  nominationQuestionCount: number;
 };
 
 export const AWARD_QUESTION_GROUP_ORDER = [

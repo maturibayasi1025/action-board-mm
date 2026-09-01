@@ -9,6 +9,7 @@ import {
   labelForAwardQuarter,
 } from "@/lib/mcp/award-nomination-ranking";
 import { McpToolError } from "@/lib/mcp/errors";
+import { fetchAllRows } from "@/lib/supabase/fetch-all-rows";
 import type { Database } from "@/lib/types/supabase";
 import { type SupabaseClient, createClient } from "@supabase/supabase-js";
 
@@ -366,25 +367,56 @@ export async function getAwardNominationRanking(input: {
     };
   }
 
-  const [
-    { data: questions, error: questionError },
-    { data: responses, error: responseError },
-  ] = await Promise.all([
-    db
-      .from("award_questions")
-      .select(AWARD_QUESTION_SELECT)
-      .order("display_order", { ascending: true }),
-    db
-      .from("award_responses")
-      .select(AWARD_RANKING_RESPONSE_SELECT)
-      .in("survey_id", surveyIds),
-  ]);
-  throwIfError(questionError, "表彰設問の取得に失敗しました");
-  throwIfError(responseError, "表彰回答の取得に失敗しました");
+  let responses: Array<{
+    question_id: string;
+    text_value: string | null;
+    nominee_user_id: string | null;
+  }>;
+  let questions: Array<{
+    id: string;
+    question_text: string;
+    question_type: string;
+    question_group: string | null;
+    display_order: number;
+    is_active: boolean;
+  }> = [];
+
+  try {
+    const [questionsResult, fetchedResponses] = await Promise.all([
+      db
+        .from("award_questions")
+        .select(AWARD_QUESTION_SELECT)
+        .order("display_order", { ascending: true }),
+      fetchAllRows<{
+        question_id: string;
+        text_value: string | null;
+        nominee_user_id: string | null;
+      }>((from, to) =>
+        db
+          .from("award_responses")
+          .select(AWARD_RANKING_RESPONSE_SELECT)
+          .in("survey_id", surveyIds)
+          .order("id", { ascending: true })
+          .range(from, to),
+      ),
+    ]);
+    throwIfError(questionsResult.error, "表彰設問の取得に失敗しました");
+    questions = questionsResult.data ?? [];
+    responses = fetchedResponses;
+  } catch (error) {
+    if (error instanceof McpToolError) {
+      throw error;
+    }
+    throw new McpToolError(
+      `表彰回答の取得に失敗しました: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+    );
+  }
 
   const nomineeIds = [
     ...new Set(
-      (responses ?? [])
+      responses
         .map((row) => row.nominee_user_id)
         .filter((id): id is string => id != null),
     ),
@@ -398,11 +430,7 @@ export async function getAwardNominationRanking(input: {
     survey_id: surveyId,
     survey_ids: surveyIds,
     survey_count: surveyIds.length,
-    groups: buildAwardNominationGroups(
-      questions ?? [],
-      responses ?? [],
-      userNameById,
-    ),
+    groups: buildAwardNominationGroups(questions, responses, userNameById),
   };
 }
 

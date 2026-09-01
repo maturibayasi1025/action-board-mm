@@ -11,6 +11,7 @@ import {
   type PrivateUserOrgRow,
   companyAndBusinessUnitFromPrivateUserRow,
 } from "@/lib/admin/private-user-org";
+import { fetchAllRows, fetchByIdChunks } from "@/lib/supabase/fetch-all-rows";
 import type { Database } from "@/lib/types/supabase";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -67,17 +68,17 @@ async function fetchSelfEvalResponses(
   surveyIds: string[],
 ): Promise<ResponseRow[]> {
   const questionIds = Object.values(SELF_EVAL_QUESTION_IDS);
-  const { data, error } = await supabase
-    .from("award_responses")
-    .select("user_id, survey_id, question_id, text_value")
-    .in("survey_id", surveyIds)
-    .in("question_id", questionIds);
+  const rows = await fetchAllRows<ResponseRow>((from, to) =>
+    supabase
+      .from("award_responses")
+      .select("user_id, survey_id, question_id, text_value")
+      .in("survey_id", surveyIds)
+      .in("question_id", questionIds)
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
 
-  if (error) {
-    throw new Error(`回答取得に失敗しました: ${error.message}`);
-  }
-
-  return (data ?? []).filter((r) => r.text_value?.trim());
+  return rows.filter((r) => r.text_value?.trim());
 }
 
 async function fetchUsers(
@@ -86,10 +87,13 @@ async function fetchUsers(
 ): Promise<Map<string, UserRow>> {
   if (userIds.length === 0) return new Map();
 
-  const { data, error } = await supabase
-    .from("private_users")
-    .select(
-      `
+  const rows = await fetchByIdChunks<
+    PrivateUserOrgRow & { id: string; name: string }
+  >(userIds, (chunk) =>
+    supabase
+      .from("private_users")
+      .select(
+        `
       id,
       name,
       business_units (
@@ -99,15 +103,12 @@ async function fetchUsers(
         )
       )
     `,
-    )
-    .in("id", userIds);
-
-  if (error) {
-    throw new Error(`ユーザー取得に失敗しました: ${error.message}`);
-  }
+      )
+      .in("id", chunk),
+  );
 
   return new Map(
-    (data ?? []).map((u) => {
+    rows.map((u) => {
       const { company_name, business_unit_name } =
         companyAndBusinessUnitFromPrivateUserRow(u as PrivateUserOrgRow);
       return [

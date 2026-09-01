@@ -1,4 +1,10 @@
 import {
+  aggregateNominationsForQuestion,
+  buildAwardQuarterlyRanking,
+  normalizeNomineeName,
+  takeTopNWithTies,
+} from "@/lib/award/nomination-ranking";
+import {
   aggregateTopFiveForQuestion,
   buildAwardNominationGroups,
   fiscalPeriodFromYearMonth,
@@ -22,7 +28,7 @@ describe("award nomination ranking", () => {
     });
   });
 
-  it("uses public profile names and skips unknown nominees", () => {
+  it("uses public profile names and skips unknown nominees for MCP", () => {
     const rows = aggregateTopFiveForQuestion(
       [
         { question_id: "q1", text_value: null, nominee_user_id: "u1" },
@@ -46,5 +52,225 @@ describe("award nomination ranking", () => {
     const groups = buildAwardNominationGroups([], [], new Map());
     expect(groups).toHaveLength(4);
     expect(groups.every((group) => group.rows.length === 0)).toBe(true);
+  });
+});
+
+describe("normalizeNomineeName", () => {
+  it("空白と全角スペースを除去して NFKC する", () => {
+    expect(normalizeNomineeName("高橋　聖")).toBe(
+      normalizeNomineeName("高橋 聖"),
+    );
+    expect(normalizeNomineeName("高橋聖")).toBe("高橋聖");
+  });
+});
+
+describe("admin nomination aggregation", () => {
+  it("unknown の user_id でも票を捨てず未突合として数える", () => {
+    const result = aggregateNominationsForQuestion(
+      [
+        { question_id: "q1", text_value: null, nominee_user_id: "missing" },
+        { question_id: "q1", text_value: null, nominee_user_id: "u1" },
+      ],
+      question,
+      new Map([["u1", "公開名A"]]),
+    );
+    expect(result.totalVotes).toBe(2);
+    expect(result.unmatchedVotes).toBe(1);
+    expect(result.rows.some((row) => row.nominee_user_id === "missing")).toBe(
+      true,
+    );
+  });
+
+  it("正規化した氏名が1人にだけ当たる手入力票を user_id にマージする", () => {
+    const result = aggregateNominationsForQuestion(
+      [
+        { question_id: "q1", text_value: null, nominee_user_id: "u1" },
+        { question_id: "q1", text_value: "高橋 聖", nominee_user_id: null },
+      ],
+      question,
+      new Map([["u1", "高橋聖"]]),
+    );
+    expect(result.rows).toHaveLength(1);
+    expect(result.rows[0]).toMatchObject({
+      name: "高橋聖",
+      votes: 2,
+      nominee_user_id: "u1",
+      unmatched: false,
+    });
+  });
+
+  it("期限内と期限後、月次内訳を分けて集計する", () => {
+    const result = aggregateNominationsForQuestion(
+      [
+        {
+          question_id: "q1",
+          text_value: null,
+          nominee_user_id: "u1",
+          year_month: "2026-06",
+          is_late_submission: false,
+        },
+        {
+          question_id: "q1",
+          text_value: null,
+          nominee_user_id: "u1",
+          year_month: "2026-07",
+          is_late_submission: true,
+        },
+        {
+          question_id: "q1",
+          text_value: null,
+          nominee_user_id: "u1",
+          year_month: "2026-08",
+          is_late_submission: false,
+        },
+      ],
+      question,
+      new Map([["u1", "高橋聖"]]),
+    );
+    expect(result.rows[0]).toMatchObject({
+      votes: 3,
+      onTimeVotes: 2,
+      lateVotes: 1,
+      votesByMonth: { "2026-06": 1, "2026-07": 1, "2026-08": 1 },
+    });
+  });
+});
+
+describe("takeTopNWithTies", () => {
+  it("5位と同票の人を切り捨てない", () => {
+    const rows = takeTopNWithTies(
+      [
+        { votes: 10 },
+        { votes: 8 },
+        { votes: 7 },
+        { votes: 7 },
+        { votes: 6 },
+        { votes: 6 },
+        { votes: 4 },
+      ],
+      5,
+    );
+    expect(rows.map((row) => row.votes)).toEqual([10, 8, 7, 7, 6, 6]);
+  });
+});
+
+describe("buildAwardQuarterlyRanking checksum", () => {
+  const questions = [
+    question,
+    {
+      id: "q2",
+      question_text: "至高",
+      question_type: "user_select",
+      question_group: "supreme_relations",
+      display_order: 2,
+      is_active: true,
+    },
+    {
+      id: "q3",
+      question_text: "循環",
+      question_type: "user_select",
+      question_group: "happiness_cycle",
+      display_order: 3,
+      is_active: true,
+    },
+    {
+      id: "q4",
+      question_text: "チーム",
+      question_type: "text",
+      question_group: "team_value",
+      display_order: 4,
+      is_active: true,
+    },
+  ];
+
+  it("3ヶ月の指名票合計と四半期合計が一致し、欠けた月を明示する", () => {
+    const result = buildAwardQuarterlyRanking({
+      year: 2026,
+      quarter: 2,
+      label: "2026年 Q2（6–8月・表彰: 9月）",
+      expectedYearMonths: ["2026-06", "2026-07", "2026-08"],
+      surveys: [
+        { id: "s6", year_month: "2026-06", title: "6月" },
+        { id: "s7", year_month: "2026-07", title: "7月" },
+      ],
+      questions,
+      responses: [
+        {
+          survey_id: "s6",
+          question_id: "q1",
+          user_id: "voter1",
+          text_value: null,
+          nominee_user_id: "u1",
+          is_late_submission: false,
+        },
+        {
+          survey_id: "s6",
+          question_id: "q1",
+          user_id: "voter2",
+          text_value: null,
+          nominee_user_id: "u1",
+          is_late_submission: true,
+        },
+        {
+          survey_id: "s7",
+          question_id: "q1",
+          user_id: "voter1",
+          text_value: null,
+          nominee_user_id: "u2",
+          is_late_submission: false,
+        },
+      ],
+      userNameById: new Map([
+        ["u1", "高橋聖"],
+        ["u2", "猪狩俊"],
+      ]),
+      dbResponseCount: 3,
+    });
+
+    expect(result.surveyCount).toBe(2);
+    expect(result.missingYearMonths).toEqual(["2026-08"]);
+    expect(result.nominationVoteCount).toBe(3);
+    expect(result.monthlyNominationSum).toBe(3);
+    expect(result.checksumOk).toBe(true);
+    expect(result.responseCountMismatch).toBe(false);
+    expect(result.onTimeNominationVoteCount).toBe(2);
+    expect(result.lateNominationVoteCount).toBe(1);
+    expect(result.months.map((month) => month.nominationVoteCount)).toEqual([
+      2, 1, 0,
+    ]);
+
+    const passionate = result.groups.find(
+      (group) => group.group === "passionate_execution",
+    );
+    expect(passionate?.rows[0]).toMatchObject({
+      name: "高橋聖",
+      votes: 2,
+      votesByMonth: { "2026-06": 2 },
+    });
+  });
+
+  it("DB件数と取得件数が違うと mismatch になる", () => {
+    const result = buildAwardQuarterlyRanking({
+      year: 2026,
+      quarter: 2,
+      label: "Q2",
+      expectedYearMonths: ["2026-06", "2026-07", "2026-08"],
+      surveys: [{ id: "s6", year_month: "2026-06", title: "6月" }],
+      questions,
+      responses: [
+        {
+          survey_id: "s6",
+          question_id: "q1",
+          user_id: "voter1",
+          text_value: null,
+          nominee_user_id: "u1",
+          is_late_submission: false,
+        },
+      ],
+      userNameById: new Map([["u1", "高橋聖"]]),
+      dbResponseCount: 1000,
+    });
+    expect(result.responseRowCount).toBe(1);
+    expect(result.responseCountMismatch).toBe(true);
   });
 });
