@@ -31,6 +31,7 @@ jest.mock("next/navigation", () => ({
     push: jest.fn(),
     replace: jest.fn(),
     back: jest.fn(),
+    refresh: jest.fn(),
   }),
   useSearchParams: () => new URLSearchParams(),
   usePathname: () => "/",
@@ -180,6 +181,7 @@ jest.mock("@/lib/supabase/server", () => ({
       };
     }),
   })),
+  getCurrentUserSafe: jest.fn(() => Promise.resolve(null)),
 }));
 
 jest.mock("@/lib/supabase/client", () => ({

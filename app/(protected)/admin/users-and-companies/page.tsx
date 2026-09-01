@@ -102,6 +102,11 @@ export default async function UsersAndCompaniesPage() {
           <UsersAndCompaniesCsvDownload users={users} />
         </div>
 
+        {!invitationsResult.success && (
+          <p className="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+            {invitationsResult.error}
+          </p>
+        )}
         <AdminInviteUserForm companies={companies} units={units} />
         <AdminPendingInvitations invitations={invitations} />
 

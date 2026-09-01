@@ -58,16 +58,18 @@ describe("HeaderAuth", () => {
 
   describe("認証状態", () => {
     beforeEach(() => {
-      const mockSupabase = require("@/lib/supabase/server").createClient;
-      mockSupabase.mockResolvedValue({
-        auth: {
-          getUser: jest.fn(() =>
-            Promise.resolve({
-              data: { user: { id: "test-user", email: "test@example.com" } },
-            }),
-          ),
-        },
+      const getCurrentUserSafe =
+        require("@/lib/supabase/server").getCurrentUserSafe;
+      getCurrentUserSafe.mockResolvedValue({
+        id: "test-user",
+        email: "test@example.com",
       });
+    });
+
+    afterEach(() => {
+      const getCurrentUserSafe =
+        require("@/lib/supabase/server").getCurrentUserSafe;
+      getCurrentUserSafe.mockResolvedValue(null);
     });
 
     it("ユーザーがログイン済みの場合ドロップダウンメニューが表示される", async () => {
