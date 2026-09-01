@@ -1,4 +1,9 @@
 import { parseEmailOtpType } from "@/lib/auth/email-otp-type";
+import {
+  authCallbackRedirectPath,
+  shouldRewriteInviteAuthCallback,
+} from "@/lib/auth/invite-callback-rewrite";
+import { inviteHashFallbackHtml } from "@/lib/auth/invite-hash-fallback";
 import { createClient } from "@/lib/supabase/server";
 import { INVITE_SET_PASSWORD_PATH } from "@/lib/utils/invite-auth-user";
 import { NextResponse } from "next/server";
@@ -7,16 +12,35 @@ export const runtime = "edge";
 
 export async function GET(request: Request) {
   // The `/auth/callback` route is required for the server-side auth flow implemented
-  // by the SSR package. It exchanges an auth code for the user's session.
+  // by the SSR package. It exchanges an auth code for a session.
   // https://supabase.com/docs/guides/auth/server-side/nextjs
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
   const tokenHash = requestUrl.searchParams.get("token_hash");
   const otpType = parseEmailOtpType(requestUrl.searchParams.get("type"));
   const origin = process.env.NEXT_PUBLIC_SITE_URL ?? requestUrl.origin;
-  const redirectTo = requestUrl.searchParams.get("redirect_to")?.toString();
+  const redirectTo = requestUrl.searchParams.get("redirect_to");
   const isInviteFlow =
     redirectTo === INVITE_SET_PASSWORD_PATH || otpType === "invite";
+
+  // デフォルト招待メールはトークンを URL ハッシュに付ける。サーバーはハッシュを見えない。
+  // 302 すると Safari 等でハッシュが落ちるので、クライアントへ渡す HTML を返す。
+  if (
+    shouldRewriteInviteAuthCallback({
+      pathname: requestUrl.pathname,
+      code,
+      tokenHash,
+      redirectTo,
+    })
+  ) {
+    return new NextResponse(inviteHashFallbackHtml(), {
+      status: 200,
+      headers: {
+        "content-type": "text/html; charset=utf-8",
+        "cache-control": "no-store",
+      },
+    });
+  }
 
   const supabase = await createClient();
   if (isInviteFlow && (tokenHash || code)) {
@@ -56,17 +80,16 @@ export async function GET(request: Request) {
         return NextResponse.redirect(loginUrl);
       }
     }
-  } else if (isInviteFlow) {
-    // デフォルト招待メールはトークンを URL ハッシュに付ける。
-    // インラインスクリプトは CSP 等で動かず止まることがあるので、
-    // 302 でパスワード設定画面へ送り、ハッシュはブラウザが引き継ぐ。
-    return NextResponse.redirect(
-      new URL(INVITE_SET_PASSWORD_PATH, requestUrl.origin),
-    );
   }
 
-  if (redirectTo) {
-    return NextResponse.redirect(`${origin}${redirectTo}`);
+  const postAuthRedirect = authCallbackRedirectPath({
+    pathname: requestUrl.pathname,
+    code,
+    tokenHash,
+    redirectTo,
+  });
+  if (postAuthRedirect) {
+    return NextResponse.redirect(`${origin}${postAuthRedirect}`);
   }
 
   const {
