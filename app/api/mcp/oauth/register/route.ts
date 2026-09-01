@@ -32,7 +32,7 @@ export async function POST(request: Request) {
       client_name:
         typeof body.client_name === "string" ? body.client_name : "mcp",
       redirect_uris: redirectUris,
-      grant_types: ["authorization_code"],
+      grant_types: ["authorization_code", "refresh_token"],
       response_types: ["code"],
       token_endpoint_auth_method: "none",
     },

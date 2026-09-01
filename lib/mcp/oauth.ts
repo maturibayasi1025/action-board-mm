@@ -13,8 +13,19 @@ import { sha256Base64Url, signHs256Jwt, verifyHs256Jwt } from "@/lib/mcp/jwt";
 import type { McpScope } from "@/lib/mcp/scopes";
 
 export const MCP_ACCESS_TOKEN_TTL_SECONDS = 8 * 60 * 60;
+export const MCP_REFRESH_TOKEN_TTL_SECONDS = 30 * 24 * 60 * 60;
 export const MCP_AUTH_CODE_TTL_SECONDS = 5 * 60;
 export const MCP_OAUTH_STATE_TTL_SECONDS = 10 * 60;
+
+export const ALLOWED_OAUTH_HTTPS_HOSTS = [
+  "cursor.com",
+  "www.cursor.com",
+  "claude.ai",
+  "chatgpt.com",
+  "www.chatgpt.com",
+  "chat.openai.com",
+  "platform.openai.com",
+] as const;
 
 export const MCP_ISSUED_COOKIE = "mcp_issued_token";
 
@@ -77,10 +88,8 @@ export function isAllowedOAuthRedirectUri(uri: string): boolean {
     return true;
   }
   if (parsed.protocol === "https:") {
-    return (
-      parsed.hostname === "cursor.com" ||
-      parsed.hostname === "www.cursor.com" ||
-      parsed.hostname === "claude.ai"
+    return (ALLOWED_OAUTH_HTTPS_HOSTS as readonly string[]).includes(
+      parsed.hostname,
     );
   }
   return false;
@@ -124,6 +133,24 @@ export type McpAccessTokenPayload = {
   aud: "action-board-mcp";
   iat: number;
   exp: number;
+};
+
+export type McpRefreshTokenPayload = {
+  typ: "mcp_rt";
+  sub: string;
+  email: string;
+  scopes: McpScope[];
+  iss: string;
+  aud: "action-board-mcp";
+  iat: number;
+  exp: number;
+};
+
+export type McpTokenPair = {
+  accessToken: string;
+  refreshToken: string;
+  expiresIn: number;
+  scopes: McpScope[];
 };
 
 export function googleAuthorizationUrl(
@@ -193,6 +220,57 @@ export async function issueAccessToken(
     exp: now + MCP_ACCESS_TOKEN_TTL_SECONDS,
   };
   return signHs256Jwt(payload, secret);
+}
+
+export async function issueRefreshToken(
+  granted: GoogleAccessOk,
+  secret: string,
+): Promise<string> {
+  const now = Math.floor(Date.now() / 1000);
+  const payload: McpRefreshTokenPayload = {
+    typ: "mcp_rt",
+    sub: granted.email,
+    email: granted.email,
+    scopes: granted.scopes,
+    iss: mcpIssuer(),
+    aud: "action-board-mcp",
+    iat: now,
+    exp: now + MCP_REFRESH_TOKEN_TTL_SECONDS,
+  };
+  return signHs256Jwt(payload, secret);
+}
+
+export async function issueTokenPair(
+  granted: GoogleAccessOk,
+  secret: string,
+): Promise<McpTokenPair> {
+  return {
+    accessToken: await issueAccessToken(granted, secret),
+    refreshToken: await issueRefreshToken(granted, secret),
+    expiresIn: MCP_ACCESS_TOKEN_TTL_SECONDS,
+    scopes: granted.scopes,
+  };
+}
+
+export async function refreshGrantedAccess(
+  refreshToken: string,
+  secret: string,
+  allowlistRaw: string | undefined,
+): Promise<GoogleAccessOk | null> {
+  const payload = await verifyHs256Jwt<McpRefreshTokenPayload>(
+    refreshToken,
+    secret,
+  );
+  if (!payload || payload.typ !== "mcp_rt" || !payload.email) {
+    return null;
+  }
+  const entry = parseAllowedGoogleEmails(allowlistRaw).find(
+    (item) => item.email === payload.email,
+  );
+  if (!entry) {
+    return null;
+  }
+  return { ok: true, email: payload.email, scopes: entry.scopes };
 }
 
 export async function issueAuthorizationCode(

@@ -1,8 +1,8 @@
 import {
-  MCP_ACCESS_TOKEN_TTL_SECONDS,
   consumeAuthorizationCode,
-  issueAccessToken,
+  issueTokenPair,
   readMcpOAuthEnv,
+  refreshGrantedAccess,
 } from "@/lib/mcp/oauth";
 import { oauthJson } from "@/lib/mcp/oauth-http";
 
@@ -19,6 +19,21 @@ export async function POST(request: Request) {
   }
 
   const params = await readTokenParams(request);
+  if (params.grant_type === "refresh_token") {
+    if (!params.refresh_token) {
+      return oauthJson({ error: "invalid_request" }, 400);
+    }
+    const granted = await refreshGrantedAccess(
+      params.refresh_token,
+      env.jwtSecret,
+      env.allowlistRaw,
+    );
+    if (!granted) {
+      return oauthJson({ error: "invalid_grant" }, 400);
+    }
+    return tokenResponse(await issueTokenPair(granted, env.jwtSecret));
+  }
+
   if (
     params.grant_type !== "authorization_code" ||
     !params.code ||
@@ -41,15 +56,26 @@ export async function POST(request: Request) {
     return oauthJson({ error: "invalid_grant" }, 400);
   }
 
-  const accessToken = await issueAccessToken(
-    { ok: true, email: consumed.email, scopes: consumed.scopes },
-    env.jwtSecret,
+  return tokenResponse(
+    await issueTokenPair(
+      { ok: true, email: consumed.email, scopes: consumed.scopes },
+      env.jwtSecret,
+    ),
   );
+}
+
+function tokenResponse(pair: {
+  accessToken: string;
+  refreshToken: string;
+  expiresIn: number;
+  scopes: readonly string[];
+}): Response {
   return oauthJson({
-    access_token: accessToken,
+    access_token: pair.accessToken,
+    refresh_token: pair.refreshToken,
     token_type: "Bearer",
-    expires_in: MCP_ACCESS_TOKEN_TTL_SECONDS,
-    scope: consumed.scopes.join(" "),
+    expires_in: pair.expiresIn,
+    scope: pair.scopes.join(" "),
   });
 }
 
@@ -59,6 +85,7 @@ async function readTokenParams(request: Request): Promise<{
   code_verifier?: string;
   redirect_uri?: string;
   client_id?: string;
+  refresh_token?: string;
 }> {
   const contentType = request.headers.get("content-type") ?? "";
   if (contentType.includes("application/json")) {
@@ -69,6 +96,7 @@ async function readTokenParams(request: Request): Promise<{
       code_verifier: asString(json.code_verifier),
       redirect_uri: asString(json.redirect_uri),
       client_id: asString(json.client_id),
+      refresh_token: asString(json.refresh_token),
     };
   }
   const form = await request.formData();
@@ -78,6 +106,7 @@ async function readTokenParams(request: Request): Promise<{
     code_verifier: asString(form.get("code_verifier")),
     redirect_uri: asString(form.get("redirect_uri")),
     client_id: asString(form.get("client_id")),
+    refresh_token: asString(form.get("refresh_token")),
   };
 }
 
