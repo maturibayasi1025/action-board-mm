@@ -1,3 +1,4 @@
+import { QuarterlyRankingComments } from "@/app/(protected)/admin/award-surveys/_components/quarterly-ranking-comments";
 import type { AwardQuarterlyRankingResult } from "@/app/(protected)/admin/award-surveys/quarterly-ranking-model";
 import {
   Card,
@@ -58,8 +59,11 @@ export function QuarterlyRanking({ data }: QuarterlyRankingProps) {
   const hasIntegrityIssue =
     data.missingYearMonths.length > 0 ||
     data.responseCountMismatch ||
+    data.rankingBlocked ||
     !data.checksumOk ||
+    !data.monthlyCrossCheckOk ||
     data.unmatchedVoteCount > 0;
+  const showRanking = !data.rankingBlocked;
 
   return (
     <div className="space-y-4">
@@ -70,91 +74,114 @@ export function QuarterlyRanking({ data }: QuarterlyRankingProps) {
           " — この四半期の月次アンケートはまだありません"}
       </p>
 
-      {data.surveyCount > 0 && (
-        <QuarterlyIntegrityPanel data={data} warning={hasIntegrityIssue} />
+      {data.rankingBlocked && data.rankingBlockedReason && (
+        <div
+          className="rounded-md border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-950 dark:border-red-800 dark:bg-red-950/40 dark:text-red-100"
+          role="alert"
+        >
+          <p className="font-medium">集計結果を表示できません</p>
+          <p className="mt-1">{data.rankingBlockedReason}</p>
+        </div>
       )}
 
-      {!hasAnyRows && data.surveyCount > 0 && (
+      {data.surveyCount > 0 && (
+        <QuarterlyIntegrityPanel
+          data={data}
+          warning={hasIntegrityIssue}
+          blocked={data.rankingBlocked}
+        />
+      )}
+
+      {showRanking && !hasAnyRows && data.surveyCount > 0 && (
         <p className="text-sm text-muted-foreground">
           指名データがありません。
         </p>
       )}
 
-      <div className="grid gap-4 md:grid-cols-2">
-        {data.groups.map((group) => {
-          const ranks = competitionRanks(group.rows.map((row) => row.votes));
-          return (
-            <Card key={group.group}>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg">{group.label}</CardTitle>
-                <CardDescription>
-                  指名票数 上位5名（同票は同順位。期限内・期限後を含む）
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {group.rows.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">該当なし</p>
-                ) : (
-                  <ol
-                    className="space-y-2"
-                    aria-label={`${group.label}のランキング`}
-                  >
-                    {group.rows.map((row, index) => {
-                      const rank = ranks[index];
-                      const { label, className: rankClass } = rankStyle(rank);
-                      return (
-                        <li
-                          key={`${group.group}-${row.key}`}
-                          className="rounded-md border border-border px-3 py-2"
-                        >
-                          <div className="flex items-center gap-3">
-                            <span
-                              className={cn(
-                                "flex items-center justify-center text-sm font-semibold",
-                                rankClass,
-                              )}
-                              aria-hidden
-                            >
-                              {label}
-                            </span>
-                            <span className="min-w-0 flex-1 truncate font-medium">
-                              {row.name}
-                              {row.unmatched ? (
-                                <span className="ml-2 text-xs font-normal text-amber-700 dark:text-amber-300">
-                                  未突合
-                                </span>
-                              ) : null}
-                            </span>
-                            <span className="shrink-0 tabular-nums text-muted-foreground">
-                              {row.votes}票
-                            </span>
-                          </div>
-                          <p className="mt-1 pl-11 text-xs text-muted-foreground">
-                            期限内 {row.onTimeVotes} / 期限後 {row.lateVotes}
-                            {data.months.length > 0
-                              ? ` ・ ${data.months
-                                  .map(
-                                    (month) =>
-                                      `${month.yearMonth.slice(5)}月 ${row.votesByMonth[month.yearMonth] ?? 0}`,
-                                  )
-                                  .join(" / ")}`
-                              : ""}
-                          </p>
-                        </li>
-                      );
-                    })}
-                  </ol>
-                )}
-                {group.totalVotes > 0 && (
-                  <p className="mt-3 text-xs text-muted-foreground">
-                    このバリューの指名票合計: {group.totalVotes}票
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
+      {showRanking && (
+        <div className="grid gap-4 md:grid-cols-2">
+          {data.groups.map((group) => {
+            const ranks = competitionRanks(group.rows.map((row) => row.votes));
+            return (
+              <Card key={group.group}>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg">{group.label}</CardTitle>
+                  <CardDescription>
+                    指名票数
+                    上位5名（同票は同順位。期限内・期限後を含む）。寄せられたコメントと自己評価は閉じてあり、押すと開きます。
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {group.rows.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">該当なし</p>
+                  ) : (
+                    <ol
+                      className="space-y-2"
+                      aria-label={`${group.label}のランキング`}
+                    >
+                      {group.rows.map((row, index) => {
+                        const rank = ranks[index];
+                        const { label, className: rankClass } = rankStyle(rank);
+                        return (
+                          <li
+                            key={`${group.group}-${row.key}`}
+                            className="rounded-md border border-border px-3 py-2"
+                          >
+                            <div className="flex items-center gap-3">
+                              <span
+                                className={cn(
+                                  "flex items-center justify-center text-sm font-semibold",
+                                  rankClass,
+                                )}
+                                aria-hidden
+                              >
+                                {label}
+                              </span>
+                              <span className="min-w-0 flex-1 truncate font-medium">
+                                {row.name}
+                                {row.unmatched ? (
+                                  <span className="ml-2 text-xs font-normal text-amber-700 dark:text-amber-300">
+                                    未突合
+                                  </span>
+                                ) : null}
+                              </span>
+                              <span className="shrink-0 tabular-nums text-muted-foreground">
+                                {row.votes}票
+                              </span>
+                            </div>
+                            <p className="mt-1 pl-11 text-xs text-muted-foreground">
+                              期限内 {row.onTimeVotes} / 期限後 {row.lateVotes}
+                              {data.months.length > 0
+                                ? ` ・ ${data.months
+                                    .map(
+                                      (month) =>
+                                        `${month.yearMonth.slice(5)}月 ${row.votesByMonth[month.yearMonth] ?? 0}`,
+                                    )
+                                    .join(" / ")}`
+                                : ""}
+                            </p>
+                            <QuarterlyRankingComments
+                              comments={row.comments}
+                              selfEvalComments={row.selfEvalComments}
+                              selfEvalAvailable={row.selfEvalAvailable}
+                              nomineeName={row.name}
+                            />
+                          </li>
+                        );
+                      })}
+                    </ol>
+                  )}
+                  {group.totalVotes > 0 && (
+                    <p className="mt-3 text-xs text-muted-foreground">
+                      このバリューの指名票合計: {group.totalVotes}票
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -162,20 +189,30 @@ export function QuarterlyRanking({ data }: QuarterlyRankingProps) {
 function QuarterlyIntegrityPanel({
   data,
   warning,
+  blocked,
 }: {
   data: AwardQuarterlyRankingResult;
   warning: boolean;
+  blocked: boolean;
 }) {
   return (
     <div
       className={cn(
         "space-y-3 rounded-md border px-4 py-3 text-sm",
-        warning
-          ? "border-amber-300 bg-amber-50 text-amber-950 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100"
-          : "border-border bg-muted/40",
+        blocked
+          ? "border-red-300 bg-red-50 text-red-950 dark:border-red-800 dark:bg-red-950/40 dark:text-red-100"
+          : warning
+            ? "border-amber-300 bg-amber-50 text-amber-950 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100"
+            : "border-border bg-muted/40",
       )}
     >
-      <p className="font-medium">集計の検算（月次と突き合わせてください）</p>
+      <p className="font-medium">
+        {blocked
+          ? data.responseCountMismatch
+            ? "集計の検算（ランキングは件数不一致のため非表示）"
+            : "集計の検算（ランキングは取得失敗のため非表示）"
+          : "集計の検算（月次と突き合わせてください）"}
+      </p>
       <ul className="list-disc space-y-1 pl-5 text-muted-foreground dark:text-current/80">
         <li>
           回答行数: 取得 {data.responseRowCount}件
@@ -183,13 +220,26 @@ function QuarterlyIntegrityPanel({
             ? ` / DB件数 ${data.dbResponseCount}件`
             : ""}
           {data.responseCountMismatch
-            ? " — 件数が一致しません。再読み込みしてください"
+            ? " — 件数が一致しません。集計結果は表示しません"
             : " — 一致"}
         </li>
         <li>
-          指名票: 四半期合計 {data.nominationVoteCount}票 = 月次合計{" "}
+          指名票: 四半期合計 {data.nominationVoteCount}票 = 月次内訳合計{" "}
           {data.monthlyNominationSum}票
           {data.checksumOk ? " — 検算OK" : " — 検算不一致"}
+        </li>
+        <li>
+          月次3カ月分の再取得:{" "}
+          {data.independentMonthlyRowCount != null
+            ? `回答 ${data.independentMonthlyRowCount}件 / 指名票 ${data.independentMonthlyNominationSum ?? 0}票`
+            : data.monthlyCrossCheckWarning
+              ? "再取得失敗"
+              : "照合なし"}
+          {data.independentMonthlyRowCount != null && data.monthlyCrossCheckOk
+            ? " — 四半期と一致"
+            : data.monthlyCrossCheckWarning
+              ? ` — 警告: ${data.monthlyCrossCheckWarning}`
+              : ""}
         </li>
         <li>
           期限内 {data.onTimeNominationVoteCount}票 / 期限後{" "}

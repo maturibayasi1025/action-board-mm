@@ -4,9 +4,12 @@ import {
   type AwardQuarter,
   type AwardQuarterGroupRanking,
   type AwardQuarterMonthBreakdown,
+  type AwardQuarterRankingComment,
   type AwardQuarterRankingRow,
+  type AwardQuarterSelfEvalComment,
   type AwardQuarterlyRankingResult,
 } from "@/app/(protected)/admin/award-surveys/quarterly-ranking-model";
+import { SELF_EVAL_QUESTION_IDS } from "@/lib/admin/export-award-self-eval";
 
 const NOMINATION_GROUP_SET = new Set<string>(AWARD_QUESTION_GROUP_ORDER);
 const UNMATCHED_FALLBACK_NAME = "未突合";
@@ -189,6 +192,140 @@ export function takeTopNWithTies<T extends { votes: number }>(
   return rows.filter((row) => row.votes >= cutoff).slice(0, maxRows);
 }
 
+export function pickReasonQuestionForNomination(
+  masterQuestions: AwardNominationQuestion[],
+  nominationQuestion: AwardNominationQuestion,
+): AwardNominationQuestion | undefined {
+  return masterQuestions
+    .filter(
+      (question) =>
+        question.question_group === nominationQuestion.question_group &&
+        question.is_active &&
+        question.question_type === "textarea" &&
+        question.display_order > nominationQuestion.display_order,
+    )
+    .sort((a, b) => a.display_order - b.display_order)[0];
+}
+
+export function collectNominationComments(input: {
+  responses: AwardNominationResponse[];
+  nominationQuestion: AwardNominationQuestion;
+  reasonQuestion: AwardNominationQuestion | undefined;
+  nomineeKey: string;
+  userNameById: Map<string, string>;
+}): AwardQuarterRankingComment[] {
+  const nameIndex = buildNormalizedNameIndex(input.userNameById);
+  const reasonByVoter = new Map<string, string>();
+  if (input.reasonQuestion) {
+    for (const response of input.responses) {
+      if (response.question_id !== input.reasonQuestion.id) continue;
+      const comment = response.text_value?.trim();
+      if (!comment) continue;
+      reasonByVoter.set(voterCommentKey(response), comment);
+    }
+  }
+
+  const comments: AwardQuarterRankingComment[] = [];
+  for (const response of input.responses) {
+    if (response.question_id !== input.nominationQuestion.id) continue;
+    const nominee = resolveNominee(
+      response,
+      input.nominationQuestion,
+      input.userNameById,
+      nameIndex,
+    );
+    if (!nominee || nominee.key !== input.nomineeKey) continue;
+    comments.push({
+      recommenderName:
+        (response.user_id && input.userNameById.get(response.user_id)) ||
+        "不明",
+      comment: reasonByVoter.get(voterCommentKey(response)) ?? "",
+      yearMonth: response.year_month ?? null,
+      isLate: Boolean(response.is_late_submission),
+    });
+  }
+
+  return comments.sort((a, b) => {
+    const monthCmp = (a.yearMonth ?? "").localeCompare(b.yearMonth ?? "");
+    if (monthCmp !== 0) {
+      return monthCmp;
+    }
+    if (a.isLate !== b.isLate) {
+      return a.isLate ? 1 : -1;
+    }
+    return a.recommenderName.localeCompare(b.recommenderName, "ja");
+  });
+}
+
+function voterCommentKey(response: AwardNominationResponse): string {
+  return `${response.survey_id ?? ""}:${response.user_id ?? ""}`;
+}
+
+export function pickSelfEvalQuestionForGroup(
+  masterQuestions: AwardNominationQuestion[],
+  group: string,
+): AwardNominationQuestion | undefined {
+  if (group in SELF_EVAL_QUESTION_IDS) {
+    const knownId =
+      SELF_EVAL_QUESTION_IDS[group as keyof typeof SELF_EVAL_QUESTION_IDS];
+    const byId = masterQuestions.find(
+      (question) => question.id === knownId && question.is_active,
+    );
+    if (byId) {
+      return byId;
+    }
+  }
+
+  const nominationQuestion = pickNominationQuestionForGroup(
+    masterQuestions,
+    group,
+  );
+  return masterQuestions
+    .filter(
+      (question) =>
+        question.question_group === group &&
+        question.is_active &&
+        question.question_type === "textarea" &&
+        (nominationQuestion == null ||
+          question.display_order < nominationQuestion.display_order),
+    )
+    .sort((a, b) => a.display_order - b.display_order)[0];
+}
+
+export function collectSelfEvalComments(input: {
+  responses: AwardNominationResponse[];
+  selfEvalQuestion: AwardNominationQuestion | undefined;
+  nomineeUserId: string | null;
+}): AwardQuarterSelfEvalComment[] {
+  if (!input.selfEvalQuestion || !input.nomineeUserId) {
+    return [];
+  }
+
+  const comments: AwardQuarterSelfEvalComment[] = [];
+  for (const response of input.responses) {
+    if (response.question_id !== input.selfEvalQuestion.id) continue;
+    if (response.user_id !== input.nomineeUserId) continue;
+    const comment = response.text_value?.trim();
+    if (!comment) continue;
+    comments.push({
+      yearMonth: response.year_month ?? null,
+      comment,
+      isLate: Boolean(response.is_late_submission),
+    });
+  }
+
+  return comments.sort((a, b) => {
+    const monthCmp = (a.yearMonth ?? "").localeCompare(b.yearMonth ?? "");
+    if (monthCmp !== 0) {
+      return monthCmp;
+    }
+    if (a.isLate !== b.isLate) {
+      return a.isLate ? 1 : -1;
+    }
+    return 0;
+  });
+}
+
 export function aggregateNominationsForQuestion(
   responses: AwardNominationResponse[],
   question: AwardNominationQuestion,
@@ -289,6 +426,33 @@ export type AwardResponseForRanking = {
   is_late_submission: boolean | null;
 };
 
+export function attachSurveyMonth(
+  responses: AwardResponseForRanking[],
+  surveyById: Map<string, AwardSurveyForRanking>,
+): AwardNominationResponse[] {
+  return responses.map((response) => ({
+    ...response,
+    year_month: surveyById.get(response.survey_id)?.year_month,
+  }));
+}
+
+export function countNominationVotes(
+  responses: AwardNominationResponse[],
+  nominationQuestionById: Map<string, AwardNominationQuestion>,
+  userNameById: Map<string, string>,
+): number {
+  const nameIndex = buildNormalizedNameIndex(userNameById);
+  let total = 0;
+  for (const response of responses) {
+    const question = nominationQuestionById.get(response.question_id);
+    if (!question) continue;
+    if (resolveNominee(response, question, userNameById, nameIndex)) {
+      total += 1;
+    }
+  }
+  return total;
+}
+
 export function buildAwardQuarterlyRanking(input: {
   year: number;
   quarter: AwardQuarter;
@@ -299,6 +463,12 @@ export function buildAwardQuarterlyRanking(input: {
   responses: AwardResponseForRanking[];
   userNameById: Map<string, string>;
   dbResponseCount: number | null;
+  loadError?: string | null;
+  /**
+   * 月次画面と同じく survey 単位で取り直した回答。
+   * undefined: 照合しない / null: 再取得失敗
+   */
+  independentMonthlyResponses?: AwardResponseForRanking[] | null;
 }): AwardQuarterlyRankingResult {
   const { label } = input;
   const surveyById = new Map(
@@ -309,12 +479,7 @@ export function buildAwardQuarterlyRanking(input: {
     (yearMonth) => !foundMonths.has(yearMonth),
   );
 
-  const responsesWithMonth: AwardNominationResponse[] = input.responses.map(
-    (response) => ({
-      ...response,
-      year_month: surveyById.get(response.survey_id)?.year_month,
-    }),
-  );
+  const responsesWithMonth = attachSurveyMonth(input.responses, surveyById);
 
   const nominationQuestionById = new Map<string, AwardNominationQuestion>();
   for (const group of AWARD_QUESTION_GROUP_ORDER) {
@@ -408,10 +573,34 @@ export function buildAwardQuarterlyRanking(input: {
         question,
         input.userNameById,
       );
+      const reasonQuestion = pickReasonQuestionForNomination(
+        input.questions,
+        question,
+      );
+      const selfEvalQuestion = pickSelfEvalQuestionForGroup(
+        input.questions,
+        group,
+      );
       return {
         group,
         label: AWARD_QUESTION_GROUP_LABELS[group] ?? group,
-        rows: aggregate.topRows.map(toRankingRow),
+        rows: aggregate.topRows.map((row) =>
+          toRankingRow(
+            row,
+            collectNominationComments({
+              responses: responsesWithMonth,
+              nominationQuestion: question,
+              reasonQuestion,
+              nomineeKey: row.key,
+              userNameById: input.userNameById,
+            }),
+            collectSelfEvalComments({
+              responses: responsesWithMonth,
+              selfEvalQuestion,
+              nomineeUserId: row.nominee_user_id,
+            }),
+          ),
+        ),
         totalVotes: aggregate.totalVotes,
         unmatchedVotes: aggregate.unmatchedVotes,
       };
@@ -445,6 +634,32 @@ export function buildAwardQuarterlyRanking(input: {
       .filter((userId): userId is string => typeof userId === "string"),
   ).size;
 
+  const checksumOk = monthlyNominationSum === nominationVoteCount;
+  const responseCountMismatch =
+    input.dbResponseCount != null &&
+    input.dbResponseCount !== input.responses.length;
+
+  const rankingBlockedReason = resolveRankingBlockedReason({
+    loadError: input.loadError,
+    responseCountMismatch,
+    fetchedCount: input.responses.length,
+    dbResponseCount: input.dbResponseCount,
+  });
+  const rankingBlocked = rankingBlockedReason != null;
+
+  const monthlyCrossCheck = resolveMonthlyCrossCheck({
+    independentMonthlyResponses: input.independentMonthlyResponses,
+    quarterlyRowCount: input.responses.length,
+    quarterlyNominationVoteCount: nominationVoteCount,
+    nominationQuestionById,
+    userNameById: input.userNameById,
+    surveyById,
+  });
+
+  const groupsForDisplay = rankingBlocked
+    ? groups.map((group) => ({ ...group, rows: [] }))
+    : groups;
+
   return {
     year: input.year,
     quarter: input.quarter,
@@ -460,17 +675,108 @@ export function buildAwardQuarterlyRanking(input: {
     onTimeNominationVoteCount,
     lateNominationVoteCount,
     monthlyNominationSum,
-    checksumOk: monthlyNominationSum === nominationVoteCount,
-    responseCountMismatch:
-      input.dbResponseCount != null &&
-      input.dbResponseCount !== input.responses.length,
+    checksumOk,
+    responseCountMismatch,
+    rankingBlocked,
+    rankingBlockedReason,
+    monthlyCrossCheckOk: monthlyCrossCheck.ok,
+    independentMonthlyRowCount: monthlyCrossCheck.independentRowCount,
+    independentMonthlyNominationSum: monthlyCrossCheck.independentNominationSum,
+    monthlyCrossCheckWarning: monthlyCrossCheck.warning,
     months,
-    groups,
+    groups: groupsForDisplay,
     nominationQuestionCount: nominationQuestionIds.size,
   };
 }
 
-function toRankingRow(row: NominationTallyRow): AwardQuarterRankingRow {
+function resolveRankingBlockedReason(input: {
+  loadError?: string | null;
+  responseCountMismatch: boolean;
+  fetchedCount: number;
+  dbResponseCount: number | null;
+}): string | null {
+  if (input.loadError) {
+    return input.loadError;
+  }
+  if (input.responseCountMismatch) {
+    return `取得件数（${input.fetchedCount}件）が元データ件数（${input.dbResponseCount}件）と一致しないため、集計結果は表示しません。再読み込みするか、開発者に連絡してください。`;
+  }
+  return null;
+}
+
+function resolveMonthlyCrossCheck(input: {
+  independentMonthlyResponses?: AwardResponseForRanking[] | null;
+  quarterlyRowCount: number;
+  quarterlyNominationVoteCount: number;
+  nominationQuestionById: Map<string, AwardNominationQuestion>;
+  userNameById: Map<string, string>;
+  surveyById: Map<string, AwardSurveyForRanking>;
+}): {
+  ok: boolean;
+  independentRowCount: number | null;
+  independentNominationSum: number | null;
+  warning: string | null;
+} {
+  if (input.independentMonthlyResponses === undefined) {
+    return {
+      ok: true,
+      independentRowCount: null,
+      independentNominationSum: null,
+      warning: null,
+    };
+  }
+  if (input.independentMonthlyResponses === null) {
+    return {
+      ok: false,
+      independentRowCount: null,
+      independentNominationSum: null,
+      warning:
+        "月次アンケートごとの再取得に失敗したため、四半期集計との照合ができません。",
+    };
+  }
+
+  const independentRowCount = input.independentMonthlyResponses.length;
+  const independentNominationSum = countNominationVotes(
+    attachSurveyMonth(input.independentMonthlyResponses, input.surveyById),
+    input.nominationQuestionById,
+    input.userNameById,
+  );
+  const rowCountMatch = independentRowCount === input.quarterlyRowCount;
+  const voteCountMatch =
+    independentNominationSum === input.quarterlyNominationVoteCount;
+  if (rowCountMatch && voteCountMatch) {
+    return {
+      ok: true,
+      independentRowCount,
+      independentNominationSum,
+      warning: null,
+    };
+  }
+
+  const parts: string[] = [];
+  if (!rowCountMatch) {
+    parts.push(
+      `回答行数 四半期一括 ${input.quarterlyRowCount}件 / 月次再取得 ${independentRowCount}件`,
+    );
+  }
+  if (!voteCountMatch) {
+    parts.push(
+      `指名票 四半期合計 ${input.quarterlyNominationVoteCount}票 / 月次3カ月分 ${independentNominationSum}票`,
+    );
+  }
+  return {
+    ok: false,
+    independentRowCount,
+    independentNominationSum,
+    warning: `四半期集計と月次3カ月分の再取得が一致しません（${parts.join("、")}）。`,
+  };
+}
+
+function toRankingRow(
+  row: NominationTallyRow,
+  comments: AwardQuarterRankingComment[],
+  selfEvalComments: AwardQuarterSelfEvalComment[],
+): AwardQuarterRankingRow {
   return {
     key: row.key,
     name: row.name,
@@ -479,6 +785,9 @@ function toRankingRow(row: NominationTallyRow): AwardQuarterRankingRow {
     lateVotes: row.lateVotes,
     unmatched: row.unmatched,
     votesByMonth: row.votesByMonth,
+    comments,
+    selfEvalComments,
+    selfEvalAvailable: row.nominee_user_id != null,
   };
 }
 
@@ -487,6 +796,7 @@ export function emptyAwardQuarterlyRankingResult(
   quarter: AwardQuarter,
   label: string,
   expectedYearMonths: string[],
+  loadError?: string,
 ): AwardQuarterlyRankingResult {
   return buildAwardQuarterlyRanking({
     year,
@@ -497,6 +807,7 @@ export function emptyAwardQuarterlyRankingResult(
     questions: [],
     responses: [],
     userNameById: new Map(),
-    dbResponseCount: 0,
+    dbResponseCount: loadError ? null : 0,
+    loadError,
   });
 }

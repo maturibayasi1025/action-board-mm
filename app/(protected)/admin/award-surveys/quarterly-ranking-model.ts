@@ -14,6 +14,19 @@ export type AwardQuarterOption = {
   label: string;
 };
 
+export type AwardQuarterRankingComment = {
+  recommenderName: string;
+  comment: string;
+  yearMonth: string | null;
+  isLate: boolean;
+};
+
+export type AwardQuarterSelfEvalComment = {
+  yearMonth: string | null;
+  comment: string;
+  isLate: boolean;
+};
+
 export type AwardQuarterRankingRow = {
   key: string;
   name: string;
@@ -22,6 +35,9 @@ export type AwardQuarterRankingRow = {
   lateVotes: number;
   unmatched: boolean;
   votesByMonth: Record<string, number>;
+  comments: AwardQuarterRankingComment[];
+  selfEvalComments: AwardQuarterSelfEvalComment[];
+  selfEvalAvailable: boolean;
 };
 
 export type AwardQuarterGroupRanking = {
@@ -61,6 +77,14 @@ export type AwardQuarterlyRankingResult = {
   monthlyNominationSum: number;
   checksumOk: boolean;
   responseCountMismatch: boolean;
+  /** 取得件数と DB 件数が一致しない、または取得失敗。true のときはランキング行を出さない */
+  rankingBlocked: boolean;
+  rankingBlockedReason: string | null;
+  /** 四半期一括取得と、月次アンケートごとの再取得の合計が一致するか */
+  monthlyCrossCheckOk: boolean;
+  independentMonthlyRowCount: number | null;
+  independentMonthlyNominationSum: number | null;
+  monthlyCrossCheckWarning: string | null;
   months: AwardQuarterMonthBreakdown[];
   groups: AwardQuarterGroupRanking[];
   nominationQuestionCount: number;
