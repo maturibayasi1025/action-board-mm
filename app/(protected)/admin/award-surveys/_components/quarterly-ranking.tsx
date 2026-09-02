@@ -108,7 +108,7 @@ export function QuarterlyRanking({ data }: QuarterlyRankingProps) {
                   <CardTitle className="text-lg">{group.label}</CardTitle>
                   <CardDescription>
                     指名票数
-                    上位5名（同票は同順位。期限内・期限後を含む）。コメントは閉じてあり、押すと開きます。
+                    上位5名（同票は同順位。期限内・期限後を含む）。寄せられたコメントと自己評価は閉じてあり、押すと開きます。
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -162,6 +162,8 @@ export function QuarterlyRanking({ data }: QuarterlyRankingProps) {
                             </p>
                             <QuarterlyRankingComments
                               comments={row.comments}
+                              selfEvalComments={row.selfEvalComments}
+                              selfEvalAvailable={row.selfEvalAvailable}
                               nomineeName={row.name}
                             />
                           </li>

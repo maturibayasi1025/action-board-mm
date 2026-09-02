@@ -6,8 +6,10 @@ import {
   type AwardQuarterMonthBreakdown,
   type AwardQuarterRankingComment,
   type AwardQuarterRankingRow,
+  type AwardQuarterSelfEvalComment,
   type AwardQuarterlyRankingResult,
 } from "@/app/(protected)/admin/award-surveys/quarterly-ranking-model";
+import { SELF_EVAL_QUESTION_IDS } from "@/lib/admin/export-award-self-eval";
 
 const NOMINATION_GROUP_SET = new Set<string>(AWARD_QUESTION_GROUP_ORDER);
 const UNMATCHED_FALLBACK_NAME = "未突合";
@@ -257,6 +259,71 @@ export function collectNominationComments(input: {
 
 function voterCommentKey(response: AwardNominationResponse): string {
   return `${response.survey_id ?? ""}:${response.user_id ?? ""}`;
+}
+
+export function pickSelfEvalQuestionForGroup(
+  masterQuestions: AwardNominationQuestion[],
+  group: string,
+): AwardNominationQuestion | undefined {
+  if (group in SELF_EVAL_QUESTION_IDS) {
+    const knownId =
+      SELF_EVAL_QUESTION_IDS[group as keyof typeof SELF_EVAL_QUESTION_IDS];
+    const byId = masterQuestions.find(
+      (question) => question.id === knownId && question.is_active,
+    );
+    if (byId) {
+      return byId;
+    }
+  }
+
+  const nominationQuestion = pickNominationQuestionForGroup(
+    masterQuestions,
+    group,
+  );
+  return masterQuestions
+    .filter(
+      (question) =>
+        question.question_group === group &&
+        question.is_active &&
+        question.question_type === "textarea" &&
+        (nominationQuestion == null ||
+          question.display_order < nominationQuestion.display_order),
+    )
+    .sort((a, b) => a.display_order - b.display_order)[0];
+}
+
+export function collectSelfEvalComments(input: {
+  responses: AwardNominationResponse[];
+  selfEvalQuestion: AwardNominationQuestion | undefined;
+  nomineeUserId: string | null;
+}): AwardQuarterSelfEvalComment[] {
+  if (!input.selfEvalQuestion || !input.nomineeUserId) {
+    return [];
+  }
+
+  const comments: AwardQuarterSelfEvalComment[] = [];
+  for (const response of input.responses) {
+    if (response.question_id !== input.selfEvalQuestion.id) continue;
+    if (response.user_id !== input.nomineeUserId) continue;
+    const comment = response.text_value?.trim();
+    if (!comment) continue;
+    comments.push({
+      yearMonth: response.year_month ?? null,
+      comment,
+      isLate: Boolean(response.is_late_submission),
+    });
+  }
+
+  return comments.sort((a, b) => {
+    const monthCmp = (a.yearMonth ?? "").localeCompare(b.yearMonth ?? "");
+    if (monthCmp !== 0) {
+      return monthCmp;
+    }
+    if (a.isLate !== b.isLate) {
+      return a.isLate ? 1 : -1;
+    }
+    return 0;
+  });
 }
 
 export function aggregateNominationsForQuestion(
@@ -510,6 +577,10 @@ export function buildAwardQuarterlyRanking(input: {
         input.questions,
         question,
       );
+      const selfEvalQuestion = pickSelfEvalQuestionForGroup(
+        input.questions,
+        group,
+      );
       return {
         group,
         label: AWARD_QUESTION_GROUP_LABELS[group] ?? group,
@@ -522,6 +593,11 @@ export function buildAwardQuarterlyRanking(input: {
               reasonQuestion,
               nomineeKey: row.key,
               userNameById: input.userNameById,
+            }),
+            collectSelfEvalComments({
+              responses: responsesWithMonth,
+              selfEvalQuestion,
+              nomineeUserId: row.nominee_user_id,
             }),
           ),
         ),
@@ -699,6 +775,7 @@ function resolveMonthlyCrossCheck(input: {
 function toRankingRow(
   row: NominationTallyRow,
   comments: AwardQuarterRankingComment[],
+  selfEvalComments: AwardQuarterSelfEvalComment[],
 ): AwardQuarterRankingRow {
   return {
     key: row.key,
@@ -709,6 +786,8 @@ function toRankingRow(
     unmatched: row.unmatched,
     votesByMonth: row.votesByMonth,
     comments,
+    selfEvalComments,
+    selfEvalAvailable: row.nominee_user_id != null,
   };
 }
 

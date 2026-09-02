@@ -1,9 +1,12 @@
+import { SELF_EVAL_QUESTION_IDS } from "@/lib/admin/export-award-self-eval";
 import {
   aggregateNominationsForQuestion,
   buildAwardQuarterlyRanking,
   collectNominationComments,
+  collectSelfEvalComments,
   normalizeNomineeName,
   pickReasonQuestionForNomination,
+  pickSelfEvalQuestionForGroup,
   takeTopNWithTies,
 } from "@/lib/award/nomination-ranking";
 import {
@@ -547,6 +550,121 @@ describe("四半期ランキングの推薦コメント", () => {
         isLate: false,
       },
     ]);
+  });
+
+  it("上位本人の自己評価を月ごとに返し、他人の自己評価は混ぜない", () => {
+    const selfEvalQuestion = {
+      id: SELF_EVAL_QUESTION_IDS.passionate_execution,
+      question_text: "自分のエピソード",
+      question_type: "textarea",
+      question_group: "passionate_execution",
+      display_order: 0,
+      is_active: true,
+    };
+    expect(
+      pickSelfEvalQuestionForGroup(
+        [selfEvalQuestion, ...questions],
+        "passionate_execution",
+      )?.id,
+    ).toBe(SELF_EVAL_QUESTION_IDS.passionate_execution);
+
+    const result = buildAwardQuarterlyRanking({
+      year: 2026,
+      quarter: 2,
+      label: "Q2",
+      expectedYearMonths: ["2026-06", "2026-07", "2026-08"],
+      surveys: [
+        { id: "s6", year_month: "2026-06", title: "6月" },
+        { id: "s7", year_month: "2026-07", title: "7月" },
+      ],
+      questions: [selfEvalQuestion, ...questions],
+      responses: [
+        {
+          survey_id: "s6",
+          question_id: "q1",
+          user_id: "voter1",
+          text_value: null,
+          nominee_user_id: "u1",
+          is_late_submission: false,
+        },
+        {
+          survey_id: "s6",
+          question_id: SELF_EVAL_QUESTION_IDS.passionate_execution,
+          user_id: "u1",
+          text_value: "6月は自分でやり切った",
+          nominee_user_id: null,
+          is_late_submission: false,
+        },
+        {
+          survey_id: "s7",
+          question_id: SELF_EVAL_QUESTION_IDS.passionate_execution,
+          user_id: "u1",
+          text_value: "7月も挑戦した",
+          nominee_user_id: null,
+          is_late_submission: true,
+        },
+        {
+          survey_id: "s6",
+          question_id: SELF_EVAL_QUESTION_IDS.passionate_execution,
+          user_id: "u2",
+          text_value: "別人の自己評価",
+          nominee_user_id: null,
+          is_late_submission: false,
+        },
+      ],
+      userNameById: new Map([
+        ["u1", "高橋聖"],
+        ["u2", "猪狩俊"],
+        ["voter1", "推薦者A"],
+      ]),
+      dbResponseCount: 4,
+    });
+
+    const passionate = result.groups.find(
+      (group) => group.group === "passionate_execution",
+    );
+    expect(passionate?.rows[0]).toMatchObject({
+      name: "高橋聖",
+      selfEvalAvailable: true,
+    });
+    expect(passionate?.rows[0].selfEvalComments).toEqual([
+      {
+        yearMonth: "2026-06",
+        comment: "6月は自分でやり切った",
+        isLate: false,
+      },
+      {
+        yearMonth: "2026-07",
+        comment: "7月も挑戦した",
+        isLate: true,
+      },
+    ]);
+  });
+
+  it("user_id がない指名には自己評価を付けない", () => {
+    const comments = collectSelfEvalComments({
+      responses: [
+        {
+          question_id: SELF_EVAL_QUESTION_IDS.passionate_execution,
+          text_value: "自己評価",
+          nominee_user_id: null,
+          survey_id: "s6",
+          user_id: "u1",
+          year_month: "2026-06",
+          is_late_submission: false,
+        },
+      ],
+      selfEvalQuestion: {
+        id: SELF_EVAL_QUESTION_IDS.passionate_execution,
+        question_text: "自分のエピソード",
+        question_type: "textarea",
+        question_group: "passionate_execution",
+        display_order: 0,
+        is_active: true,
+      },
+      nomineeUserId: null,
+    });
+    expect(comments).toEqual([]);
   });
 
   it("コメントが空でも推薦者は残す", () => {
