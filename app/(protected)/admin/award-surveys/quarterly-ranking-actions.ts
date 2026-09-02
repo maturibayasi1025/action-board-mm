@@ -112,7 +112,6 @@ export async function getAwardQuarterlyNominationRanking(
       userNameById: new Map(),
       dbResponseCount: null,
       loadError,
-      independentMonthlyResponses: null,
     });
 
   if (surveyIds.length === 0) {

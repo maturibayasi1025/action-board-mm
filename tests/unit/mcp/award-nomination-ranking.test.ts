@@ -277,6 +277,52 @@ describe("buildAwardQuarterlyRanking checksum", () => {
     expect(result.groups.every((group) => group.rows.length === 0)).toBe(true);
   });
 
+  it("取得失敗時に月次再取得を渡さなければ照合警告を出さない", () => {
+    const result = buildAwardQuarterlyRanking({
+      year: 2026,
+      quarter: 2,
+      label: "Q2",
+      expectedYearMonths: ["2026-06", "2026-07", "2026-08"],
+      surveys: [{ id: "s6", year_month: "2026-06", title: "6月" }],
+      questions: [],
+      responses: [],
+      userNameById: new Map(),
+      dbResponseCount: null,
+      loadError: "四半期設問の取得に失敗したため、集計結果は表示しません。",
+    });
+    expect(result.rankingBlocked).toBe(true);
+    expect(result.responseCountMismatch).toBe(false);
+    expect(result.monthlyCrossCheckOk).toBe(true);
+    expect(result.monthlyCrossCheckWarning).toBeNull();
+  });
+
+  it("月次再取得そのものが失敗したときだけ照合警告を出す", () => {
+    const result = buildAwardQuarterlyRanking({
+      year: 2026,
+      quarter: 2,
+      label: "Q2",
+      expectedYearMonths: ["2026-06", "2026-07", "2026-08"],
+      surveys: [{ id: "s6", year_month: "2026-06", title: "6月" }],
+      questions,
+      responses: [
+        {
+          survey_id: "s6",
+          question_id: "q1",
+          user_id: "voter1",
+          text_value: null,
+          nominee_user_id: "u1",
+          is_late_submission: false,
+        },
+      ],
+      userNameById: new Map([["u1", "高橋聖"]]),
+      dbResponseCount: 1,
+      independentMonthlyResponses: null,
+    });
+    expect(result.rankingBlocked).toBe(false);
+    expect(result.monthlyCrossCheckOk).toBe(false);
+    expect(result.monthlyCrossCheckWarning).toMatch(/再取得に失敗/);
+  });
+
   it("月次再取得の指名票が四半期と違うと警告し、ランキングは残す", () => {
     const quarterlyResponses = [
       {

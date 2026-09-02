@@ -83,7 +83,7 @@ export function QuarterlyRanking({ data }: QuarterlyRankingProps) {
         </div>
       )}
 
-      {(data.surveyCount > 0 || data.rankingBlocked) && (
+      {data.surveyCount > 0 && (
         <QuarterlyIntegrityPanel
           data={data}
           warning={hasIntegrityIssue}
@@ -200,7 +200,9 @@ function QuarterlyIntegrityPanel({
     >
       <p className="font-medium">
         {blocked
-          ? "集計の検算（ランキングは件数不一致のため非表示）"
+          ? data.responseCountMismatch
+            ? "集計の検算（ランキングは件数不一致のため非表示）"
+            : "集計の検算（ランキングは取得失敗のため非表示）"
           : "集計の検算（月次と突き合わせてください）"}
       </p>
       <ul className="list-disc space-y-1 pl-5 text-muted-foreground dark:text-current/80">
