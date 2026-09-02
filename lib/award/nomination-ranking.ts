@@ -4,6 +4,7 @@ import {
   type AwardQuarter,
   type AwardQuarterGroupRanking,
   type AwardQuarterMonthBreakdown,
+  type AwardQuarterRankingComment,
   type AwardQuarterRankingRow,
   type AwardQuarterlyRankingResult,
 } from "@/app/(protected)/admin/award-surveys/quarterly-ranking-model";
@@ -187,6 +188,75 @@ export function takeTopNWithTies<T extends { votes: number }>(
   }
   const cutoff = rows[n - 1].votes;
   return rows.filter((row) => row.votes >= cutoff).slice(0, maxRows);
+}
+
+export function pickReasonQuestionForNomination(
+  masterQuestions: AwardNominationQuestion[],
+  nominationQuestion: AwardNominationQuestion,
+): AwardNominationQuestion | undefined {
+  return masterQuestions
+    .filter(
+      (question) =>
+        question.question_group === nominationQuestion.question_group &&
+        question.is_active &&
+        question.question_type === "textarea" &&
+        question.display_order > nominationQuestion.display_order,
+    )
+    .sort((a, b) => a.display_order - b.display_order)[0];
+}
+
+export function collectNominationComments(input: {
+  responses: AwardNominationResponse[];
+  nominationQuestion: AwardNominationQuestion;
+  reasonQuestion: AwardNominationQuestion | undefined;
+  nomineeKey: string;
+  userNameById: Map<string, string>;
+}): AwardQuarterRankingComment[] {
+  const nameIndex = buildNormalizedNameIndex(input.userNameById);
+  const reasonByVoter = new Map<string, string>();
+  if (input.reasonQuestion) {
+    for (const response of input.responses) {
+      if (response.question_id !== input.reasonQuestion.id) continue;
+      const comment = response.text_value?.trim();
+      if (!comment) continue;
+      reasonByVoter.set(voterCommentKey(response), comment);
+    }
+  }
+
+  const comments: AwardQuarterRankingComment[] = [];
+  for (const response of input.responses) {
+    if (response.question_id !== input.nominationQuestion.id) continue;
+    const nominee = resolveNominee(
+      response,
+      input.nominationQuestion,
+      input.userNameById,
+      nameIndex,
+    );
+    if (!nominee || nominee.key !== input.nomineeKey) continue;
+    comments.push({
+      recommenderName:
+        (response.user_id && input.userNameById.get(response.user_id)) ||
+        "不明",
+      comment: reasonByVoter.get(voterCommentKey(response)) ?? "",
+      yearMonth: response.year_month ?? null,
+      isLate: Boolean(response.is_late_submission),
+    });
+  }
+
+  return comments.sort((a, b) => {
+    const monthCmp = (a.yearMonth ?? "").localeCompare(b.yearMonth ?? "");
+    if (monthCmp !== 0) {
+      return monthCmp;
+    }
+    if (a.isLate !== b.isLate) {
+      return a.isLate ? 1 : -1;
+    }
+    return a.recommenderName.localeCompare(b.recommenderName, "ja");
+  });
+}
+
+function voterCommentKey(response: AwardNominationResponse): string {
+  return `${response.survey_id ?? ""}:${response.user_id ?? ""}`;
 }
 
 export function aggregateNominationsForQuestion(
@@ -436,10 +506,25 @@ export function buildAwardQuarterlyRanking(input: {
         question,
         input.userNameById,
       );
+      const reasonQuestion = pickReasonQuestionForNomination(
+        input.questions,
+        question,
+      );
       return {
         group,
         label: AWARD_QUESTION_GROUP_LABELS[group] ?? group,
-        rows: aggregate.topRows.map(toRankingRow),
+        rows: aggregate.topRows.map((row) =>
+          toRankingRow(
+            row,
+            collectNominationComments({
+              responses: responsesWithMonth,
+              nominationQuestion: question,
+              reasonQuestion,
+              nomineeKey: row.key,
+              userNameById: input.userNameById,
+            }),
+          ),
+        ),
         totalVotes: aggregate.totalVotes,
         unmatchedVotes: aggregate.unmatchedVotes,
       };
@@ -611,7 +696,10 @@ function resolveMonthlyCrossCheck(input: {
   };
 }
 
-function toRankingRow(row: NominationTallyRow): AwardQuarterRankingRow {
+function toRankingRow(
+  row: NominationTallyRow,
+  comments: AwardQuarterRankingComment[],
+): AwardQuarterRankingRow {
   return {
     key: row.key,
     name: row.name,
@@ -620,6 +708,7 @@ function toRankingRow(row: NominationTallyRow): AwardQuarterRankingRow {
     lateVotes: row.lateVotes,
     unmatched: row.unmatched,
     votesByMonth: row.votesByMonth,
+    comments,
   };
 }
 

@@ -1,7 +1,9 @@
 import {
   aggregateNominationsForQuestion,
   buildAwardQuarterlyRanking,
+  collectNominationComments,
   normalizeNomineeName,
+  pickReasonQuestionForNomination,
   takeTopNWithTies,
 } from "@/lib/award/nomination-ranking";
 import {
@@ -399,6 +401,183 @@ describe("buildAwardQuarterlyRanking checksum", () => {
     expect(result.monthlyCrossCheckOk).toBe(true);
     expect(result.monthlyCrossCheckWarning).toBeNull();
     expect(result.rankingBlocked).toBe(false);
+  });
+});
+
+describe("四半期ランキングの推薦コメント", () => {
+  const reasonQuestion = {
+    id: "q1-reason",
+    question_text: "理由を書いてください",
+    question_type: "textarea",
+    question_group: "passionate_execution",
+    display_order: 2,
+    is_active: true,
+  };
+  const questions = [
+    question,
+    reasonQuestion,
+    {
+      id: "q2",
+      question_text: "至高",
+      question_type: "user_select",
+      question_group: "supreme_relations",
+      display_order: 3,
+      is_active: true,
+    },
+    {
+      id: "q3",
+      question_text: "循環",
+      question_type: "user_select",
+      question_group: "happiness_cycle",
+      display_order: 4,
+      is_active: true,
+    },
+    {
+      id: "q4",
+      question_text: "チーム",
+      question_type: "text",
+      question_group: "team_value",
+      display_order: 5,
+      is_active: true,
+    },
+  ];
+
+  it("指名の直後の textarea を理由設問として選ぶ", () => {
+    const picked = pickReasonQuestionForNomination(questions, question);
+    expect(picked?.id).toBe("q1-reason");
+  });
+
+  it("上位の寄せられたコメントを月・期限後つきで返す", () => {
+    const result = buildAwardQuarterlyRanking({
+      year: 2026,
+      quarter: 2,
+      label: "Q2",
+      expectedYearMonths: ["2026-06", "2026-07", "2026-08"],
+      surveys: [
+        { id: "s6", year_month: "2026-06", title: "6月" },
+        { id: "s7", year_month: "2026-07", title: "7月" },
+      ],
+      questions,
+      responses: [
+        {
+          survey_id: "s6",
+          question_id: "q1",
+          user_id: "voter1",
+          text_value: null,
+          nominee_user_id: "u1",
+          is_late_submission: false,
+        },
+        {
+          survey_id: "s6",
+          question_id: "q1-reason",
+          user_id: "voter1",
+          text_value: "粘り強くやり切った",
+          nominee_user_id: null,
+          is_late_submission: false,
+        },
+        {
+          survey_id: "s7",
+          question_id: "q1",
+          user_id: "voter2",
+          text_value: null,
+          nominee_user_id: "u1",
+          is_late_submission: true,
+        },
+        {
+          survey_id: "s7",
+          question_id: "q1-reason",
+          user_id: "voter2",
+          text_value: "期限後でも応援したい",
+          nominee_user_id: null,
+          is_late_submission: true,
+        },
+        {
+          survey_id: "s6",
+          question_id: "q1",
+          user_id: "voter3",
+          text_value: null,
+          nominee_user_id: "u2",
+          is_late_submission: false,
+        },
+        {
+          survey_id: "s6",
+          question_id: "q1-reason",
+          user_id: "voter3",
+          text_value: "別の人へのコメント",
+          nominee_user_id: null,
+          is_late_submission: false,
+        },
+      ],
+      userNameById: new Map([
+        ["u1", "高橋聖"],
+        ["u2", "猪狩俊"],
+        ["voter1", "推薦者A"],
+        ["voter2", "推薦者B"],
+        ["voter3", "推薦者C"],
+      ]),
+      dbResponseCount: 6,
+    });
+
+    const passionate = result.groups.find(
+      (group) => group.group === "passionate_execution",
+    );
+    expect(passionate?.rows[0]).toMatchObject({
+      name: "高橋聖",
+      votes: 2,
+    });
+    expect(passionate?.rows[0].comments).toEqual([
+      {
+        recommenderName: "推薦者A",
+        comment: "粘り強くやり切った",
+        yearMonth: "2026-06",
+        isLate: false,
+      },
+      {
+        recommenderName: "推薦者B",
+        comment: "期限後でも応援したい",
+        yearMonth: "2026-07",
+        isLate: true,
+      },
+    ]);
+    expect(passionate?.rows[1].comments).toEqual([
+      {
+        recommenderName: "推薦者C",
+        comment: "別の人へのコメント",
+        yearMonth: "2026-06",
+        isLate: false,
+      },
+    ]);
+  });
+
+  it("コメントが空でも推薦者は残す", () => {
+    const comments = collectNominationComments({
+      responses: [
+        {
+          question_id: "q1",
+          text_value: null,
+          nominee_user_id: "u1",
+          survey_id: "s6",
+          user_id: "voter1",
+          year_month: "2026-06",
+          is_late_submission: false,
+        },
+      ],
+      nominationQuestion: question,
+      reasonQuestion,
+      nomineeKey: "uid:u1",
+      userNameById: new Map([
+        ["u1", "高橋聖"],
+        ["voter1", "推薦者A"],
+      ]),
+    });
+    expect(comments).toEqual([
+      {
+        recommenderName: "推薦者A",
+        comment: "",
+        yearMonth: "2026-06",
+        isLate: false,
+      },
+    ]);
   });
 });
 

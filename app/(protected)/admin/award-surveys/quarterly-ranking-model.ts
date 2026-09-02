@@ -14,6 +14,13 @@ export type AwardQuarterOption = {
   label: string;
 };
 
+export type AwardQuarterRankingComment = {
+  recommenderName: string;
+  comment: string;
+  yearMonth: string | null;
+  isLate: boolean;
+};
+
 export type AwardQuarterRankingRow = {
   key: string;
   name: string;
@@ -22,6 +29,7 @@ export type AwardQuarterRankingRow = {
   lateVotes: number;
   unmatched: boolean;
   votesByMonth: Record<string, number>;
+  comments: AwardQuarterRankingComment[];
 };
 
 export type AwardQuarterGroupRanking = {
