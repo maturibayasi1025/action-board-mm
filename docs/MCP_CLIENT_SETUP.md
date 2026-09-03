@@ -54,6 +54,25 @@ Connect を押すとブラウザが開き、`@maisonmarc.com` でログインし
 
 トークンの有効期限は 8 時間です。切れたら接続ページで再ログインするか、Cursor で再 Connect します。
 
+## ChatGPT
+
+Custom GPT（Actions / OpenAPI）ではなく、**ChatGPT のカスタムコネクタ（Developer Mode）** から同じリモート MCP につなぎます。Plus / Pro / Business / Enterprise / Edu が必要です。無料プランでは追加できません。
+
+1. ChatGPT で Settings → Apps（または Security and login）→ Advanced settings から **Developer mode** をオンにする
+2. Settings → Connectors → Create
+3. サーバー URL に次を入れる
+
+```
+https://mm-actionboard.jp/api/mcp
+```
+
+4. 接続するとブラウザが開き、`@maisonmarc.com` の Google でログインする
+5. 新しいチャットでコネクタを有効にする
+
+ChatGPT は Cursor のようにトークンを手貼りできません。OAuth でログインする必要があります。許可リストに `survey_raw` が付いていれば、月次 CSV（`export_enps_responses_csv`）も同じツールで取れます。
+
+個別回答は ChatGPT の会話ログに残ります。
+
 ## 暫定: 配布キー（Phase 1）
 
 Google 設定前の接続確認用です。キーはコピーで広がるので、本番の本人確認にはしません。

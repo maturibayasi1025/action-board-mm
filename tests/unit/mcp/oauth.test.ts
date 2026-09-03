@@ -29,13 +29,25 @@ describe("JWT", () => {
 });
 
 describe("OAuth helpers", () => {
-  it("allows Cursor and localhost redirects only", () => {
+  it("allows Cursor, Claude, ChatGPT, and localhost redirects only", () => {
     expect(
       isAllowedOAuthRedirectUri("cursor://anysphere.cursor-mcp/oauth/callback"),
     ).toBe(true);
     expect(isAllowedOAuthRedirectUri("http://127.0.0.1:8734/callback")).toBe(
       true,
     );
+    expect(
+      isAllowedOAuthRedirectUri("https://claude.ai/api/mcp/auth_callback"),
+    ).toBe(true);
+    expect(
+      isAllowedOAuthRedirectUri(
+        "https://chatgpt.com/connector_platform_oauth_redirect",
+      ),
+    ).toBe(true);
+    expect(
+      isAllowedOAuthRedirectUri("https://chatgpt.com/connector/oauth/abc123"),
+    ).toBe(true);
+    expect(isAllowedOAuthRedirectUri("https://chatgpt.com/other")).toBe(false);
     expect(isAllowedOAuthRedirectUri("https://evil.example/callback")).toBe(
       false,
     );

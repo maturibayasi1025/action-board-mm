@@ -77,11 +77,22 @@ export function isAllowedOAuthRedirectUri(uri: string): boolean {
     return true;
   }
   if (parsed.protocol === "https:") {
-    return (
+    if (
       parsed.hostname === "cursor.com" ||
       parsed.hostname === "www.cursor.com" ||
       parsed.hostname === "claude.ai"
-    );
+    ) {
+      return true;
+    }
+    if (
+      parsed.hostname === "chatgpt.com" ||
+      parsed.hostname === "www.chatgpt.com"
+    ) {
+      return (
+        parsed.pathname === "/connector_platform_oauth_redirect" ||
+        parsed.pathname.startsWith("/connector/oauth/")
+      );
+    }
   }
   return false;
 }
