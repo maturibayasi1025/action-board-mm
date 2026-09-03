@@ -1,4 +1,6 @@
-# Action Board MCP 接続手順
+# Action Board MCP 接続手順（運用者向け）
+
+メンバーが Cursor / ChatGPT からつなぐ手順だけ見る場合は [MCP_CONNECT.md](./MCP_CONNECT.md) を使う。この文書はサーバー側の Google ログイン設定です。
 
 読み取り専用のリモート MCP です。公開データに加え、Google 許可リストでスコープを付けた人だけが集計・Slack ID・個別回答を取れます。
 
@@ -80,7 +82,7 @@ Connect を押すとブラウザが開き、`@maisonmarc.com` でログインし
 
 ## ChatGPT
 
-Custom GPT（Actions / OpenAPI）ではなく、**ChatGPT のカスタムコネクタ（Developer Mode）** から同じリモート MCP につなぎます。Plus / Pro / Business / Enterprise / Edu が必要です。無料プランでは追加できません。
+Custom GPT（Actions / OpenAPI）ではなく、**ChatGPT のカスタムコネクタ（Developer Mode）** から同じリモート MCP につなぎます。**Plus では使えません。** Pro / Business / Enterprise / Edu が必要です。画面操作は [MCP_CONNECT.md](./MCP_CONNECT.md) を参照。
 
 1. ChatGPT で Settings → Apps（または Security and login）→ Advanced settings から **Developer mode** をオンにする
 2. Settings → Connectors → Create
