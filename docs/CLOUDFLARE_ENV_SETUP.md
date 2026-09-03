@@ -71,6 +71,17 @@ HUBSPOT_API_KEY             # HubSpot APIキー
 HUBSPOT_CONTACT_LIST_ID     # HubSpotコンタクトリストID
 ```
 
+#### MCP Google ログイン（`not_configured` のとき）
+
+詳細は [MCP_CLIENT_SETUP.md](./MCP_CLIENT_SETUP.md) の「値の取得方法」。要約:
+
+- `MCP_JWT_SECRET`: `openssl rand -base64 48` で自作。Google からは取らない
+- `MCP_GOOGLE_CLIENT_ID` / `MCP_GOOGLE_CLIENT_SECRET`: Google Cloud Console → API とサービス → 認証情報 → OAuth クライアント ID（ウェブ）。リダイレクト URI は `https://mm-actionboard.jp/api/mcp/oauth/google/callback` のみ
+- `MCP_ALLOWED_GOOGLE_DOMAIN`: `maisonmarc.com`
+- `MCP_ALLOWED_GOOGLE_EMAILS`: 入れる人のメールを運用者が書く。空だと誰も入れない
+
+Production に入れて Encrypt し、再デプロイする。ChatGPT の `http://localhost:.../callback` は Google Cloud に登録しない。
+
 > **注意**: eNPS レポートの自由記述 AI 分析用 `ENPS_REPORT_AI_API_KEY` は **Cloudflare（Preview / Production）には設定しません**。生成は GitHub Actions の `Build Monthly eNPS Report` ワークフローだけで行い、キーは GitHub の Repository Secret に置きます。詳細は [`.github/SECRETS_SETUP.md`](../.github/SECRETS_SETUP.md) を参照してください。
 
 ### 設定方法
