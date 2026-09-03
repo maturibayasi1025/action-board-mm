@@ -1,4 +1,6 @@
 import {
+  exportAwardResponsesCsvTool,
+  exportEnpsResponsesCsvTool,
   listAwardResponsesTool,
   listEnpsResponsesTool,
 } from "@/lib/mcp/tools/survey-responses";
@@ -6,6 +8,8 @@ import {
 const listEnpsResponses = jest.fn();
 const listAwardResponses = jest.fn();
 const listSlackIdsByUserIds = jest.fn();
+const exportEnpsResponsesCsv = jest.fn();
+const exportAwardResponsesCsv = jest.fn();
 
 jest.mock("@/lib/mcp/privileged-client", () => ({
   listEnpsResponses: (...args: unknown[]) => listEnpsResponses(...args),
@@ -13,6 +17,10 @@ jest.mock("@/lib/mcp/privileged-client", () => ({
   getEnpsResponse: jest.fn(),
   getAwardResponse: jest.fn(),
   listSlackIdsByUserIds: (...args: unknown[]) => listSlackIdsByUserIds(...args),
+  exportEnpsResponsesCsv: (...args: unknown[]) =>
+    exportEnpsResponsesCsv(...args),
+  exportAwardResponsesCsv: (...args: unknown[]) =>
+    exportAwardResponsesCsv(...args),
 }));
 
 const googleRaw = {
@@ -124,5 +132,50 @@ describe("list_award_responses", () => {
     expect(listSlackIdsByUserIds).toHaveBeenCalledWith(["u1", "u2"]);
     expect(result.items[0]?.slack_user_id).toBe("U123");
     expect(result.items[0]?.nominee_slack_user_id).toBe("U456");
+  });
+});
+
+describe("export_enps_responses_csv", () => {
+  beforeEach(() => {
+    exportEnpsResponsesCsv.mockReset();
+    exportEnpsResponsesCsv.mockResolvedValue({
+      survey_id: surveyId,
+      year_month: "2026-08",
+      filename: "eNPS回答_2026-08.csv",
+      csv: "氏名,会社,事業部,期限後,推奨度\n山田,Maison,企画,,9\n",
+      row_count: 1,
+      question_count: 1,
+    });
+  });
+
+  it("requires survey_id or year_month", () => {
+    expect(exportEnpsResponsesCsvTool.input.safeParse({}).success).toBe(false);
+    expect(
+      exportEnpsResponsesCsvTool.input.safeParse({ year_month: "2026-08" })
+        .success,
+    ).toBe(true);
+    expect(
+      exportEnpsResponsesCsvTool.input.safeParse({ survey_id: surveyId })
+        .success,
+    ).toBe(true);
+  });
+
+  it("exports the monthly csv without pagination", async () => {
+    const result = (await exportEnpsResponsesCsvTool.execute(
+      { year_month: "2026-08" },
+      { db: {} as never, principal: googleRaw },
+    )) as { filename: string; row_count: number };
+    expect(exportEnpsResponsesCsv).toHaveBeenCalledWith({
+      survey_id: undefined,
+      year_month: "2026-08",
+    });
+    expect(result.filename).toBe("eNPS回答_2026-08.csv");
+    expect(result.row_count).toBe(1);
+  });
+});
+
+describe("export_award_responses_csv", () => {
+  it("requires survey_id or year_month", () => {
+    expect(exportAwardResponsesCsvTool.input.safeParse({}).success).toBe(false);
   });
 });

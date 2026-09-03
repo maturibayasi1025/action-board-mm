@@ -78,9 +78,11 @@ Google 設定前の接続確認用です。キーはコピーで広がるので�
 | `public` | ミッション、ランキング、公開プロフィール、承認済みグッジョブ | API キーまたは Google |
 | `survey_agg` | eNPS サーベイ定義、月次スナップショット、表彰指名件数 | スコープがあれば可 |
 | `slack_directory` | `user_id` + 公開名 + Slack ID | **Google ログイン必須**。API キーでは不可 |
-| `survey_raw` | eNPS / 表彰の個別回答（`survey_id` 必須） | **Google ログイン必須**。API キーでは不可 |
+| `survey_raw` | eNPS / 表彰の個別回答（`survey_id` 必須）。月次 CSV 一括は `year_month` 可 | **Google ログイン必須**。API キーでは不可 |
 
 個別回答を他AIに渡すと、会話ログやプロバイダ側に自由記述が残ります。
+
+月次の点数・コメントをシートで使う場合は `export_enps_responses_csv` / `export_award_responses_csv` です。`year_month`（例: `2026-08`）か `survey_id` を指定すると、1人1行の CSV が返ります。Excel や Google スプレッドシートに貼れます。全期間の一括ダンプはありません。
 
 ## この接続で取れないもの
 

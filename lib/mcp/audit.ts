@@ -24,6 +24,9 @@ export function inferRowCount(payload: unknown): number | null {
   }
   if (payload && typeof payload === "object") {
     const record = payload as Record<string, unknown>;
+    if (typeof record.row_count === "number") {
+      return record.row_count;
+    }
     if (Array.isArray(record.items)) {
       return record.items.length;
     }

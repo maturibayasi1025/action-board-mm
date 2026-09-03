@@ -284,7 +284,7 @@ Action Board にログインしていることは、MCP 利用の条件にしな
 - `award_responses`: 上記に加え `nominee_user_id`
 - 設問文・公開名は JOIN してよい（AI が読みやすいようにする）
 - `slack_user_id` を回答行に付けるのは、同じキーが `slack_directory` も持つときだけ
-- **`survey_id` 必須**。全期間一括ダンプのツールは作らない
+- **`survey_id` 必須**（個別一覧）。全期間一括ダンプのツールは作らない。月次 CSV は `year_month` 可
 
 アプリの RLS では個別回答は本人のみ。MCP から全員分を読むには、後述の特権読み取り経路が必要。
 
@@ -368,6 +368,8 @@ Action Board にログインしていることは、MCP 利用の条件にしな
 | `list_award_responses` | `getAwardSurveyResponses` 相当 | **`survey_id` 必須**, `question_id?`, `user_id?`, `nominee_user_id?`, `limit`, `offset` |
 | `get_enps_response` | 同上 | `id` |
 | `get_award_response` | 同上 | `id` |
+| `export_enps_responses_csv` | 月次の点数・コメントを 1人1行 CSV | **`survey_id` または `year_month`** |
+| `export_award_responses_csv` | 月次の指名・自由記述を 1人1行 CSV | **`survey_id` または `year_month`** |
 
 書き込み RPC（`replace_enps_responses` / `replace_award_responses`）は登録しない。
 

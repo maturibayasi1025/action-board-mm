@@ -2,6 +2,7 @@ import { listGlobalUnansweredExclusions } from "@/app/(protected)/admin/_actions
 import { listEnpsLateSubmissionGrants } from "@/app/(protected)/admin/enps-surveys/[id]/late-grant-actions";
 import { EnpsSurveyQuestionAnalytics } from "@/components/admin/enps-survey-question-analytics";
 import { LateSubmissionGrantPanel } from "@/components/admin/late-submission-grant-panel";
+import { SurveyResponsesCsvDownload } from "@/components/admin/survey-responses-csv-download";
 import { SurveyResponsesPanel } from "@/components/admin/survey-responses-panel";
 import { UnansweredExclusionPanel } from "@/components/admin/unanswered-exclusion-panel";
 import { UnansweredSlackReminder } from "@/components/admin/unanswered-slack-reminder";
@@ -15,6 +16,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import type { EnpsOrgDrilldownSourceRow } from "@/lib/admin/enps-nps-by-business-unit";
+import { surveyResponsesCsvFilename } from "@/lib/survey/export-responses-csv";
 import { isOwner } from "@/lib/utils/isOwner";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -63,6 +65,26 @@ export default async function SurveyDetailPage({
   const scoreQuestions = questions.filter(
     (q) => q.question_type === "score_0_10",
   );
+  const panelQuestions = questions.map((q) => ({
+    id: q.id,
+    question_text: q.question_text,
+    question_type: q.question_type,
+    display_order: q.display_order,
+  }));
+  const panelResponses = responses.map((r) => ({
+    id: r.id,
+    question_id: r.question_id,
+    user_id: r.user_id,
+    user_name: (r as { user_name?: string }).user_name ?? "不明",
+    company_name: (r as { company_name?: string }).company_name ?? "",
+    business_unit_name:
+      (r as { business_unit_name?: string }).business_unit_name ?? "",
+    created_at: r.created_at,
+    score_value: r.score_value,
+    text_value: r.text_value,
+    is_late_submission: (r as { is_late_submission?: boolean })
+      .is_late_submission,
+  }));
 
   const scoreQuestionIdSet = new Set(scoreQuestions.map((q) => q.id));
   const orgDrilldownRows: EnpsOrgDrilldownSourceRow[] = [
@@ -173,37 +195,24 @@ export default async function SurveyDetailPage({
 
         {/* 回答一覧 */}
         <Card>
-          <CardHeader>
-            <CardTitle>回答一覧</CardTitle>
-            <CardDescription>
-              記名式のため、回答者名と回答内容を表示します。
-            </CardDescription>
+          <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="space-y-1.5">
+              <CardTitle>回答一覧</CardTitle>
+              <CardDescription>
+                記名式のため、回答者名と回答内容を表示します。CSVは1人1行で点数とコメントを出力します。
+              </CardDescription>
+            </div>
+            <SurveyResponsesCsvDownload
+              filename={surveyResponsesCsvFilename("enps", survey.year_month)}
+              questions={panelQuestions}
+              responses={panelResponses}
+            />
           </CardHeader>
           <CardContent>
             <SurveyResponsesPanel
               questionScope="single"
-              questions={questions.map((q) => ({
-                id: q.id,
-                question_text: q.question_text,
-                question_type: q.question_type,
-                display_order: q.display_order,
-              }))}
-              responses={responses.map((r) => ({
-                id: r.id,
-                question_id: r.question_id,
-                user_id: r.user_id,
-                user_name: (r as { user_name?: string }).user_name ?? "不明",
-                company_name:
-                  (r as { company_name?: string }).company_name ?? "",
-                business_unit_name:
-                  (r as { business_unit_name?: string }).business_unit_name ??
-                  "",
-                created_at: r.created_at,
-                score_value: r.score_value,
-                text_value: r.text_value,
-                is_late_submission: (r as { is_late_submission?: boolean })
-                  .is_late_submission,
-              }))}
+              questions={panelQuestions}
+              responses={panelResponses}
             />
           </CardContent>
         </Card>

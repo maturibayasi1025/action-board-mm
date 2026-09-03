@@ -10,6 +10,8 @@ export const RESTRICTED_TOOL_NAMES = [
   "list_award_responses",
   "get_enps_response",
   "get_award_response",
+  "export_enps_responses_csv",
+  "export_award_responses_csv",
   "list_slack_directory",
   "get_slack_user_id",
 ] as const;

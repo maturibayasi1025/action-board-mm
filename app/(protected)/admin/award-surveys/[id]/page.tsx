@@ -3,6 +3,7 @@ import { listAwardLateSubmissionGrants } from "@/app/(protected)/admin/award-sur
 import { AwardNominationSummary } from "@/components/admin/award-nomination-summary";
 import { AwardWinnerCommentSummary } from "@/components/admin/award-winner-comment-summary";
 import { LateSubmissionGrantPanel } from "@/components/admin/late-submission-grant-panel";
+import { SurveyResponsesCsvDownload } from "@/components/admin/survey-responses-csv-download";
 import { SurveyResponsesPanel } from "@/components/admin/survey-responses-panel";
 import { UnansweredExclusionPanel } from "@/components/admin/unanswered-exclusion-panel";
 import { UnansweredSlackReminder } from "@/components/admin/unanswered-slack-reminder";
@@ -14,6 +15,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { surveyResponsesCsvFilename } from "@/lib/survey/export-responses-csv";
 import { isOwner } from "@/lib/utils/isOwner";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -79,6 +81,35 @@ export default async function AwardSurveyDetailPage({
     ]),
   );
 
+  const csvQuestions = questions.map((q) => {
+    const groupLabel = q.question_group
+      ? QUESTION_GROUP_LABELS[q.question_group]
+      : undefined;
+    return {
+      id: q.id,
+      question_text: q.question_text,
+      question_type: q.question_type,
+      display_order: q.display_order,
+      header: groupLabel
+        ? `${groupLabel} / ${q.question_text}`
+        : q.question_text,
+    };
+  });
+  const csvResponses = responses.map((r) => ({
+    id: r.id,
+    question_id: r.question_id,
+    user_id: r.user_id,
+    user_name: r.user_name,
+    company_name: r.company_name,
+    business_unit_name: r.business_unit_name,
+    created_at: r.created_at,
+    score_value: null,
+    text_value: r.text_value,
+    nominee_user_id: r.nominee_user_id,
+    nominee_user_name: r.nominee_user_name,
+    is_late_submission: r.is_late_submission,
+  }));
+
   return (
     <div className="container mx-auto py-8 px-4">
       <div className="max-w-6xl mx-auto space-y-8">
@@ -89,9 +120,16 @@ export default async function AwardSurveyDetailPage({
               対象年月: {survey.year_month} | 回答数: {uniqueResponderCount}人
             </p>
           </div>
-          <Link href="/admin/award-surveys">
-            <Button variant="outline">一覧に戻る</Button>
-          </Link>
+          <div className="flex flex-wrap items-center gap-2 justify-end">
+            <SurveyResponsesCsvDownload
+              filename={surveyResponsesCsvFilename("award", survey.year_month)}
+              questions={csvQuestions}
+              responses={csvResponses}
+            />
+            <Link href="/admin/award-surveys">
+              <Button variant="outline">一覧に戻る</Button>
+            </Link>
+          </div>
         </div>
 
         {nominationDetails.length > 0 && (

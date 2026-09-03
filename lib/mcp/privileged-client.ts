@@ -1,4 +1,5 @@
 import {
+  AWARD_QUESTION_GROUP_LABELS,
   type AwardQuarter,
   yearMonthKeysForQuarter,
 } from "@/app/(protected)/admin/award-surveys/quarterly-ranking-model";
@@ -10,6 +11,13 @@ import {
 } from "@/lib/mcp/award-nomination-ranking";
 import { McpToolError } from "@/lib/mcp/errors";
 import { fetchAllRows } from "@/lib/supabase/fetch-all-rows";
+import {
+  type SurveyExportAnswer,
+  type SurveyExportQuestion,
+  buildSurveyResponsesCsv,
+  surveyResponsesCsvFilename,
+  surveyResponsesCsvText,
+} from "@/lib/survey/export-responses-csv";
 import type { Database } from "@/lib/types/supabase";
 import { type SupabaseClient, createClient } from "@supabase/supabase-js";
 
@@ -17,6 +25,9 @@ type PrivilegedDb = SupabaseClient<Database>;
 
 export const PRIVATE_USERS_SLACK_SELECT = "id, slack_user_id";
 export const PUBLIC_PROFILE_NAME_SELECT = "id, name";
+export const PUBLIC_PROFILE_ORG_SELECT = "id, name, business_unit_id";
+export const BUSINESS_UNIT_NAME_SELECT = "id, name, company_id";
+export const COMPANY_NAME_SELECT = "id, name";
 export const ENPS_SURVEY_SELECT =
   "id, title, description, year_month, start_date, end_date, is_active, created_at";
 export const ENPS_QUESTION_SELECT =
@@ -98,6 +109,85 @@ async function mapPublicNames(
     }
   }
   return names;
+}
+
+async function mapPublicOrgs(
+  db: PrivilegedDb,
+  ids: string[],
+): Promise<
+  Map<
+    string,
+    { name: string; company_name: string; business_unit_name: string }
+  >
+> {
+  const orgs = new Map<
+    string,
+    { name: string; company_name: string; business_unit_name: string }
+  >();
+  const unique = [...new Set(ids.filter((id) => id.length > 0))];
+  if (unique.length === 0) {
+    return orgs;
+  }
+
+  const profiles: Array<{
+    id: string;
+    name: string;
+    business_unit_id: string | null;
+  }> = [];
+  for (const batch of chunk(unique, 200)) {
+    const { data, error } = await db
+      .from("public_user_profiles")
+      .select(PUBLIC_PROFILE_ORG_SELECT)
+      .in("id", batch);
+    throwIfError(error, "公開プロフィールの取得に失敗しました");
+    profiles.push(...(data ?? []));
+  }
+
+  const unitIds = [
+    ...new Set(
+      profiles
+        .map((row) => row.business_unit_id)
+        .filter((id): id is string => typeof id === "string" && id.length > 0),
+    ),
+  ];
+  const units = new Map<string, { name: string; company_id: string }>();
+  for (const batch of chunk(unitIds, 200)) {
+    const { data, error } = await db
+      .from("business_units")
+      .select(BUSINESS_UNIT_NAME_SELECT)
+      .in("id", batch);
+    throwIfError(error, "部署名の取得に失敗しました");
+    for (const unit of data ?? []) {
+      units.set(unit.id, { name: unit.name, company_id: unit.company_id });
+    }
+  }
+
+  const companyIds = [
+    ...new Set([...units.values()].map((unit) => unit.company_id)),
+  ];
+  const companies = new Map<string, string>();
+  for (const batch of chunk(companyIds, 200)) {
+    const { data, error } = await db
+      .from("companies")
+      .select(COMPANY_NAME_SELECT)
+      .in("id", batch);
+    throwIfError(error, "会社名の取得に失敗しました");
+    for (const company of data ?? []) {
+      companies.set(company.id, company.name);
+    }
+  }
+
+  for (const profile of profiles) {
+    const unit = profile.business_unit_id
+      ? units.get(profile.business_unit_id)
+      : undefined;
+    orgs.set(profile.id, {
+      name: profile.name,
+      company_name: unit ? (companies.get(unit.company_id) ?? "") : "",
+      business_unit_name: unit?.name ?? "",
+    });
+  }
+  return orgs;
 }
 
 export async function listSlackIdsByUserIds(
@@ -754,4 +844,284 @@ async function mapQuestionText(
     }
   }
   return texts;
+}
+
+export type SurveyResponsesCsvExport = {
+  survey_id: string;
+  year_month: string;
+  title: string;
+  filename: string;
+  csv: string;
+  row_count: number;
+  question_count: number;
+};
+
+type SurveyLocator = {
+  survey_id?: string;
+  year_month?: string;
+};
+
+type SurveyMeta = {
+  id: string;
+  title: string;
+  year_month: string;
+};
+
+function toSurveyMeta(row: {
+  id: string;
+  title: string;
+  year_month: string;
+}): SurveyMeta {
+  return {
+    id: row.id,
+    title: row.title,
+    year_month: row.year_month,
+  };
+}
+
+async function resolveEnpsSurvey(input: SurveyLocator): Promise<SurveyMeta> {
+  const db = createPrivilegedDb();
+  if (input.survey_id) {
+    const { data, error } = await db
+      .from("enps_surveys")
+      .select(ENPS_SURVEY_SELECT)
+      .eq("id", input.survey_id)
+      .maybeSingle();
+    throwIfError(error, "サーベイの取得に失敗しました");
+    if (!data) {
+      throw new McpToolError("eNPS サーベイが見つかりません", "not_found");
+    }
+    return toSurveyMeta(data as unknown as EnpsSurveyRow);
+  }
+  if (!input.year_month || !YEAR_MONTH_RE.test(input.year_month)) {
+    throw new McpToolError(
+      "survey_id か year_month を指定してください",
+      "invalid_input",
+    );
+  }
+  const { data, error } = await db
+    .from("enps_surveys")
+    .select(ENPS_SURVEY_SELECT)
+    .eq("year_month", input.year_month)
+    .maybeSingle();
+  throwIfError(error, "サーベイの取得に失敗しました");
+  if (!data) {
+    throw new McpToolError("eNPS サーベイが見つかりません", "not_found");
+  }
+  return toSurveyMeta(data as unknown as EnpsSurveyRow);
+}
+
+async function resolveAwardSurvey(input: SurveyLocator): Promise<SurveyMeta> {
+  const db = createPrivilegedDb();
+  if (input.survey_id) {
+    const { data, error } = await db
+      .from("award_surveys")
+      .select(AWARD_SURVEY_SELECT)
+      .eq("id", input.survey_id)
+      .maybeSingle();
+    throwIfError(error, "サーベイの取得に失敗しました");
+    if (!data) {
+      throw new McpToolError("表彰サーベイが見つかりません", "not_found");
+    }
+    return toSurveyMeta(data as unknown as SurveyMeta);
+  }
+  if (!input.year_month || !YEAR_MONTH_RE.test(input.year_month)) {
+    throw new McpToolError(
+      "survey_id か year_month を指定してください",
+      "invalid_input",
+    );
+  }
+  const { data, error } = await db
+    .from("award_surveys")
+    .select(AWARD_SURVEY_SELECT)
+    .eq("year_month", input.year_month)
+    .maybeSingle();
+  throwIfError(error, "サーベイの取得に失敗しました");
+  if (!data) {
+    throw new McpToolError("表彰サーベイが見つかりません", "not_found");
+  }
+  return toSurveyMeta(data as unknown as SurveyMeta);
+}
+
+function buildCsvExport(input: {
+  kind: "enps" | "award";
+  survey: SurveyMeta;
+  questions: SurveyExportQuestion[];
+  responses: SurveyExportAnswer[];
+}): SurveyResponsesCsvExport {
+  const { lines, rowCount } = buildSurveyResponsesCsv({
+    questions: input.questions,
+    responses: input.responses,
+  });
+  return {
+    survey_id: input.survey.id,
+    year_month: input.survey.year_month,
+    title: input.survey.title,
+    filename: surveyResponsesCsvFilename(input.kind, input.survey.year_month),
+    csv: surveyResponsesCsvText(lines),
+    row_count: rowCount,
+    question_count: input.questions.length,
+  };
+}
+
+export async function exportEnpsResponsesCsv(
+  input: SurveyLocator,
+): Promise<SurveyResponsesCsvExport> {
+  const survey = await resolveEnpsSurvey(input);
+  const db = createPrivilegedDb();
+  const { data: questions, error: questionError } = await db
+    .from("enps_questions")
+    .select(ENPS_QUESTION_SELECT)
+    .eq("is_active", true)
+    .order("display_order", { ascending: true });
+  throwIfError(questionError, "eNPS 設問の取得に失敗しました");
+
+  let rows: Array<{
+    id: string;
+    question_id: string;
+    user_id: string;
+    score_value: number | null;
+    text_value: string | null;
+    is_late_submission: boolean;
+    created_at: string;
+  }>;
+  try {
+    rows = await fetchAllRows((from, to) =>
+      db
+        .from("enps_responses")
+        .select(ENPS_RESPONSE_SELECT)
+        .eq("survey_id", survey.id)
+        .order("id", { ascending: true })
+        .range(from, to),
+    );
+  } catch (error) {
+    throw new McpToolError(
+      `eNPS 個別回答の取得に失敗しました: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+    );
+  }
+
+  const orgs = await mapPublicOrgs(
+    db,
+    rows.map((row) => row.user_id),
+  );
+  const exportQuestions: SurveyExportQuestion[] = (questions ?? []).map(
+    (question) => ({
+      id: question.id,
+      question_text: question.question_text,
+      question_type: question.question_type,
+      display_order: question.display_order,
+    }),
+  );
+  const exportResponses: SurveyExportAnswer[] = rows.map((row) => {
+    const org = orgs.get(row.user_id);
+    return {
+      id: row.id,
+      question_id: row.question_id,
+      user_id: row.user_id,
+      user_name: org?.name ?? "不明",
+      company_name: org?.company_name ?? "",
+      business_unit_name: org?.business_unit_name ?? "",
+      created_at: row.created_at,
+      score_value: row.score_value,
+      text_value: row.text_value,
+      is_late_submission: Boolean(row.is_late_submission),
+    };
+  });
+
+  return buildCsvExport({
+    kind: "enps",
+    survey,
+    questions: exportQuestions,
+    responses: exportResponses,
+  });
+}
+
+export async function exportAwardResponsesCsv(
+  input: SurveyLocator,
+): Promise<SurveyResponsesCsvExport> {
+  const survey = await resolveAwardSurvey(input);
+  const db = createPrivilegedDb();
+  const { data: questions, error: questionError } = await db
+    .from("award_questions")
+    .select(AWARD_QUESTION_SELECT)
+    .eq("is_active", true)
+    .order("display_order", { ascending: true });
+  throwIfError(questionError, "表彰設問の取得に失敗しました");
+
+  let rows: Array<{
+    id: string;
+    question_id: string;
+    user_id: string;
+    nominee_user_id: string | null;
+    text_value: string | null;
+    is_late_submission: boolean;
+    created_at: string;
+  }>;
+  try {
+    rows = await fetchAllRows((from, to) =>
+      db
+        .from("award_responses")
+        .select(AWARD_RESPONSE_SELECT)
+        .eq("survey_id", survey.id)
+        .order("id", { ascending: true })
+        .range(from, to),
+    );
+  } catch (error) {
+    throw new McpToolError(
+      `表彰個別回答の取得に失敗しました: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+    );
+  }
+
+  const orgs = await mapPublicOrgs(
+    db,
+    rows.flatMap((row) =>
+      row.nominee_user_id ? [row.user_id, row.nominee_user_id] : [row.user_id],
+    ),
+  );
+  const exportQuestions: SurveyExportQuestion[] = (questions ?? []).map(
+    (question) => {
+      const groupLabel = question.question_group
+        ? AWARD_QUESTION_GROUP_LABELS[question.question_group]
+        : undefined;
+      return {
+        id: question.id,
+        question_text: question.question_text,
+        question_type: question.question_type,
+        display_order: question.display_order,
+        header: groupLabel
+          ? `${groupLabel} / ${question.question_text}`
+          : question.question_text,
+      };
+    },
+  );
+  const exportResponses: SurveyExportAnswer[] = rows.map((row) => {
+    const org = orgs.get(row.user_id);
+    return {
+      id: row.id,
+      question_id: row.question_id,
+      user_id: row.user_id,
+      user_name: org?.name ?? "不明",
+      company_name: org?.company_name ?? "",
+      business_unit_name: org?.business_unit_name ?? "",
+      created_at: row.created_at,
+      score_value: null,
+      text_value: row.text_value,
+      nominee_user_id: row.nominee_user_id,
+      nominee_user_name: row.nominee_user_id
+        ? (orgs.get(row.nominee_user_id)?.name ?? null)
+        : null,
+      is_late_submission: Boolean(row.is_late_submission),
+    };
+  });
+
+  return buildCsvExport({
+    kind: "award",
+    survey,
+    questions: exportQuestions,
+    responses: exportResponses,
+  });
 }

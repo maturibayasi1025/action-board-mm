@@ -22,6 +22,8 @@ import {
   listSlackDirectoryTool,
 } from "@/lib/mcp/tools/slack-directory";
 import {
+  exportAwardResponsesCsvTool,
+  exportEnpsResponsesCsvTool,
   getAwardResponseTool,
   getEnpsResponseTool,
   listAwardResponsesTool,
@@ -59,6 +61,8 @@ export const MCP_TOOLS: RegisteredMcpTool[] = [
   registerTool(listAwardResponsesTool),
   registerTool(getEnpsResponseTool),
   registerTool(getAwardResponseTool),
+  registerTool(exportEnpsResponsesCsvTool),
+  registerTool(exportAwardResponsesCsvTool),
 ];
 
 export const MCP_TOOL_BY_NAME = new Map(

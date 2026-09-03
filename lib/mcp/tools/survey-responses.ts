@@ -1,5 +1,7 @@
 import { clampOffset, clampSurveyRawLimit } from "@/lib/mcp/pagination";
 import {
+  exportAwardResponsesCsv,
+  exportEnpsResponsesCsv,
   getAwardResponse,
   getEnpsResponse,
   listAwardResponses,
@@ -185,5 +187,65 @@ export const getAwardResponseTool: McpToolDefinition<{ id: string }> = {
       item.nominee_user_id,
     ]);
     return withSlack ?? row;
+  },
+};
+
+const csvExportInput = z
+  .object({
+    survey_id: z.string().uuid().optional(),
+    year_month: z
+      .string()
+      .regex(/^\d{4}-\d{2}$/, "YYYY-MM")
+      .optional(),
+  })
+  .refine((value) => Boolean(value.survey_id) || Boolean(value.year_month), {
+    message: "survey_id か year_month を指定してください",
+  });
+
+const csvExportInputSchema = {
+  type: "object" as const,
+  properties: {
+    survey_id: { type: "string", description: "サーベイ UUID" },
+    year_month: {
+      type: "string",
+      description: "対象月 YYYY-MM。月単位の一括取得向け",
+    },
+  },
+  additionalProperties: false,
+};
+
+export const exportEnpsResponsesCsvTool: McpToolDefinition<{
+  survey_id?: string;
+  year_month?: string;
+}> = {
+  name: "export_enps_responses_csv",
+  description:
+    "指定した月の eNPS 個別回答を、1人1行の CSV で一括取得（点数・自由記述）。survey_id か year_month。全期間一括は不可。",
+  scopes: ["survey_raw"],
+  inputSchema: csvExportInputSchema,
+  input: csvExportInput,
+  async execute(input) {
+    return exportEnpsResponsesCsv({
+      survey_id: input.survey_id,
+      year_month: input.year_month,
+    });
+  },
+};
+
+export const exportAwardResponsesCsvTool: McpToolDefinition<{
+  survey_id?: string;
+  year_month?: string;
+}> = {
+  name: "export_award_responses_csv",
+  description:
+    "指定した月の表彰個別回答を、1人1行の CSV で一括取得（指名・自由記述）。survey_id か year_month。全期間一括は不可。",
+  scopes: ["survey_raw"],
+  inputSchema: csvExportInputSchema,
+  input: csvExportInput,
+  async execute(input) {
+    return exportAwardResponsesCsv({
+      survey_id: input.survey_id,
+      year_month: input.year_month,
+    });
   },
 };

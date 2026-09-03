@@ -253,5 +253,7 @@ describe("tool registry", () => {
     expect(names).toContain("list_enps_surveys");
     expect(names).toContain("list_slack_directory");
     expect(names).toContain("list_enps_responses");
+    expect(names).toContain("export_enps_responses_csv");
+    expect(names).toContain("export_award_responses_csv");
   });
 });
