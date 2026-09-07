@@ -116,6 +116,33 @@ export async function fetchAllPrivateUserNames(
   return new Map(rows.map((row) => [row.id, row.name]));
 }
 
+export const PRIVATE_USER_NOMINATION_COLUMNS = `
+      id,
+      name,
+      suspended_at,
+      business_units (
+        name,
+        companies (
+          name
+        )
+      )
+    `;
+
+export async function fetchAllPrivateUsersForNomination<T>(
+  supabase: AwardDb,
+  columns: string = PRIVATE_USER_NOMINATION_COLUMNS,
+): Promise<T[]> {
+  return fetchAllRows<T>((from, to) =>
+    asPageResult<T>(
+      supabase
+        .from("private_users")
+        .select(columns)
+        .order("id", { ascending: true })
+        .range(from, to),
+    ),
+  );
+}
+
 export async function fetchPrivateUsersByIds<T>(
   supabase: AwardDb,
   userIds: string[],
