@@ -31,6 +31,7 @@ export function AwardPeerReceivedCsvDownload({
       }
 
       triggerCsvDownload(result.csv, result.filename);
+      await new Promise((resolve) => setTimeout(resolve, 300));
       triggerCsvDownload(result.detailCsv, result.detailFilename);
       toast.success(
         `他薦（受けた評価）CSVをダウンロードしました（${result.nomineeCount}人・${result.nominationCount}件・${result.targetYearMonths.join(", ")}）`,

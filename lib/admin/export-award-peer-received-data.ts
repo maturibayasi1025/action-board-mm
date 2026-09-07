@@ -1,3 +1,4 @@
+import { fetchAllRows } from "@/lib/admin/enps-report/fetch-all";
 import {
   type PeerMasterQuestion,
   type PeerReceivedRow,
@@ -77,18 +78,22 @@ async function fetchResponses(
   supabase: SupabaseClient<Database>,
   surveyIds: string[],
 ): Promise<PeerResponseRow[]> {
-  const { data, error } = await supabase
-    .from("award_responses")
-    .select(
-      "survey_id, user_id, question_id, text_value, nominee_user_id, is_late_submission",
-    )
-    .in("survey_id", surveyIds);
-
-  if (error) {
-    throw new Error(`回答取得に失敗しました: ${error.message}`);
+  try {
+    return await fetchAllRows<PeerResponseRow>((from, to) =>
+      supabase
+        .from("award_responses")
+        .select(
+          "survey_id, user_id, question_id, text_value, nominee_user_id, is_late_submission",
+        )
+        .in("survey_id", surveyIds)
+        .order("id", { ascending: true })
+        .range(from, to),
+    );
+  } catch (error) {
+    throw new Error(
+      `回答取得に失敗しました: ${error instanceof Error ? error.message : String(error)}`,
+    );
   }
-
-  return (data ?? []) as PeerResponseRow[];
 }
 
 async function fetchUsers(
