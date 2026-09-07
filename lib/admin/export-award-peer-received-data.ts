@@ -1,4 +1,3 @@
-import { fetchAllRows } from "@/lib/admin/enps-report/fetch-all";
 import {
   type PeerMasterQuestion,
   type PeerReceivedRow,
@@ -15,6 +14,11 @@ import {
   type PrivateUserOrgRow,
   companyAndBusinessUnitFromPrivateUserRow,
 } from "@/lib/admin/private-user-org";
+import {
+  AWARD_RANKING_RESPONSE_COLUMNS,
+  fetchAllAwardResponses,
+  fetchPrivateUsersByIds,
+} from "@/lib/award/fetch-award-rows";
 import type { Database } from "@/lib/types/supabase";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -79,15 +83,10 @@ async function fetchResponses(
   surveyIds: string[],
 ): Promise<PeerResponseRow[]> {
   try {
-    return await fetchAllRows<PeerResponseRow>((from, to) =>
-      supabase
-        .from("award_responses")
-        .select(
-          "survey_id, user_id, question_id, text_value, nominee_user_id, is_late_submission",
-        )
-        .in("survey_id", surveyIds)
-        .order("id", { ascending: true })
-        .range(from, to),
+    return await fetchAllAwardResponses<PeerResponseRow>(
+      supabase,
+      surveyIds,
+      AWARD_RANKING_RESPONSE_COLUMNS,
     );
   } catch (error) {
     throw new Error(
@@ -102,9 +101,16 @@ async function fetchUsers(
 ): Promise<Map<string, PeerUserRow>> {
   if (userIds.length === 0) return new Map();
 
-  const { data, error } = await supabase
-    .from("private_users")
-    .select(
+  try {
+    const rows = await fetchPrivateUsersByIds<
+      PrivateUserOrgRow & {
+        id: string;
+        name: string;
+        suspended_at: string | null;
+      }
+    >(
+      supabase,
+      userIds,
       `
       id,
       name,
@@ -116,29 +122,29 @@ async function fetchUsers(
         )
       )
     `,
-    )
-    .in("id", userIds);
+    );
 
-  if (error) {
-    throw new Error(`ユーザー取得に失敗しました: ${error.message}`);
+    return new Map(
+      rows.map((u) => {
+        const { company_name, business_unit_name } =
+          companyAndBusinessUnitFromPrivateUserRow(u as PrivateUserOrgRow);
+        return [
+          u.id,
+          {
+            id: u.id,
+            name: u.name,
+            companyName: company_name,
+            businessUnitName: business_unit_name,
+            suspended: Boolean(u.suspended_at),
+          },
+        ] as const;
+      }),
+    );
+  } catch (error) {
+    throw new Error(
+      `ユーザー取得に失敗しました: ${error instanceof Error ? error.message : String(error)}`,
+    );
   }
-
-  return new Map(
-    (data ?? []).map((u) => {
-      const { company_name, business_unit_name } =
-        companyAndBusinessUnitFromPrivateUserRow(u as PrivateUserOrgRow);
-      return [
-        u.id,
-        {
-          id: u.id,
-          name: u.name,
-          companyName: company_name,
-          businessUnitName: business_unit_name,
-          suspended: Boolean(u.suspended_at),
-        },
-      ] as const;
-    }),
-  );
 }
 
 export async function collectAwardPeerReceivedData(

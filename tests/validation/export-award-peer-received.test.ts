@@ -19,6 +19,7 @@ import {
   mergeAwardQuarterSummaryRows,
 } from "@/lib/admin/export-award-quarter-summary";
 import type { AwardSelfEvalPersonRow } from "@/lib/admin/export-award-self-eval-data";
+import { normalizeNomineeName } from "@/lib/award/nomination-ranking";
 import { pickNominationQuestionForGroup } from "@/lib/mcp/award-nomination-ranking";
 
 const questions: PeerMasterQuestion[] = [
@@ -200,7 +201,7 @@ describe("export-award-peer-received", () => {
       ).toBeNull();
     });
 
-    it("keeps unknown user_select nominees as 不明", () => {
+    it("keeps unknown user_select nominees as unmatched instead of dropping them", () => {
       expect(
         resolveNomineeFromResponse(
           {
@@ -216,9 +217,66 @@ describe("export-award-peer-received", () => {
         ),
       ).toEqual({
         key: "uid:missing",
-        name: "不明",
+        name: "未突合 (missing)",
         nomineeUserId: "missing",
       });
+    });
+
+    it("merges unique normalized names for legacy user_select text", () => {
+      expect(
+        resolveNomineeFromResponse(
+          {
+            survey_id: "s1",
+            user_id: "r1",
+            question_id: "nom-p",
+            text_value: "被推薦者　A",
+            nominee_user_id: null,
+            is_late_submission: false,
+          },
+          nomination,
+          users,
+        ),
+      ).toEqual({
+        key: "uid:n1",
+        name: "被推薦者A",
+        nomineeUserId: "n1",
+      });
+    });
+
+    it("normalizes free-text team keys so spaces and full-width do not split votes", () => {
+      const teamQuestion = questions.find((q) => q.id === "nom-t");
+      if (!teamQuestion) {
+        throw new Error("expected nom-t question");
+      }
+
+      const spaced = resolveNomineeFromResponse(
+        {
+          survey_id: "s1",
+          user_id: "r1",
+          question_id: "nom-t",
+          text_value: "プロジェクト　X",
+          nominee_user_id: null,
+          is_late_submission: false,
+        },
+        teamQuestion,
+        users,
+      );
+      const compact = resolveNomineeFromResponse(
+        {
+          survey_id: "s1",
+          user_id: "r1",
+          question_id: "nom-t",
+          text_value: "プロジェクトX",
+          nominee_user_id: null,
+          is_late_submission: false,
+        },
+        teamQuestion,
+        users,
+      );
+
+      expect(spaced?.key).toBe(`text:${normalizeNomineeName("プロジェクトX")}`);
+      expect(spaced?.key).toBe(compact?.key);
+      expect(spaced?.nomineeUserId).toBeNull();
     });
   });
 
@@ -308,6 +366,14 @@ describe("export-award-peer-received", () => {
         is_late_submission: false,
       },
       {
+        survey_id: "s1",
+        user_id: "r2",
+        question_id: "nom-t",
+        text_value: "プロジェクト　X",
+        nominee_user_id: null,
+        is_late_submission: false,
+      },
+      {
         survey_id: "s2",
         user_id: "r1",
         question_id: "reason-t",
@@ -350,8 +416,14 @@ describe("export-award-peer-received", () => {
       expect(person?.commentsByGroup.supreme_relations).toBe(
         "【2026-03】推薦者C: 至高だった",
       );
-      expect(team?.totalVotes).toBe(1);
-      expect(team?.votesByGroup.team_value).toBe(1);
+      expect(team?.totalVotes).toBe(2);
+      expect(team?.votesByGroup.team_value).toBe(2);
+      expect(
+        events.filter(
+          (e) =>
+            e.nomineeKey === `text:${normalizeNomineeName("プロジェクトX")}`,
+        ),
+      ).toHaveLength(2);
     });
 
     it("builds BOM CSV with escaped comments and late flags in the detail file", () => {

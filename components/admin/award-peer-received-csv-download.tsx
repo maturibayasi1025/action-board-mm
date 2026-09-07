@@ -14,15 +14,17 @@ type AwardPeerReceivedCsvDownloadProps = {
   disabled?: boolean;
 };
 
+type PeerCsvKind = "aggregated" | "detail";
+
 export function AwardPeerReceivedCsvDownload({
   year,
   quarter,
   disabled = false,
 }: AwardPeerReceivedCsvDownloadProps) {
-  const [loading, setLoading] = useState(false);
+  const [loadingKind, setLoadingKind] = useState<PeerCsvKind | null>(null);
 
-  const handleDownload = async () => {
-    setLoading(true);
+  const handleDownload = async (kind: PeerCsvKind) => {
+    setLoadingKind(kind);
     try {
       const result = await exportAwardPeerReceivedCsvForQuarter(year, quarter);
       if (!result.ok) {
@@ -30,33 +32,57 @@ export function AwardPeerReceivedCsvDownload({
         return;
       }
 
-      triggerCsvDownload(result.csv, result.filename);
-      await new Promise((resolve) => setTimeout(resolve, 300));
+      if (kind === "aggregated") {
+        triggerCsvDownload(result.csv, result.filename);
+        toast.success(
+          `他薦（受けた評価）CSVをダウンロードしました（${result.nomineeCount}人・${result.nominationCount}件・${result.targetYearMonths.join(", ")}）`,
+        );
+        return;
+      }
+
       triggerCsvDownload(result.detailCsv, result.detailFilename);
       toast.success(
-        `他薦（受けた評価）CSVをダウンロードしました（${result.nomineeCount}人・${result.nominationCount}件・${result.targetYearMonths.join(", ")}）`,
+        `他薦詳細CSVをダウンロードしました（${result.nominationCount}件・${result.targetYearMonths.join(", ")}）`,
       );
     } catch {
       toast.error("CSVのダウンロードに失敗しました");
     } finally {
-      setLoading(false);
+      setLoadingKind(null);
     }
   };
 
+  const loading = loadingKind != null;
+
   return (
-    <Button
-      type="button"
-      variant="outline"
-      size="sm"
-      disabled={disabled || loading}
-      onClick={() => void handleDownload()}
-    >
-      {loading ? (
-        <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
-      ) : (
-        <Download className="h-4 w-4 mr-1.5" />
-      )}
-      他薦（受けた評価）CSV
-    </Button>
+    <div className="flex flex-wrap items-center gap-2">
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        disabled={disabled || loading}
+        onClick={() => void handleDownload("aggregated")}
+      >
+        {loadingKind === "aggregated" ? (
+          <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+        ) : (
+          <Download className="h-4 w-4 mr-1.5" />
+        )}
+        他薦（受けた評価）CSV
+      </Button>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        disabled={disabled || loading}
+        onClick={() => void handleDownload("detail")}
+      >
+        {loadingKind === "detail" ? (
+          <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+        ) : (
+          <Download className="h-4 w-4 mr-1.5" />
+        )}
+        他薦詳細CSV
+      </Button>
+    </div>
   );
 }

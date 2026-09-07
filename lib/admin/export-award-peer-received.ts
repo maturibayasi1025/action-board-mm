@@ -5,8 +5,11 @@ import {
 import { buildCsvContent } from "@/lib/admin/export-award-self-eval";
 import {
   type AwardNominationQuestion,
+  buildNormalizedNameIndex,
   pickNominationQuestionForGroup,
-} from "@/lib/mcp/award-nomination-ranking";
+  pickReasonQuestionForNomination,
+  resolveNominee,
+} from "@/lib/award/nomination-ranking";
 
 export const NOMINATION_GROUP_ORDER = AWARD_QUESTION_GROUP_ORDER;
 
@@ -126,15 +129,34 @@ export function pickReasonQuestionForGroup(
   questions: PeerMasterQuestion[],
   nominationQuestion: PeerMasterQuestion,
 ): PeerMasterQuestion | undefined {
-  return questions
-    .filter(
-      (question) =>
-        question.question_group === nominationQuestion.question_group &&
-        question.is_active &&
-        question.question_type === "textarea" &&
-        question.display_order > nominationQuestion.display_order,
-    )
-    .sort((a, b) => a.display_order - b.display_order)[0];
+  return pickReasonQuestionForNomination(questions, nominationQuestion);
+}
+
+export type PeerNomineeLookup = {
+  users: Map<string, PeerUserRow>;
+  userNameById: Map<string, string>;
+  nameIndex: Map<string, string[]>;
+  suspendedIds: Set<string>;
+};
+
+export function peerNomineeLookupFromUsers(
+  users: Map<string, PeerUserRow>,
+): PeerNomineeLookup {
+  const suspendedIds = new Set<string>();
+  const userNameById = new Map<string, string>();
+  for (const [id, user] of users) {
+    if (user.suspended) {
+      suspendedIds.add(id);
+      continue;
+    }
+    userNameById.set(id, user.name);
+  }
+  return {
+    users,
+    userNameById,
+    nameIndex: buildNormalizedNameIndex(userNameById),
+    suspendedIds,
+  };
 }
 
 export function formatReceivedCommentLine(
@@ -152,36 +174,42 @@ export function formatReceivedCommentLine(
 export function resolveNomineeFromResponse(
   response: PeerResponseRow,
   question: PeerMasterQuestion,
-  users: Map<string, PeerUserRow>,
+  usersOrLookup: Map<string, PeerUserRow> | PeerNomineeLookup,
 ): {
   key: string;
   name: string;
   nomineeUserId: string | null;
 } | null {
-  if (question.question_type === "user_select") {
-    if (response.nominee_user_id) {
-      const user = users.get(response.nominee_user_id);
-      if (user?.suspended) {
-        return null;
-      }
-      return {
-        key: `uid:${response.nominee_user_id}`,
-        name: user?.name ?? "不明",
-        nomineeUserId: response.nominee_user_id,
-      };
-    }
-    const legacy = response.text_value?.trim();
-    if (legacy) {
-      return { key: `text:${legacy}`, name: legacy, nomineeUserId: null };
-    }
+  const lookup =
+    usersOrLookup instanceof Map
+      ? peerNomineeLookupFromUsers(usersOrLookup)
+      : usersOrLookup;
+
+  if (
+    response.nominee_user_id &&
+    lookup.suspendedIds.has(response.nominee_user_id)
+  ) {
     return null;
   }
 
-  const textValue = response.text_value?.trim();
-  if (textValue) {
-    return { key: `text:${textValue}`, name: textValue, nomineeUserId: null };
+  const resolved = resolveNominee(
+    {
+      question_id: response.question_id,
+      text_value: response.text_value,
+      nominee_user_id: response.nominee_user_id,
+    },
+    question,
+    lookup.userNameById,
+    lookup.nameIndex,
+  );
+  if (!resolved) {
+    return null;
   }
-  return null;
+  return {
+    key: resolved.key,
+    name: resolved.name,
+    nomineeUserId: resolved.nominee_user_id,
+  };
 }
 
 function reasonLookupKey(
@@ -230,6 +258,7 @@ export function collectPeerNominationEvents(
   }
 
   const surveyById = new Map(surveys.map((survey) => [survey.id, survey]));
+  const lookup = peerNomineeLookupFromUsers(users);
   const events: PeerNominationEvent[] = [];
 
   for (const response of responses) {
@@ -243,7 +272,7 @@ export function collectPeerNominationEvents(
     const nominee = resolveNomineeFromResponse(
       response,
       pair.nomination,
-      users,
+      lookup,
     );
     if (!nominee) continue;
 
