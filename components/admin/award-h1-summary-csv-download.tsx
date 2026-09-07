@@ -51,7 +51,7 @@ export function AwardH1SummaryCsvDownload({
       ) : (
         <Download className="h-4 w-4 mr-1.5" />
       )}
-      上半期まとめCSV（1Q+2Q）
+      上半期まとめCSV（{year} 1Q+2Q）
     </Button>
   );
 }
