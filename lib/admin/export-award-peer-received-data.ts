@@ -16,8 +16,9 @@ import {
 } from "@/lib/admin/private-user-org";
 import {
   AWARD_RANKING_RESPONSE_COLUMNS,
+  PRIVATE_USER_NOMINATION_COLUMNS,
   fetchAllAwardResponses,
-  fetchPrivateUsersByIds,
+  fetchAllPrivateUsersForNomination,
 } from "@/lib/award/fetch-award-rows";
 import type { Database } from "@/lib/types/supabase";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -97,32 +98,15 @@ async function fetchResponses(
 
 async function fetchUsers(
   supabase: SupabaseClient<Database>,
-  userIds: string[],
 ): Promise<Map<string, PeerUserRow>> {
-  if (userIds.length === 0) return new Map();
-
   try {
-    const rows = await fetchPrivateUsersByIds<
+    const rows = await fetchAllPrivateUsersForNomination<
       PrivateUserOrgRow & {
         id: string;
         name: string;
         suspended_at: string | null;
       }
-    >(
-      supabase,
-      userIds,
-      `
-      id,
-      name,
-      suspended_at,
-      business_units (
-        name,
-        companies (
-          name
-        )
-      )
-    `,
-    );
+    >(supabase, PRIVATE_USER_NOMINATION_COLUMNS);
 
     return new Map(
       rows.map((u) => {
@@ -154,20 +138,11 @@ export async function collectAwardPeerReceivedData(
   const surveys = await fetchSurveys(supabase, yearMonths);
   const surveyIds = surveys.map((survey) => survey.id);
 
-  const [questions, responses] = await Promise.all([
+  const [questions, responses, users] = await Promise.all([
     fetchQuestions(supabase),
     fetchResponses(supabase, surveyIds),
+    fetchUsers(supabase),
   ]);
-
-  const userIds = Array.from(
-    new Set([
-      ...responses.map((r) => r.user_id),
-      ...responses
-        .map((r) => r.nominee_user_id)
-        .filter((id): id is string => id != null),
-    ]),
-  );
-  const users = await fetchUsers(supabase, userIds);
   const events = collectPeerNominationEvents(
     surveys,
     questions,

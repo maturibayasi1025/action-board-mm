@@ -11,6 +11,7 @@ import {
   buildPeerReceivedDetailRows,
   collectPeerNominationEvents,
   formatReceivedCommentLine,
+  peerNomineeLookupFromUsers,
   pickReasonQuestionForGroup,
   resolveNomineeFromResponse,
 } from "@/lib/admin/export-award-peer-received";
@@ -243,6 +244,101 @@ describe("export-award-peer-received", () => {
       });
     });
 
+    it("does not unique-match text to the remaining active user when a suspended homonym exists", () => {
+      const usersWithHomonym = new Map([
+        ["active", user("active", "山田 太郎")],
+        ["suspended", user("suspended", "山田　太郎", { suspended: true })],
+      ]);
+
+      const lookup = peerNomineeLookupFromUsers(usersWithHomonym);
+      expect(lookup.nameIndex.get(normalizeNomineeName("山田太郎"))).toEqual([
+        "active",
+        "suspended",
+      ]);
+
+      expect(
+        resolveNomineeFromResponse(
+          {
+            survey_id: "s1",
+            user_id: "r1",
+            question_id: "nom-p",
+            text_value: "山田太郎",
+            nominee_user_id: null,
+            is_late_submission: false,
+          },
+          nomination,
+          lookup,
+        ),
+      ).toEqual({
+        key: `text:${normalizeNomineeName("山田太郎")}`,
+        name: "山田太郎",
+        nomineeUserId: null,
+      });
+    });
+
+    it("uses users who never appear in the period's responses for name matching", () => {
+      const usersIncludingAbsent = new Map([
+        ["in-period", user("in-period", "山田 太郎")],
+        [
+          "absent-suspended",
+          user("absent-suspended", "山田太郎", { suspended: true }),
+        ],
+        ["absent-active", user("absent-active", "佐藤花子")],
+      ]);
+      const lookup = peerNomineeLookupFromUsers(usersIncludingAbsent);
+
+      expect(
+        resolveNomineeFromResponse(
+          {
+            survey_id: "s1",
+            user_id: "r1",
+            question_id: "nom-p",
+            text_value: "山田太郎",
+            nominee_user_id: null,
+            is_late_submission: false,
+          },
+          nomination,
+          lookup,
+        )?.nomineeUserId,
+      ).toBeNull();
+
+      expect(
+        resolveNomineeFromResponse(
+          {
+            survey_id: "s1",
+            user_id: "r1",
+            question_id: "nom-p",
+            text_value: "佐藤 花子",
+            nominee_user_id: null,
+            is_late_submission: false,
+          },
+          nomination,
+          lookup,
+        ),
+      ).toEqual({
+        key: "uid:absent-active",
+        name: "佐藤花子",
+        nomineeUserId: "absent-active",
+      });
+    });
+
+    it("excludes a unique name match that resolves only to a suspended user", () => {
+      expect(
+        resolveNomineeFromResponse(
+          {
+            survey_id: "s1",
+            user_id: "r1",
+            question_id: "nom-p",
+            text_value: "停止ユーザー",
+            nominee_user_id: null,
+            is_late_submission: false,
+          },
+          nomination,
+          users,
+        ),
+      ).toBeNull();
+    });
+
     it("normalizes free-text team keys so spaces and full-width do not split votes", () => {
       const teamQuestion = questions.find((q) => q.id === "nom-t");
       if (!teamQuestion) {
@@ -424,6 +520,37 @@ describe("export-award-peer-received", () => {
             e.nomineeKey === `text:${normalizeNomineeName("プロジェクトX")}`,
         ),
       ).toHaveLength(2);
+    });
+
+    it("does not attribute a text nomination to an in-period user when an absent suspended homonym exists", () => {
+      const events = collectPeerNominationEvents(
+        [{ id: "s1", year_month: "2026-03", title: "3月" }],
+        questions,
+        [
+          {
+            survey_id: "s1",
+            user_id: "r1",
+            question_id: "nom-p",
+            text_value: "山田太郎",
+            nominee_user_id: null,
+            is_late_submission: false,
+          },
+        ],
+        new Map([
+          ["in-period", user("in-period", "山田太郎")],
+          [
+            "absent-suspended",
+            user("absent-suspended", "山田 太郎", { suspended: true }),
+          ],
+          ["r1", user("r1", "推薦者B")],
+        ]),
+      );
+
+      expect(events).toHaveLength(1);
+      expect(events[0]?.nomineeUserId).toBeNull();
+      expect(events[0]?.nomineeKey).toBe(
+        `text:${normalizeNomineeName("山田太郎")}`,
+      );
     });
 
     it("builds BOM CSV with escaped comments and late flags in the detail file", () => {

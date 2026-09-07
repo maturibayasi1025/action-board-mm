@@ -147,8 +147,8 @@ export function peerNomineeLookupFromUsers(
   for (const [id, user] of users) {
     if (user.suspended) {
       suspendedIds.add(id);
-      continue;
     }
+    // 停止ユーザーも名前インデックスに入れる。落とすと残った active 1人に誤マッチする。
     userNameById.set(id, user.name);
   }
   return {
@@ -203,6 +203,12 @@ export function resolveNomineeFromResponse(
     lookup.nameIndex,
   );
   if (!resolved) {
+    return null;
+  }
+  if (
+    resolved.nominee_user_id &&
+    lookup.suspendedIds.has(resolved.nominee_user_id)
+  ) {
     return null;
   }
   return {
