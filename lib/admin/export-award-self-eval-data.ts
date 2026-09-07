@@ -3,6 +3,7 @@ import {
   type SurveyRow,
   VALUE_LABELS,
   VALUE_ORDER,
+  type ValueKey,
   buildCsvContent,
   buildMonthRangeLabel,
   buildValueCell,
@@ -27,6 +28,21 @@ type UserRow = {
   name: string;
   company_name: string;
   business_unit_name: string;
+};
+
+export type AwardSelfEvalPersonRow = {
+  userId: string;
+  name: string;
+  companyName: string;
+  businessUnitName: string;
+  valueCells: Record<ValueKey, string>;
+};
+
+export type AwardSelfEvalCollected = {
+  surveys: SurveyRow[];
+  rows: AwardSelfEvalPersonRow[];
+  responseCount: number;
+  targetYearMonths: string[];
 };
 
 export type AwardSelfEvalExportResult = {
@@ -124,10 +140,10 @@ async function fetchUsers(
   );
 }
 
-export async function buildAwardSelfEvalCsv(
+export async function collectAwardSelfEvalData(
   supabase: SupabaseClient<Database>,
   yearMonths: string[] | null,
-): Promise<AwardSelfEvalExportResult> {
+): Promise<AwardSelfEvalCollected> {
   const surveys = await fetchSurveys(supabase, yearMonths);
   const surveyIds = surveys.map((s) => s.id);
   const surveyIdToYearMonth = new Map(surveys.map((s) => [s.id, s.year_month]));
@@ -149,6 +165,41 @@ export async function buildAwardSelfEvalCsv(
     return nameA.localeCompare(nameB, "ja");
   });
 
+  const rows: AwardSelfEvalPersonRow[] = sortedUserIds.map((userId) => {
+    const user = userMap.get(userId);
+    const valueCells = {} as Record<ValueKey, string>;
+    for (const valueKey of VALUE_ORDER) {
+      valueCells[valueKey] = buildValueCell(
+        userId,
+        valueKey,
+        surveys,
+        surveyIdToYearMonth,
+        responseIndex,
+      );
+    }
+    return {
+      userId,
+      name: user?.name ?? "不明",
+      companyName: user?.company_name ?? "",
+      businessUnitName: user?.business_unit_name ?? "",
+      valueCells,
+    };
+  });
+
+  return {
+    surveys,
+    rows,
+    responseCount: responses.length,
+    targetYearMonths: surveys.map((s) => s.year_month),
+  };
+}
+
+export async function buildAwardSelfEvalCsv(
+  supabase: SupabaseClient<Database>,
+  yearMonths: string[] | null,
+): Promise<AwardSelfEvalExportResult> {
+  const collected = await collectAwardSelfEvalData(supabase, yearMonths);
+
   const headers = [
     "氏名",
     "会社",
@@ -156,31 +207,20 @@ export async function buildAwardSelfEvalCsv(
     ...VALUE_ORDER.map((key) => VALUE_LABELS[key]),
   ];
 
-  const dataRows = sortedUserIds.map((userId) => {
-    const user = userMap.get(userId);
-    return [
-      user?.name ?? "不明",
-      user?.company_name ?? "",
-      user?.business_unit_name ?? "",
-      ...VALUE_ORDER.map((valueKey) =>
-        buildValueCell(
-          userId,
-          valueKey,
-          surveys,
-          surveyIdToYearMonth,
-          responseIndex,
-        ),
-      ),
-    ];
-  });
+  const dataRows = collected.rows.map((row) => [
+    row.name,
+    row.companyName,
+    row.businessUnitName,
+    ...VALUE_ORDER.map((valueKey) => row.valueCells[valueKey]),
+  ]);
 
-  const monthRange = buildMonthRangeLabel(surveys);
+  const monthRange = buildMonthRangeLabel(collected.surveys);
 
   return {
     csvContent: buildCsvContent(headers, dataRows),
     filename: `award-self-eval-${monthRange}.csv`,
-    responderCount: sortedUserIds.length,
-    responseCount: responses.length,
-    targetYearMonths: surveys.map((s) => s.year_month),
+    responderCount: collected.rows.length,
+    responseCount: collected.responseCount,
+    targetYearMonths: collected.targetYearMonths,
   };
 }

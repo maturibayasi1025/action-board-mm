@@ -1,5 +1,6 @@
 import {
   getMonthsForQuarter,
+  yearMonthKeysForFirstHalf,
   yearMonthKeysForQuarter,
 } from "@/app/(protected)/admin/award-surveys/quarterly-ranking-model";
 import {
@@ -82,6 +83,21 @@ describe("MVV表彰四半期の集計範囲", () => {
       ]);
       expect(getMonthsForQuarter(1)).toEqual([3, 4, 5]);
       expect(getMonthsForQuarter(2)).toEqual([6, 7, 8]);
+    });
+
+    it("上半期は Q1+Q2 の yearMonthKeysForQuarter 連結のみ", () => {
+      expect(yearMonthKeysForFirstHalf(2026)).toEqual([
+        ...yearMonthKeysForQuarter(2026, 1),
+        ...yearMonthKeysForQuarter(2026, 2),
+      ]);
+      expect(yearMonthKeysForFirstHalf(2026)).toEqual([
+        "2026-03",
+        "2026-04",
+        "2026-05",
+        "2026-06",
+        "2026-07",
+        "2026-08",
+      ]);
     });
   });
 

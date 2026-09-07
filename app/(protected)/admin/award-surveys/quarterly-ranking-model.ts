@@ -131,6 +131,14 @@ export function yearMonthKeysForQuarter(
   return getAwardQuarterYearMonthKeys(fiscalYear, quarter);
 }
 
+/** 上半期（Q1+Q2）。必ず yearMonthKeysForQuarter の連結のみ。 */
+export function yearMonthKeysForFirstHalf(fiscalYear: number): string[] {
+  return [
+    ...yearMonthKeysForQuarter(fiscalYear, 1),
+    ...yearMonthKeysForQuarter(fiscalYear, 2),
+  ];
+}
+
 export function quarterKey(fiscalYear: number, quarter: AwardQuarter): string {
   return `${fiscalYear}-Q${quarter}`;
 }
