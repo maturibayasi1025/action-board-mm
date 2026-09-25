@@ -28,7 +28,7 @@
 | `SLACK_WEBHOOK_URL_AWARD` | 表彰サーベイ通知用 Webhook | 表彰チャンネル用に同上 |
 | `SLACK_WEBHOOK_URL` | グッジョブ等の他通知（サーベイには使わない） | Incoming Webhooks で作成 |
 
-> **注意**: ワークフローはリポジトリ上で `npm run generate-enps-survey` / `generate-award-survey` を実行し、`npm run` のプロセスに上記 Secrets を渡します。Slack 通知はその実行時に送信されます。**デプロイ環境**（Vercel / Cloudflare 等）に管理画面の未回答リマインドやバッチ API 用の同じ変数を設定してください。eNPS は `SLACK_WEBHOOK_URL_ENPS`、表彰は `SLACK_WEBHOOK_URL_AWARD` のみを使い、`SLACK_WEBHOOK_URL` にはフォールバックしません。未設定のときは通知をスキップします。
+> **注意**: ワークフローはリポジトリ上で `npm run generate-enps-survey` / `generate-award-survey` を実行し、`npm run` のプロセスに上記 Secrets を渡します。Slack 通知はその実行時に送信されます。**デプロイ環境**（Vercel / Cloudflare 等）に管理画面の未回答リマインドやバッチ API 用の同じ変数を設定してください。eNPS は `SLACK_WEBHOOK_URL_ENPS`、表彰は `SLACK_WEBHOOK_URL_AWARD` のみを使い、`SLACK_WEBHOOK_URL` にはフォールバックしません。生成スクリプトは専用 Webhook が空・未設定のとき、または Slack が HTTP エラーを返したとき失敗終了します。
 
 ### eNPS レポート生成ワークフロー
 
