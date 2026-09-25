@@ -13,11 +13,14 @@ export function planMonthlySurveyRun(input: {
   existing: ExistingMonthlySurvey | null;
   webhookConfigured: boolean;
 }): MonthlySurveyRunPlan {
-  if (input.existing) {
+  if (input.existing?.slackNotifiedAt) {
     return { kind: "skip" };
   }
   if (!input.webhookConfigured) {
-    return { kind: "skip" };
+    return { kind: "fail_missing_webhook" };
+  }
+  if (input.existing) {
+    return { kind: "notify_existing", surveyId: input.existing.id };
   }
   return { kind: "create" };
 }
