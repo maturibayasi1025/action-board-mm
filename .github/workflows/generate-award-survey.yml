@@ -6,7 +6,7 @@ on:
     - cron: '17 1 25 * *'
     # 毎月25日 12:47 JST (UTC 03:47)。1回目が欠落しても再実行する。
     - cron: '47 3 25 * *'
-  workflow_dispatch: # 手動実行も可能
+  workflow_dispatch:
 
 jobs:
   generate-survey:
