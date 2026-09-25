@@ -13,8 +13,33 @@ import { sha256Base64Url, signHs256Jwt, verifyHs256Jwt } from "@/lib/mcp/jwt";
 import type { McpScope } from "@/lib/mcp/scopes";
 
 export const MCP_ACCESS_TOKEN_TTL_SECONDS = 8 * 60 * 60;
+export const MCP_REFRESH_TOKEN_TTL_SECONDS = 30 * 24 * 60 * 60;
 export const MCP_AUTH_CODE_TTL_SECONDS = 5 * 60;
 export const MCP_OAUTH_STATE_TTL_SECONDS = 10 * 60;
+
+/** パスを問わず許可する HTTPS ホスト。 */
+const OPEN_OAUTH_HTTPS_HOSTS = [
+  "cursor.com",
+  "www.cursor.com",
+  "claude.ai",
+  "chat.openai.com",
+  "platform.openai.com",
+] as const;
+
+/** chatgpt.com はコネクタの callback パスだけ許可する。 */
+const CHATGPT_CONNECTOR_HOSTS = ["chatgpt.com", "www.chatgpt.com"] as const;
+
+export const ALLOWED_OAUTH_HTTPS_HOSTS = [
+  ...OPEN_OAUTH_HTTPS_HOSTS,
+  ...CHATGPT_CONNECTOR_HOSTS,
+] as const;
+
+function isChatGptConnectorRedirect(pathname: string): boolean {
+  return (
+    pathname === "/connector_platform_oauth_redirect" ||
+    pathname.startsWith("/connector/oauth/")
+  );
+}
 
 export const MCP_ISSUED_COOKIE = "mcp_issued_token";
 
@@ -78,20 +103,14 @@ export function isAllowedOAuthRedirectUri(uri: string): boolean {
   }
   if (parsed.protocol === "https:") {
     if (
-      parsed.hostname === "cursor.com" ||
-      parsed.hostname === "www.cursor.com" ||
-      parsed.hostname === "claude.ai"
+      (OPEN_OAUTH_HTTPS_HOSTS as readonly string[]).includes(parsed.hostname)
     ) {
       return true;
     }
     if (
-      parsed.hostname === "chatgpt.com" ||
-      parsed.hostname === "www.chatgpt.com"
+      (CHATGPT_CONNECTOR_HOSTS as readonly string[]).includes(parsed.hostname)
     ) {
-      return (
-        parsed.pathname === "/connector_platform_oauth_redirect" ||
-        parsed.pathname.startsWith("/connector/oauth/")
-      );
+      return isChatGptConnectorRedirect(parsed.pathname);
     }
   }
   return false;
@@ -135,6 +154,24 @@ export type McpAccessTokenPayload = {
   aud: "action-board-mcp";
   iat: number;
   exp: number;
+};
+
+export type McpRefreshTokenPayload = {
+  typ: "mcp_rt";
+  sub: string;
+  email: string;
+  scopes: McpScope[];
+  iss: string;
+  aud: "action-board-mcp";
+  iat: number;
+  exp: number;
+};
+
+export type McpTokenPair = {
+  accessToken: string;
+  refreshToken: string;
+  expiresIn: number;
+  scopes: McpScope[];
 };
 
 export function googleAuthorizationUrl(
@@ -204,6 +241,57 @@ export async function issueAccessToken(
     exp: now + MCP_ACCESS_TOKEN_TTL_SECONDS,
   };
   return signHs256Jwt(payload, secret);
+}
+
+export async function issueRefreshToken(
+  granted: GoogleAccessOk,
+  secret: string,
+): Promise<string> {
+  const now = Math.floor(Date.now() / 1000);
+  const payload: McpRefreshTokenPayload = {
+    typ: "mcp_rt",
+    sub: granted.email,
+    email: granted.email,
+    scopes: granted.scopes,
+    iss: mcpIssuer(),
+    aud: "action-board-mcp",
+    iat: now,
+    exp: now + MCP_REFRESH_TOKEN_TTL_SECONDS,
+  };
+  return signHs256Jwt(payload, secret);
+}
+
+export async function issueTokenPair(
+  granted: GoogleAccessOk,
+  secret: string,
+): Promise<McpTokenPair> {
+  return {
+    accessToken: await issueAccessToken(granted, secret),
+    refreshToken: await issueRefreshToken(granted, secret),
+    expiresIn: MCP_ACCESS_TOKEN_TTL_SECONDS,
+    scopes: granted.scopes,
+  };
+}
+
+export async function refreshGrantedAccess(
+  refreshToken: string,
+  secret: string,
+  allowlistRaw: string | undefined,
+): Promise<GoogleAccessOk | null> {
+  const payload = await verifyHs256Jwt<McpRefreshTokenPayload>(
+    refreshToken,
+    secret,
+  );
+  if (!payload || payload.typ !== "mcp_rt" || !payload.email) {
+    return null;
+  }
+  const entry = parseAllowedGoogleEmails(allowlistRaw).find(
+    (item) => item.email === payload.email,
+  );
+  if (!entry) {
+    return null;
+  }
+  return { ok: true, email: payload.email, scopes: entry.scopes };
 }
 
 export async function issueAuthorizationCode(

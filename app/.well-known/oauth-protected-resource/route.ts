@@ -1,5 +1,6 @@
 import { mcpIssuer, mcpResourceUrl } from "@/lib/mcp/oauth";
 import { oauthJson } from "@/lib/mcp/oauth-http";
+import { MCP_SCOPES } from "@/lib/mcp/scopes";
 
 export const runtime = "edge";
 
@@ -8,7 +9,7 @@ export function GET() {
     resource: mcpResourceUrl(),
     authorization_servers: [mcpIssuer()],
     bearer_methods_supported: ["header"],
-    scopes_supported: ["public"],
+    scopes_supported: [...MCP_SCOPES],
   });
 }
 

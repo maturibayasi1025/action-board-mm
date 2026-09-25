@@ -1,5 +1,5 @@
 import { getSiteUrl } from "@/lib/env";
-import { isAllowedOAuthRedirectUri } from "@/lib/mcp/oauth";
+import { isAllowedOAuthRedirectUri, mcpIssuer } from "@/lib/mcp/oauth";
 
 export const OAUTH_CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -30,6 +30,7 @@ export function oauthErrorRedirect(
     if (client.state) {
       url.searchParams.set("state", client.state);
     }
+    url.searchParams.set("iss", mcpIssuer());
     return Response.redirect(url.toString(), 302);
   }
   const url = new URL("/mcp/connect", `${getSiteUrl()}/`);

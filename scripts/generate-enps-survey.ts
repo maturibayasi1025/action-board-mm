@@ -1,6 +1,10 @@
 import path from "node:path";
 import { SLACK_MRKDWN_CHANNEL_MENTION } from "@/lib/slack/constants";
 import { resolveEnpsSurveySlackWebhookUrl } from "@/lib/slack/survey-webhook-urls";
+import {
+  planMonthlySurveyRun,
+  postSlackWebhook,
+} from "@/lib/survey/monthly-survey-run";
 import type { Database } from "@/lib/types/supabase";
 import { createClient } from "@supabase/supabase-js";
 import dotenv from "dotenv";
@@ -64,18 +68,7 @@ async function sendSlackNotification(params: {
     ],
   };
 
-  const response = await fetch(webhookUrl, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(slackMessage),
-  });
-
-  if (!response.ok) {
-    const responseText = await response.text();
-    throw new Error(
-      `Slack通知に失敗しました: ${response.status} ${responseText}`,
-    );
-  }
+  await postSlackWebhook(webhookUrl, slackMessage);
 }
 
 async function main() {
@@ -97,9 +90,12 @@ async function main() {
     const yearMonth = `${year}-${String(month + 1).padStart(2, "0")}`;
     const yearMonthDisplay = `${year}年${month + 1}月度`;
 
+    const startDate = new Date(year, month, 25);
+    const endDate = new Date(year, month + 1, 0, 23, 59, 59);
+
     const { data: existingSurvey, error: existingSurveyError } = await supabase
       .from("enps_surveys")
-      .select("id")
+      .select("id, slack_notified_at")
       .eq("year_month", yearMonth)
       .maybeSingle();
 
@@ -109,33 +105,60 @@ async function main() {
       );
     }
 
-    if (existingSurvey) {
-      console.log(`当月分のアンケート（${yearMonth}）は既に存在します`);
+    const plan = planMonthlySurveyRun({
+      existing: existingSurvey
+        ? {
+            id: existingSurvey.id,
+            slackNotifiedAt: existingSurvey.slack_notified_at,
+          }
+        : null,
+      webhookConfigured: webhookUrl != null,
+    });
+
+    if (plan.kind === "skip") {
+      console.log(
+        `当月分のアンケート（${yearMonth}）は既に存在し、Slack投稿済みです`,
+      );
       process.exit(0);
     }
 
-    const startDate = new Date(year, month, 25);
-    const endDate = new Date(year, month + 1, 0, 23, 59, 59);
-
-    const { data: survey, error: surveyError } = await supabase
-      .from("enps_surveys")
-      .insert({
-        title: `月次eNPSアンケート / ${yearMonthDisplay}`,
-        description:
-          "月次のeNPSについてのアンケートです！\n詳細は社内報をご確認ください！\n5分程度で済むかと思いますので、忌憚なきご意見をお願いいたします！",
-        year_month: yearMonth,
-        start_date: startDate.toISOString(),
-        end_date: endDate.toISOString(),
-        is_active: true,
-      })
-      .select("id")
-      .single();
-
-    if (surveyError || !survey) {
-      throw new Error(`アンケート作成に失敗しました: ${surveyError?.message}`);
+    if (plan.kind === "fail_missing_webhook" || webhookUrl == null) {
+      throw new Error("SLACK_WEBHOOK_URL_ENPS が未設定です");
     }
 
-    console.log(`アンケートを作成しました: ${survey.id} (${yearMonth})`);
+    let surveyId: string;
+    if (plan.kind === "create") {
+      const { data: survey, error: surveyError } = await supabase
+        .from("enps_surveys")
+        .insert({
+          title: `月次eNPSアンケート / ${yearMonthDisplay}`,
+          description:
+            "月次のeNPSについてのアンケートです！\n詳細は社内報をご確認ください！\n5分程度で済むかと思いますので、忌憚なきご意見をお願いいたします！",
+          year_month: yearMonth,
+          start_date: startDate.toISOString(),
+          end_date: endDate.toISOString(),
+          is_active: true,
+        })
+        .select("id")
+        .single();
+
+      if (surveyError || !survey) {
+        throw new Error(
+          `アンケート作成に失敗しました: ${surveyError?.message}`,
+        );
+      }
+
+      console.log(`アンケートを作成しました: ${survey.id} (${yearMonth})`);
+      surveyId = survey.id;
+    } else if (plan.kind === "notify_existing") {
+      surveyId = plan.surveyId;
+      console.log(
+        `当月分のアンケート（${yearMonth}）は作成済みで未投稿のため、Slack投稿のみ行います`,
+      );
+    } else {
+      const unreachable: never = plan;
+      throw new Error(`未処理の実行計画です: ${String(unreachable)}`);
+    }
 
     const { data: activeQuestions, error: questionsError } = await supabase
       .from("enps_questions")
@@ -153,14 +176,7 @@ async function main() {
       process.exit(0);
     }
 
-    if (!webhookUrl) {
-      console.warn(
-        "SLACK_WEBHOOK_URL_ENPS が未設定のため、Slack通知はスキップします。",
-      );
-      process.exit(0);
-    }
-
-    const surveyUrl = `${appOrigin}/surveys/${survey.id}`;
+    const surveyUrl = `${appOrigin}/surveys/${surveyId}`;
     await sendSlackNotification({
       webhookUrl,
       yearMonthDisplay,
@@ -171,7 +187,7 @@ async function main() {
     const { error: updatedError } = await supabase
       .from("enps_surveys")
       .update({ slack_notified_at: new Date().toISOString() })
-      .eq("id", survey.id);
+      .eq("id", surveyId);
 
     if (updatedError) {
       throw new Error(`通知日時更新に失敗しました: ${updatedError.message}`);
