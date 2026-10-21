@@ -27,7 +27,7 @@ test.describe("スモークテスト", () => {
     await assertAuthState(signedInPage, true);
 
     await signedInPage
-      .getByRole("button", { name: "詳細を見る →" })
+      .getByRole("link", { name: "詳細を見る →" })
       .first()
       .click();
     await expect(signedInPage).toHaveURL(/\/missions\/[^/]+$/, {

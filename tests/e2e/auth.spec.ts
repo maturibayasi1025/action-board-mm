@@ -24,7 +24,7 @@ test.describe("ユーザー登録とログイン", () => {
 
     await expect(page).toHaveURL("/sign-up");
 
-    await page.locator("#terms").click();
+    await page.getByText("に同意する", { exact: true }).click();
     const testEmail = generateRandomEmail();
     const testPassword = "TestPassword123!";
     await page.fill('input[name="email"]', testEmail);
@@ -67,7 +67,7 @@ test.describe("ユーザー登録とログイン", () => {
       page.getByRole("button", { name: "アカウントを作成" }),
     ).toBeDisabled();
 
-    await page.locator("#terms").click();
+    await page.getByText("に同意する", { exact: true }).click();
     await expect(
       page.getByRole("button", { name: "アカウントを作成" }),
     ).toBeEnabled();
@@ -103,7 +103,7 @@ test.describe("ユーザー登録とログイン", () => {
       page.getByRole("button", { name: "アカウントを作成" }),
     ).toBeDisabled();
 
-    await page.locator("#terms").click();
+    await page.getByText("に同意する", { exact: true }).click();
     await expect(
       page.getByRole("button", { name: "アカウントを作成" }),
     ).toBeEnabled();

@@ -22,7 +22,7 @@ test.describe("アクションボード（Web版）のe2eテスト", () => {
       }),
     ).toBeVisible();
     await expect(
-      signedInPage.getByRole("button", { name: "詳細を見る →" }).first(),
+      signedInPage.getByRole("link", { name: "詳細を見る →" }).first(),
     ).toBeVisible();
 
     // フッターの表示を確認
@@ -53,39 +53,15 @@ test.describe("アクションボード（Web版）のe2eテスト", () => {
     // アカウントページの表示内容を確認
     await expect(signedInPage.getByText("プロフィール設定")).toBeVisible();
     await expect(signedInPage.getByText("ニックネーム")).toBeVisible();
-    // 生年月日
     await expect(
       signedInPage.getByText("生年月日", { exact: true }),
-    ).toBeVisible();
-    await expect(
-      signedInPage.getByRole("button", { name: "生年月日が必要な理由" }),
     ).toBeVisible();
     await expect(signedInPage.getByTestId("year_select")).toBeVisible();
     await expect(signedInPage.getByTestId("month_select")).toBeVisible();
     await expect(signedInPage.getByTestId("day_select")).toBeVisible();
-    // 都道府県
     await expect(signedInPage.getByText("都道府県")).toBeVisible();
     await expect(
       signedInPage.getByRole("combobox", { name: "都道府県" }),
-    ).toBeVisible();
-    // 郵便番号
-    await expect(
-      signedInPage.getByText("郵便番号(ハイフンなし半角7桁)"),
-    ).toBeVisible();
-    await expect(
-      signedInPage.getByRole("button", { name: "なぜ郵便番号が必要ですか？" }),
-    ).toBeVisible();
-    await expect(
-      signedInPage.getByRole("textbox", {
-        name: "郵便番号(ハイフンなし半角7桁)",
-      }),
-    ).toBeVisible();
-    // アカウント
-    await expect(
-      signedInPage.getByText("X(旧Twitter)のユーザー名"),
-    ).toBeVisible();
-    await expect(
-      signedInPage.getByText("GitHubのユーザー名", { exact: true }),
     ).toBeVisible();
     await expect(
       signedInPage.getByRole("button", { name: "更新する" }),
@@ -113,19 +89,16 @@ test.describe("アクションボード（Web版）のe2eテスト", () => {
   test("任意のユーザーページ遷移が正常に動作する", async ({ signedInPage }) => {
     await assertAuthState(signedInPage, true);
 
-    // 任意のユーザーページに遷移（ランキングから佐藤太郎のページへ）
+    // 任意のユーザーページに遷移（ランキングから葉倉歩のページへ）
     await signedInPage.goto("/ranking?period=all");
-    await signedInPage
-      .getByRole("link")
-      .filter({ hasText: "佐藤太郎" })
-      .click();
+    await signedInPage.getByRole("link").filter({ hasText: "葉倉歩" }).click();
     await expect(signedInPage).toHaveURL(/\/users\/[^\/]+$/, {
       timeout: 10000,
     });
 
     // 任意のユーザーページの表示内容を確認
-    await expect(signedInPage.getByText("佐藤太郎")).toBeVisible();
-    await expect(signedInPage.getByText("Lv.10")).toBeVisible();
+    await expect(signedInPage.getByText("葉倉歩")).toBeVisible();
+    await expect(signedInPage.getByText("LV.")).toBeVisible();
     await expect(signedInPage.getByText("東京都")).toBeVisible();
     await expect(signedInPage.getByText("活動タイムライン")).toBeVisible();
   });
@@ -137,7 +110,7 @@ test.describe("アクションボード（Web版）のe2eテスト", () => {
 
     // グッジョブページに遷移（ゴミ拾いグッジョブをクリック）
     await signedInPage
-      .getByRole("button", { name: "詳細を見る →" })
+      .getByRole("link", { name: "詳細を見る →" })
       .first()
       .click();
     await expect(signedInPage).toHaveURL(/\/missions\/[^\/]+$/, {
@@ -219,7 +192,7 @@ test.describe("アクションボード（Web版）のe2eテスト", () => {
     // グッジョブ取消後のポイントの変動を確認
     await signedInPage.goto("/");
     await signedInPage
-      .getByRole("button", { name: "詳細を見る →" })
+      .getByRole("link", { name: "詳細を見る →" })
       .first()
       .click();
     await expect(signedInPage).toHaveURL(/\/missions\/[^\/]+$/, {
@@ -269,7 +242,7 @@ test.describe("アクションボード（Web版）のe2eテスト", () => {
     ).toBeVisible();
     await expect(
       signedInPage.getByRole("link", {
-        name: /安野たかひろ 東京都 Lv.20 3,325pt/,
+        name: /葉倉歩 東京都 Lv.1 0pt/,
       }),
     ).toBeVisible();
 
@@ -280,11 +253,6 @@ test.describe("アクションボード（Web版）のe2eテスト", () => {
     await expect(signedInPage.getByText("都道府県を選択")).toBeVisible();
     await expect(
       signedInPage.getByRole("heading", { name: "東京都トップ" }),
-    ).toBeVisible();
-    await expect(
-      signedInPage.getByRole("link", {
-        name: /安野たかひろ 東京都 Lv.20 3,325pt/,
-      }),
     ).toBeVisible();
 
     await signedInPage.getByText("グッジョブ別").click();

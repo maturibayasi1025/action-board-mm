@@ -103,19 +103,20 @@ export default function Mission({
             />
           </div>
         </div>
-        <Link href={`/missions/${mission.id}`} className="block">
-          <Button
-            variant="default"
-            className={clsx(
-              "w-full rounded-full py-6 text-base font-bold shadow-md hover:shadow-lg",
-              hasReachedMaxAchievements
-                ? "bg-gradient-to-r from-gray-400 to-gray-500 hover:from-gray-500 hover:to-gray-600 text-white"
-                : "bg-gradient-to-r from-[#F0DC00] to-[#FFE800] hover:from-[#D4C400] hover:to-[#F0DC00] text-gray-900",
-            )}
-          >
+        <Button
+          asChild
+          variant="default"
+          className={clsx(
+            "w-full rounded-full py-6 text-base font-bold shadow-md hover:shadow-lg",
+            hasReachedMaxAchievements
+              ? "bg-gradient-to-r from-gray-400 to-gray-500 hover:from-gray-500 hover:to-gray-600 text-white"
+              : "bg-gradient-to-r from-[#F0DC00] to-[#FFE800] hover:from-[#D4C400] hover:to-[#F0DC00] text-gray-900",
+          )}
+        >
+          <Link href={`/missions/${mission.id}`}>
             {hasReachedMaxAchievements ? "達成内容を見る →" : "詳細を見る →"}
-          </Button>
-        </Link>
+          </Link>
+        </Button>
       </CardFooter>
     </Card>
   );
