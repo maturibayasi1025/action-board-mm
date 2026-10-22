@@ -98,7 +98,7 @@ test.describe("アクションボード（Web版）のe2eテスト", () => {
 
     // 任意のユーザーページの表示内容を確認
     await expect(signedInPage.getByText("葉倉歩")).toBeVisible();
-    await expect(signedInPage.getByText("LV.")).toBeVisible();
+    await expect(signedInPage.getByText("LV.1", { exact: true })).toBeVisible();
     await expect(signedInPage.getByText("東京都")).toBeVisible();
     await expect(signedInPage.getByText("活動タイムライン")).toBeVisible();
   });
