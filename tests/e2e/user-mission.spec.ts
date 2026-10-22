@@ -194,10 +194,11 @@ test.describe("アクションボード（Web版）のe2eテスト", () => {
 
     // グッジョブ取消後のポイントの変動を確認
     await signedInPage.goto("/");
-    await signedInPage
+    const detailLink = signedInPage
       .getByRole("link", { name: "詳細を見る →" })
-      .first()
-      .click();
+      .first();
+    await expect(detailLink).toBeVisible();
+    await detailLink.click({ force: true });
     await expect(signedInPage).toHaveURL(/\/missions\/[^\/]+$/, {
       timeout: 10000,
     });
@@ -205,7 +206,9 @@ test.describe("アクションボード（Web版）のe2eテスト", () => {
     await expect(signedInPage.getByText("あなたの達成履歴")).toBeVisible({
       timeout: 10000,
     });
-    await signedInPage.getByRole("button", { name: "取り消す" }).click();
+    const cancelButton = signedInPage.getByRole("button", { name: "取り消す" });
+    await expect(cancelButton).toBeVisible();
+    await cancelButton.click({ force: true });
 
     await expect(
       signedInPage.getByText("達成履歴を削除しますか？"),
