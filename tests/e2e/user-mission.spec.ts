@@ -176,6 +176,11 @@ test.describe("アクションボード（Web版）のe2eテスト", () => {
     ).toBeVisible();
     await signedInPage.getByRole("button", { name: "Close" }).click();
     await expect(
+      signedInPage.getByRole("dialog", {
+        name: /グッジョブレベルが\s*アップしました！/,
+      }),
+    ).toBeHidden();
+    await expect(
       signedInPage
         .locator("section")
         .getByText("テストユーザーLV.2東京都次のレベルまで45ポイント"),
@@ -195,6 +200,17 @@ test.describe("アクションボード（Web版）のe2eテスト", () => {
 
     // グッジョブ取消後のポイントの変動を確認
     await signedInPage.goto("/");
+    const levelUpDialog = signedInPage.getByRole("dialog", {
+      name: /グッジョブレベルが\s*アップしました！/,
+    });
+    const levelUpReopened = await levelUpDialog
+      .waitFor({ state: "visible", timeout: 2500 })
+      .then(() => true)
+      .catch(() => false);
+    if (levelUpReopened) {
+      await signedInPage.getByRole("button", { name: "Close" }).click();
+      await expect(levelUpDialog).toBeHidden();
+    }
     const detailLink = signedInPage
       .getByRole("link", { name: "詳細を見る →" })
       .first();
