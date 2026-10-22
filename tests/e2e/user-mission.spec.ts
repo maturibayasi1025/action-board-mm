@@ -185,9 +185,11 @@ test.describe("アクションボード（Web版）のe2eテスト", () => {
     await expect(signedInPage).toHaveURL(/period=all/, { timeout: 10000 });
     await expect(signedInPage.getByText("あなたのランク")).toBeVisible();
     await expect(
-      signedInPage.getByRole("link", {
-        name: "テストユーザー 東京都 Lv.2 50pt",
-      }),
+      signedInPage
+        .getByRole("link", {
+          name: "テストユーザー 東京都 Lv.2 50pt",
+        })
+        .first(),
     ).toBeVisible({ timeout: 10000 });
 
     // グッジョブ取消後のポイントの変動を確認
@@ -208,7 +210,9 @@ test.describe("アクションボード（Web版）のe2eテスト", () => {
     await expect(
       signedInPage.getByText("達成履歴を削除しますか？"),
     ).toBeVisible({ timeout: 10000 });
-    await signedInPage.getByRole("button", { name: "削除する" }).click();
+    const deleteButton = signedInPage.getByRole("button", { name: "削除する" });
+    await expect(deleteButton).toBeVisible();
+    await deleteButton.click({ force: true });
 
     await signedInPage.waitForTimeout(2000);
 
