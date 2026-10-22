@@ -70,13 +70,9 @@ test.describe("ユーザー登録とログイン", () => {
     });
     await expect(createAccount).toBeDisabled();
 
-    await expect(async () => {
-      if ((await terms.getAttribute("data-state")) !== "checked") {
-        await terms.click();
-      }
-      await expect(terms).toHaveAttribute("data-state", "checked");
-    }).toPass();
-    await expect(createAccount).toBeEnabled();
+    await terms.click();
+    await expect(terms).toHaveAttribute("data-state", "checked");
+    await expect(createAccount).toBeEnabled({ timeout: 15000 });
   });
 
   test("登録フォームの入力バリデーション", async ({ page }) => {

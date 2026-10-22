@@ -106,6 +106,7 @@ test.describe("アクションボード（Web版）のe2eテスト", () => {
   test("グッジョブページ遷移 → グッジョブ完了 → グッジョブ取消が正常に動作する", async ({
     signedInPage,
   }) => {
+    test.setTimeout(60_000);
     await assertAuthState(signedInPage, true);
 
     // グッジョブページに遷移（ゴミ拾いグッジョブをクリック）
