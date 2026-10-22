@@ -37,17 +37,10 @@ test.describe("スモークテスト", () => {
     const completeButton = signedInPage.getByRole("button", {
       name: "グッジョブ完了を記録する",
     });
-    if (await completeButton.isVisible()) {
-      await completeButton.click();
-      await expect(
-        signedInPage.getByText("おめでとうございます！"),
-      ).toBeVisible({
-        timeout: 10000,
-      });
-    } else {
-      await expect(
-        signedInPage.getByText("このグッジョブは達成済みです。"),
-      ).toBeVisible({ timeout: 10000 });
-    }
+    await expect(completeButton).toBeVisible({ timeout: 10000 });
+    await completeButton.click();
+    await expect(signedInPage.getByText("おめでとうございます！")).toBeVisible({
+      timeout: 10000,
+    });
   });
 });

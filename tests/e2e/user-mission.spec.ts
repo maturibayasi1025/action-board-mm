@@ -170,7 +170,7 @@ test.describe("アクションボード（Web版）のe2eテスト", () => {
     await signedInPage.goto("/");
     await expect(
       signedInPage.getByRole("dialog", {
-        name: "サポーターレベルが アップしました！",
+        name: /グッジョブレベルが\s*アップしました！/,
       }),
     ).toBeVisible();
     await signedInPage.getByRole("button", { name: "Close" }).click();
@@ -246,16 +246,15 @@ test.describe("アクションボード（Web版）のe2eテスト", () => {
       }),
     ).toBeVisible();
 
-    await signedInPage.getByText("都道府県別").click();
-    await expect(signedInPage).toHaveURL("/ranking/ranking-prefecture", {
+    await signedInPage.getByRole("link", { name: "いいね数" }).click();
+    await expect(signedInPage).toHaveURL("/ranking/ranking-likes", {
       timeout: 10000,
     });
-    await expect(signedInPage.getByText("都道府県を選択")).toBeVisible();
     await expect(
-      signedInPage.getByRole("heading", { name: "東京都トップ" }),
+      signedInPage.getByRole("heading", { name: "いいね数ランキング" }),
     ).toBeVisible();
 
-    await signedInPage.getByText("グッジョブ別").click();
+    await signedInPage.getByRole("link", { name: "グッジョブ別" }).click();
     await expect(signedInPage).toHaveURL("/ranking/ranking-mission", {
       timeout: 10000,
     });
