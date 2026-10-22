@@ -199,6 +199,16 @@ where id in (
   '4446205f-933f-4a86-83af-dbf6bb6cde92'
 );
 
+-- トップのカテゴリ欄にシードのゴミ拾いを出す。
+-- マイグレーション後の mission_category_link は空で、詳細ボタンが描画されない。
+insert into public.mission_category_link (mission_id, category_id, sort_no)
+values (
+  'e2898d7e-903f-4f9a-8b1b-93f783c9afac',
+  '0cc2f4f9-ab0a-480c-c1e2-442513421dfc',
+  1
+)
+on conflict (mission_id, category_id) do nothing;
+
 -- eNPS質問（運用文言・5問。マイグレーション後も db reset で最新に揃える）
 INSERT INTO enps_questions (id, question_text, question_type, display_order, is_required, is_active, parent_question_id)
 VALUES

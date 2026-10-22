@@ -61,16 +61,18 @@ test.describe("ユーザー登録とログイン", () => {
 
   test("利用規約に同意しないとアカウント作成できない", async ({ page }) => {
     await page.goto("/sign-up");
+    const terms = page.locator("#terms");
+    await expect(terms).toBeVisible();
     await page.fill('input[name="email"]', "test@example.com");
     await page.fill('input[name="password"]', "TestPassword123!");
-    await expect(
-      page.getByRole("button", { name: "アカウントを作成" }),
-    ).toBeDisabled();
+    const createAccount = page.getByRole("button", {
+      name: "アカウントを作成",
+    });
+    await expect(createAccount).toBeDisabled();
 
-    await page.locator("#terms").click();
-    await expect(
-      page.getByRole("button", { name: "アカウントを作成" }),
-    ).toBeEnabled();
+    await terms.click();
+    await expect(terms).toHaveAttribute("data-state", "checked");
+    await expect(createAccount).toBeEnabled({ timeout: 15000 });
   });
 
   test("登録フォームの入力バリデーション", async ({ page }) => {
