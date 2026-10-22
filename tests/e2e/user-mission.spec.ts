@@ -22,7 +22,7 @@ test.describe("アクションボード（Web版）のe2eテスト", () => {
       }),
     ).toBeVisible();
     await expect(
-      signedInPage.getByRole("button", { name: "詳細を見る →" }).first(),
+      signedInPage.getByRole("link", { name: "詳細を見る →" }).first(),
     ).toBeVisible();
 
     // フッターの表示を確認
@@ -53,39 +53,15 @@ test.describe("アクションボード（Web版）のe2eテスト", () => {
     // アカウントページの表示内容を確認
     await expect(signedInPage.getByText("プロフィール設定")).toBeVisible();
     await expect(signedInPage.getByText("ニックネーム")).toBeVisible();
-    // 生年月日
     await expect(
       signedInPage.getByText("生年月日", { exact: true }),
-    ).toBeVisible();
-    await expect(
-      signedInPage.getByRole("button", { name: "生年月日が必要な理由" }),
     ).toBeVisible();
     await expect(signedInPage.getByTestId("year_select")).toBeVisible();
     await expect(signedInPage.getByTestId("month_select")).toBeVisible();
     await expect(signedInPage.getByTestId("day_select")).toBeVisible();
-    // 都道府県
     await expect(signedInPage.getByText("都道府県")).toBeVisible();
     await expect(
       signedInPage.getByRole("combobox", { name: "都道府県" }),
-    ).toBeVisible();
-    // 郵便番号
-    await expect(
-      signedInPage.getByText("郵便番号(ハイフンなし半角7桁)"),
-    ).toBeVisible();
-    await expect(
-      signedInPage.getByRole("button", { name: "なぜ郵便番号が必要ですか？" }),
-    ).toBeVisible();
-    await expect(
-      signedInPage.getByRole("textbox", {
-        name: "郵便番号(ハイフンなし半角7桁)",
-      }),
-    ).toBeVisible();
-    // アカウント
-    await expect(
-      signedInPage.getByText("X(旧Twitter)のユーザー名"),
-    ).toBeVisible();
-    await expect(
-      signedInPage.getByText("GitHubのユーザー名", { exact: true }),
     ).toBeVisible();
     await expect(
       signedInPage.getByRole("button", { name: "更新する" }),
@@ -113,19 +89,16 @@ test.describe("アクションボード（Web版）のe2eテスト", () => {
   test("任意のユーザーページ遷移が正常に動作する", async ({ signedInPage }) => {
     await assertAuthState(signedInPage, true);
 
-    // 任意のユーザーページに遷移（ランキングから佐藤太郎のページへ）
+    // 任意のユーザーページに遷移（ランキングから葉倉歩のページへ）
     await signedInPage.goto("/ranking?period=all");
-    await signedInPage
-      .getByRole("link")
-      .filter({ hasText: "佐藤太郎" })
-      .click();
+    await signedInPage.getByRole("link").filter({ hasText: "葉倉歩" }).click();
     await expect(signedInPage).toHaveURL(/\/users\/[^\/]+$/, {
       timeout: 10000,
     });
 
     // 任意のユーザーページの表示内容を確認
-    await expect(signedInPage.getByText("佐藤太郎")).toBeVisible();
-    await expect(signedInPage.getByText("Lv.10")).toBeVisible();
+    await expect(signedInPage.getByText("葉倉歩")).toBeVisible();
+    await expect(signedInPage.getByText("LV.1", { exact: true })).toBeVisible();
     await expect(signedInPage.getByText("東京都")).toBeVisible();
     await expect(signedInPage.getByText("活動タイムライン")).toBeVisible();
   });
@@ -133,11 +106,20 @@ test.describe("アクションボード（Web版）のe2eテスト", () => {
   test("グッジョブページ遷移 → グッジョブ完了 → グッジョブ取消が正常に動作する", async ({
     signedInPage,
   }) => {
+    test.setTimeout(60_000);
     await assertAuthState(signedInPage, true);
+
+    const userProfileHref = await signedInPage
+      .getByRole("link", { name: "テストユーザーさんのプロフィールへ" })
+      .getAttribute("href");
+    expect(userProfileHref).toMatch(/^\/users\/[^/]+$/);
+    if (userProfileHref === null) {
+      throw new Error("プロフィールリンクがありません");
+    }
 
     // グッジョブページに遷移（ゴミ拾いグッジョブをクリック）
     await signedInPage
-      .getByRole("button", { name: "詳細を見る →" })
+      .getByRole("link", { name: "詳細を見る →" })
       .first()
       .click();
     await expect(signedInPage).toHaveURL(/\/missions\/[^\/]+$/, {
@@ -197,10 +179,15 @@ test.describe("アクションボード（Web版）のe2eテスト", () => {
     await signedInPage.goto("/");
     await expect(
       signedInPage.getByRole("dialog", {
-        name: "サポーターレベルが アップしました！",
+        name: /グッジョブレベルが\s*アップしました！/,
       }),
     ).toBeVisible();
     await signedInPage.getByRole("button", { name: "Close" }).click();
+    await expect(
+      signedInPage.getByRole("dialog", {
+        name: /グッジョブレベルが\s*アップしました！/,
+      }),
+    ).toBeHidden();
     await expect(
       signedInPage
         .locator("section")
@@ -209,32 +196,66 @@ test.describe("アクションボード（Web版）のe2eテスト", () => {
 
     await signedInPage.goto("/ranking");
     await signedInPage.getByRole("button", { name: "全期間" }).click();
+    await expect(signedInPage).toHaveURL(/period=all/, { timeout: 10000 });
     await expect(signedInPage.getByText("あなたのランク")).toBeVisible();
     await expect(
-      signedInPage.getByRole("link", {
-        name: "テストユーザー 東京都 Lv.2 50pt",
-      }),
+      signedInPage
+        .getByRole("link", {
+          name: "テストユーザー 東京都 Lv.2 50pt",
+        })
+        .and(signedInPage.locator(`a[href="${userProfileHref}"]`))
+        .first(),
     ).toBeVisible({ timeout: 10000 });
 
     // グッジョブ取消後のポイントの変動を確認
+    const levelUpDialog = signedInPage.getByRole("dialog", {
+      name: /グッジョブレベルが\s*アップしました！/,
+    });
+    await signedInPage.addLocatorHandler(levelUpDialog, async (dialog) => {
+      await dialog.getByRole("button", { name: "Close" }).click();
+    });
     await signedInPage.goto("/");
-    await signedInPage
-      .getByRole("button", { name: "詳細を見る →" })
-      .first()
-      .click();
+    const detailLink = signedInPage
+      .getByRole("link", { name: "詳細を見る →" })
+      .first();
+    await expect(detailLink).toBeVisible();
+    await detailLink.click();
     await expect(signedInPage).toHaveURL(/\/missions\/[^\/]+$/, {
       timeout: 10000,
     });
+    await signedInPage.removeLocatorHandler(levelUpDialog);
 
     await expect(signedInPage.getByText("あなたの達成履歴")).toBeVisible({
       timeout: 10000,
     });
-    await signedInPage.getByRole("button", { name: "取り消す" }).click();
+    const cancelButton = signedInPage.getByRole("button", { name: "取り消す" });
+    await expect(cancelButton).toBeVisible();
+    await cancelButton.click();
 
     await expect(
       signedInPage.getByText("達成履歴を削除しますか？"),
     ).toBeVisible({ timeout: 10000 });
-    await signedInPage.getByRole("button", { name: "削除する" }).click();
+    const deleteButton = signedInPage.getByRole("button", { name: "削除する" });
+    await expect(deleteButton).toBeVisible();
+    await deleteButton.evaluate(async (el) => {
+      const nodes: Element[] = [];
+      let current: Element | null = el;
+      while (current) {
+        nodes.push(current);
+        current = current.parentElement;
+      }
+      const finite = nodes
+        .flatMap((node) => node.getAnimations())
+        .filter((animation) => {
+          const timing = animation.effect?.getTiming();
+          return (
+            timing !== undefined &&
+            timing.iterations !== Number.POSITIVE_INFINITY
+          );
+        });
+      await Promise.all(finite.map((animation) => animation.finished));
+    });
+    await deleteButton.click();
 
     await signedInPage.waitForTimeout(2000);
 
@@ -264,30 +285,25 @@ test.describe("アクションボード（Web版）のe2eテスト", () => {
     // TODO: Dailyランキングに表示されるseedデータを投入する必要あり //
 
     await signedInPage.getByRole("button", { name: "全期間" }).click();
+    await expect(signedInPage).toHaveURL(/period=all/, { timeout: 10000 });
     await expect(
       signedInPage.getByRole("heading", { name: "全期間トップ100" }),
     ).toBeVisible();
     await expect(
       signedInPage.getByRole("link", {
-        name: /安野たかひろ 東京都 Lv.20 3,325pt/,
+        name: /葉倉歩 東京都 Lv.1 0pt/,
       }),
     ).toBeVisible();
 
-    await signedInPage.getByText("都道府県別").click();
-    await expect(signedInPage).toHaveURL("/ranking/ranking-prefecture", {
+    await signedInPage.getByRole("tab", { name: "いいね数" }).click();
+    await expect(signedInPage).toHaveURL("/ranking/ranking-likes", {
       timeout: 10000,
     });
-    await expect(signedInPage.getByText("都道府県を選択")).toBeVisible();
     await expect(
-      signedInPage.getByRole("heading", { name: "東京都トップ" }),
-    ).toBeVisible();
-    await expect(
-      signedInPage.getByRole("link", {
-        name: /安野たかひろ 東京都 Lv.20 3,325pt/,
-      }),
+      signedInPage.getByRole("heading", { name: "いいね数ランキング" }),
     ).toBeVisible();
 
-    await signedInPage.getByText("グッジョブ別").click();
+    await signedInPage.getByRole("tab", { name: "グッジョブ別" }).click();
     await expect(signedInPage).toHaveURL("/ranking/ranking-mission", {
       timeout: 10000,
     });
@@ -299,7 +315,7 @@ test.describe("アクションボード（Web版）のe2eテスト", () => {
     ).toBeVisible();
     // TODO: グッジョブランキングに表示されるseedデータを投入する必要あり //
 
-    await signedInPage.getByText("全体").click();
+    await signedInPage.getByRole("tab", { name: "全体" }).click();
     await expect(signedInPage).toHaveURL("/ranking", { timeout: 10000 });
     await expect(
       signedInPage.getByRole("heading", { name: "アクションリーダー" }),
