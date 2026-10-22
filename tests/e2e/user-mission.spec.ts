@@ -199,7 +199,7 @@ test.describe("アクションボード（Web版）のe2eテスト", () => {
       .getByRole("link", { name: "詳細を見る →" })
       .first();
     await expect(detailLink).toBeVisible();
-    await detailLink.click({ force: true });
+    await detailLink.click();
     await expect(signedInPage).toHaveURL(/\/missions\/[^\/]+$/, {
       timeout: 10000,
     });
@@ -209,14 +209,32 @@ test.describe("アクションボード（Web版）のe2eテスト", () => {
     });
     const cancelButton = signedInPage.getByRole("button", { name: "取り消す" });
     await expect(cancelButton).toBeVisible();
-    await cancelButton.click({ force: true });
+    await cancelButton.click();
 
     await expect(
       signedInPage.getByText("達成履歴を削除しますか？"),
     ).toBeVisible({ timeout: 10000 });
     const deleteButton = signedInPage.getByRole("button", { name: "削除する" });
     await expect(deleteButton).toBeVisible();
-    await deleteButton.click({ force: true });
+    await deleteButton.evaluate(async (el) => {
+      const nodes: Element[] = [];
+      let current: Element | null = el;
+      while (current) {
+        nodes.push(current);
+        current = current.parentElement;
+      }
+      const finite = nodes
+        .flatMap((node) => node.getAnimations())
+        .filter((animation) => {
+          const timing = animation.effect?.getTiming();
+          return (
+            timing !== undefined &&
+            timing.iterations !== Number.POSITIVE_INFINITY
+          );
+        });
+      await Promise.all(finite.map((animation) => animation.finished));
+    });
+    await deleteButton.click();
 
     await signedInPage.waitForTimeout(2000);
 
