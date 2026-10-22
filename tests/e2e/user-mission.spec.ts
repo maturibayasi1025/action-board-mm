@@ -182,6 +182,7 @@ test.describe("アクションボード（Web版）のe2eテスト", () => {
 
     await signedInPage.goto("/ranking");
     await signedInPage.getByRole("button", { name: "全期間" }).click();
+    await expect(signedInPage).toHaveURL(/period=all/, { timeout: 10000 });
     await expect(signedInPage.getByText("あなたのランク")).toBeVisible();
     await expect(
       signedInPage.getByRole("link", {
@@ -237,6 +238,7 @@ test.describe("アクションボード（Web版）のe2eテスト", () => {
     // TODO: Dailyランキングに表示されるseedデータを投入する必要あり //
 
     await signedInPage.getByRole("button", { name: "全期間" }).click();
+    await expect(signedInPage).toHaveURL(/period=all/, { timeout: 10000 });
     await expect(
       signedInPage.getByRole("heading", { name: "全期間トップ100" }),
     ).toBeVisible();
@@ -246,7 +248,7 @@ test.describe("アクションボード（Web版）のe2eテスト", () => {
       }),
     ).toBeVisible();
 
-    await signedInPage.getByRole("link", { name: "いいね数" }).click();
+    await signedInPage.getByRole("tab", { name: "いいね数" }).click();
     await expect(signedInPage).toHaveURL("/ranking/ranking-likes", {
       timeout: 10000,
     });
@@ -254,7 +256,7 @@ test.describe("アクションボード（Web版）のe2eテスト", () => {
       signedInPage.getByRole("heading", { name: "いいね数ランキング" }),
     ).toBeVisible();
 
-    await signedInPage.getByRole("link", { name: "グッジョブ別" }).click();
+    await signedInPage.getByRole("tab", { name: "グッジョブ別" }).click();
     await expect(signedInPage).toHaveURL("/ranking/ranking-mission", {
       timeout: 10000,
     });
@@ -266,7 +268,7 @@ test.describe("アクションボード（Web版）のe2eテスト", () => {
     ).toBeVisible();
     // TODO: グッジョブランキングに表示されるseedデータを投入する必要あり //
 
-    await signedInPage.getByText("全体").click();
+    await signedInPage.getByRole("tab", { name: "全体" }).click();
     await expect(signedInPage).toHaveURL("/ranking", { timeout: 10000 });
     await expect(
       signedInPage.getByRole("heading", { name: "アクションリーダー" }),
