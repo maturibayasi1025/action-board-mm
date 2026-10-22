@@ -109,6 +109,14 @@ test.describe("アクションボード（Web版）のe2eテスト", () => {
     test.setTimeout(60_000);
     await assertAuthState(signedInPage, true);
 
+    const userProfileHref = await signedInPage
+      .getByRole("link", { name: "テストユーザーさんのプロフィールへ" })
+      .getAttribute("href");
+    expect(userProfileHref).toMatch(/^\/users\/[^/]+$/);
+    if (userProfileHref === null) {
+      throw new Error("プロフィールリンクがありません");
+    }
+
     // グッジョブページに遷移（ゴミ拾いグッジョブをクリック）
     await signedInPage
       .getByRole("link", { name: "詳細を見る →" })
@@ -195,22 +203,18 @@ test.describe("アクションボード（Web版）のe2eテスト", () => {
         .getByRole("link", {
           name: "テストユーザー 東京都 Lv.2 50pt",
         })
+        .and(signedInPage.locator(`a[href="${userProfileHref}"]`))
         .first(),
     ).toBeVisible({ timeout: 10000 });
 
     // グッジョブ取消後のポイントの変動を確認
-    await signedInPage.goto("/");
     const levelUpDialog = signedInPage.getByRole("dialog", {
       name: /グッジョブレベルが\s*アップしました！/,
     });
-    const levelUpReopened = await levelUpDialog
-      .waitFor({ state: "visible", timeout: 2500 })
-      .then(() => true)
-      .catch(() => false);
-    if (levelUpReopened) {
-      await signedInPage.getByRole("button", { name: "Close" }).click();
-      await expect(levelUpDialog).toBeHidden();
-    }
+    await signedInPage.addLocatorHandler(levelUpDialog, async (dialog) => {
+      await dialog.getByRole("button", { name: "Close" }).click();
+    });
+    await signedInPage.goto("/");
     const detailLink = signedInPage
       .getByRole("link", { name: "詳細を見る →" })
       .first();
@@ -219,6 +223,7 @@ test.describe("アクションボード（Web版）のe2eテスト", () => {
     await expect(signedInPage).toHaveURL(/\/missions\/[^\/]+$/, {
       timeout: 10000,
     });
+    await signedInPage.removeLocatorHandler(levelUpDialog);
 
     await expect(signedInPage.getByText("あなたの達成履歴")).toBeVisible({
       timeout: 10000,
