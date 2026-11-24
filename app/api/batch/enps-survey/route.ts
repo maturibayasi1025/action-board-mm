@@ -4,6 +4,10 @@ import {
   resolveEnpsSurveySlackWebhookUrl,
 } from "@/lib/slack/survey-webhook-urls";
 import { createServiceClient } from "@/lib/supabase/server";
+import {
+  formatSurveyDeadlineJst,
+  monthlySurveyEndAt,
+} from "@/lib/survey/monthly-survey-deadline";
 import { type NextRequest, NextResponse } from "next/server";
 
 export const runtime = "edge";
@@ -57,11 +61,8 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // 回答開始日時と終了日時を設定
-    // 開始日時: 当月25日の00:00 JST
     const startDate = new Date(year, month, 25);
-    // 終了日時: 当月末日の23:59 JST
-    const endDate = new Date(year, month + 1, 0, 23, 59, 59);
+    const endDate = monthlySurveyEndAt(year, month);
 
     // アンケートを作成
     const { data: survey, error: surveyError } = await supabase
@@ -151,7 +152,7 @@ export async function POST(request: NextRequest) {
             },
             {
               type: "mrkdwn",
-              text: `*回答期限:*\n${endDate.toLocaleDateString("ja-JP")}`,
+              text: `*回答期限:*\n${formatSurveyDeadlineJst(endDate)}`,
             },
           ],
         },

@@ -8,6 +8,7 @@ import {
 import { redirectToSignInWithReturnPath } from "@/lib/auth/redirect-to-sign-in";
 import { toSerializableAuthUser } from "@/lib/auth/serializable-user";
 import { createClient } from "@/lib/supabase/server";
+import { formatSurveyDeadlineJst } from "@/lib/survey/monthly-survey-deadline";
 import { redirect } from "next/navigation";
 import { getLinkedPostMissionContext } from "../../_lib/linked-post-mission";
 import { AwardSurveyFormClient } from "./_components/award-survey-form-client";
@@ -72,7 +73,7 @@ export default async function AwardSurveyPage({
           )}
           <div className="text-sm text-muted-foreground">
             回答期間: {startDate.toLocaleDateString("ja-JP")} 〜{" "}
-            {endDate.toLocaleDateString("ja-JP")}
+            {formatSurveyDeadlineJst(endDate)}
           </div>
         </div>
 
@@ -94,7 +95,7 @@ export default async function AwardSurveyPage({
               <p className="text-center text-muted-foreground">
                 このアンケートの回答期限が過ぎています。
                 <br />
-                終了日時: {endDate.toLocaleString("ja-JP")}
+                終了日時: {formatSurveyDeadlineJst(endDate)}
               </p>
             </CardContent>
           </Card>
