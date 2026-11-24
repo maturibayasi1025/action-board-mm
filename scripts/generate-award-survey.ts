@@ -2,6 +2,10 @@ import path from "node:path";
 import { SLACK_MRKDWN_CHANNEL_MENTION } from "@/lib/slack/constants";
 import { resolveAwardSurveySlackWebhookUrl } from "@/lib/slack/survey-webhook-urls";
 import {
+  formatSurveyDeadlineJst,
+  monthlySurveyEndAt,
+} from "@/lib/survey/monthly-survey-deadline";
+import {
   planMonthlySurveyRun,
   postSlackWebhook,
 } from "@/lib/survey/monthly-survey-run";
@@ -54,7 +58,7 @@ async function sendSlackNotification(params: {
           },
           {
             type: "mrkdwn",
-            text: `*回答期限:*\n${endDate.toLocaleDateString("ja-JP")}`,
+            text: `*回答期限:*\n${formatSurveyDeadlineJst(endDate)}`,
           },
         ],
       },
@@ -102,7 +106,7 @@ async function main() {
     const title = `【表彰アンケート】${periodNumber}期／${year}年${String(monthNumber).padStart(2, "0")}月度`;
 
     const startDate = new Date(year, month, 25);
-    const endDate = new Date(year, month + 1, 0, 23, 59, 59);
+    const endDate = monthlySurveyEndAt(year, month);
 
     const { data: existingSurvey, error: existingSurveyError } = await supabase
       .from("award_surveys")
