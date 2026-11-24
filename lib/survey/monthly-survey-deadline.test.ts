@@ -25,10 +25,20 @@ const CASES = [
     iso: "2026-12-31T14:59:59.000Z",
     label: "2026/12/31 23:59",
   },
+  {
+    year: 2027,
+    monthIndex: 0,
+    iso: "2027-01-31T14:59:59.000Z",
+    label: "2027/01/31 23:59",
+  },
 ] as const;
+
+const ACTIONS_START = "2026-11-25T00:00:00.000Z";
+const ACTIONS_START_LABEL = "2026/11/25 09:00";
 
 type Observation = {
   localNovemberEnd: string;
+  startLabel: string;
   ends: Array<{ iso: string; label: string }>;
 };
 
@@ -41,14 +51,15 @@ function observe(timeZone: string): Observation {
       "--input-type=module",
       "-e",
       `
-        import { formatSurveyDeadlineJst, monthlySurveyEndAt } from "./lib/survey/monthly-survey-deadline.ts";
+        import { formatSurveyDateTimeJst, monthlySurveyEndAt } from "./lib/survey/monthly-survey-deadline.ts";
         const samples = ${JSON.stringify(CASES.map((sample) => [sample.year, sample.monthIndex]))};
         const ends = samples.map(([year, monthIndex]) => {
           const end = monthlySurveyEndAt(year, monthIndex);
-          return { iso: end.toISOString(), label: formatSurveyDeadlineJst(end) };
+          return { iso: end.toISOString(), label: formatSurveyDateTimeJst(end) };
         });
         console.log(JSON.stringify({
           localNovemberEnd: new Date(2026, 11, 0, 23, 59, 59).toISOString(),
+          startLabel: formatSurveyDateTimeJst(new Date(${JSON.stringify(ACTIONS_START)})),
           ends,
         }));
       `,
@@ -76,6 +87,7 @@ describe("monthlySurveyEndAt", () => {
           : "2026-11-30T14:59:59.000Z",
       );
 
+      expect(observed.startLabel).toBe(ACTIONS_START_LABEL);
       expect(observed.ends).toEqual(
         CASES.map((sample) => ({ iso: sample.iso, label: sample.label })),
       );

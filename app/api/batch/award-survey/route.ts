@@ -5,7 +5,7 @@ import {
 } from "@/lib/slack/survey-webhook-urls";
 import { createServiceClient } from "@/lib/supabase/server";
 import {
-  formatSurveyDeadlineJst,
+  formatSurveyDateTimeJst,
   monthlySurveyEndAt,
 } from "@/lib/survey/monthly-survey-deadline";
 import { type NextRequest, NextResponse } from "next/server";
@@ -164,7 +164,7 @@ export async function POST(request: NextRequest) {
             },
             {
               type: "mrkdwn",
-              text: `*回答期限:*\n${formatSurveyDeadlineJst(endDate)}`,
+              text: `*回答期限:*\n${formatSurveyDateTimeJst(endDate)}`,
             },
           ],
         },

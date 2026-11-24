@@ -1,14 +1,14 @@
 import path from "node:path";
-import { SLACK_MRKDWN_CHANNEL_MENTION } from "@/lib/slack/constants";
 import { resolveAwardSurveySlackWebhookUrl } from "@/lib/slack/survey-webhook-urls";
 import {
-  formatSurveyDeadlineJst,
   monthlySurveyEndAt,
+  slackDeadlineForMonthlySurvey,
 } from "@/lib/survey/monthly-survey-deadline";
 import {
   planMonthlySurveyRun,
   postSlackWebhook,
 } from "@/lib/survey/monthly-survey-run";
+import { buildAwardSurveySlackMessage } from "@/lib/survey/monthly-survey-slack";
 import type { Database } from "@/lib/types/supabase";
 import { createClient } from "@supabase/supabase-js";
 import dotenv from "dotenv";
@@ -29,58 +29,6 @@ function calculatePeriodNumber(year: number, month: number): number {
   const periodBaseFiscalYear = 2026; // 2026/03 - 2027/02 が 12期
   const fiscalYear = month >= 3 ? year : year - 1;
   return periodBaseNumber + (fiscalYear - periodBaseFiscalYear);
-}
-
-async function sendSlackNotification(params: {
-  webhookUrl: string;
-  title: string;
-  yearMonthDisplay: string;
-  surveyUrl: string;
-  endDate: Date;
-}) {
-  const { webhookUrl, title, yearMonthDisplay, surveyUrl, endDate } = params;
-  const slackMessage = {
-    text: `${SLACK_MRKDWN_CHANNEL_MENTION} ${title} のお知らせ`,
-    blocks: [
-      {
-        type: "section",
-        text: {
-          type: "mrkdwn",
-          text: `${SLACK_MRKDWN_CHANNEL_MENTION}\n\n*${title}*\n\n${yearMonthDisplay}の表彰アンケートを開始しました。\nMVV表彰に関して、バリューを体現出来たエピソードをご回答ください。`,
-        },
-      },
-      {
-        type: "section",
-        fields: [
-          {
-            type: "mrkdwn",
-            text: `*回答URL:*\n<${surveyUrl}|アンケートに回答する>`,
-          },
-          {
-            type: "mrkdwn",
-            text: `*回答期限:*\n${formatSurveyDeadlineJst(endDate)}`,
-          },
-        ],
-      },
-      {
-        type: "actions",
-        elements: [
-          {
-            type: "button",
-            text: {
-              type: "plain_text",
-              text: "回答する",
-              emoji: true,
-            },
-            url: surveyUrl,
-            action_id: "answer_award_survey",
-          },
-        ],
-      },
-    ],
-  };
-
-  await postSlackWebhook(webhookUrl, slackMessage);
 }
 
 async function main() {
@@ -110,7 +58,7 @@ async function main() {
 
     const { data: existingSurvey, error: existingSurveyError } = await supabase
       .from("award_surveys")
-      .select("id, slack_notified_at")
+      .select("id, slack_notified_at, end_date")
       .eq("year_month", yearMonth)
       .maybeSingle();
 
@@ -118,6 +66,14 @@ async function main() {
       throw new Error(
         `既存アンケート確認に失敗しました: ${existingSurveyError.message}`,
       );
+    }
+
+    const slackDeadline = slackDeadlineForMonthlySurvey({
+      calculatedEnd: endDate,
+      existingEndIso: existingSurvey?.end_date ?? null,
+    });
+    if (slackDeadline.warning) {
+      console.warn(slackDeadline.warning);
     }
 
     const plan = planMonthlySurveyRun({
@@ -193,13 +149,15 @@ async function main() {
     }
 
     const surveyUrl = `${appOrigin}/surveys/award/${surveyId}`;
-    await sendSlackNotification({
+    await postSlackWebhook(
       webhookUrl,
-      title,
-      yearMonthDisplay,
-      surveyUrl,
-      endDate,
-    });
+      buildAwardSurveySlackMessage({
+        title,
+        yearMonthDisplay,
+        surveyUrl,
+        endDate: slackDeadline.deadline,
+      }),
+    );
 
     const { error: updatedError } = await supabase
       .from("award_surveys")
