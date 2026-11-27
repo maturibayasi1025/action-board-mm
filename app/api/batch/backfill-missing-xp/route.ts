@@ -1,4 +1,5 @@
 import { grantXpBatch } from "@/lib/services/userLevel";
+import { fetchAllRows } from "@/lib/supabase/fetch-all-rows";
 import { createServiceClient } from "@/lib/supabase/server";
 import { executeChunkedQuery } from "@/lib/utils/supabase-utils";
 import { calculateMissionXp } from "@/lib/utils/utils";
@@ -53,10 +54,12 @@ export async function POST(request: NextRequest) {
 
     // XPが付与されていない達成を特定するため、すべての達成を取得し
     // それぞれにXPトランザクションが存在するかチェック
-    const { data: allAchievements, error: allAchievementsError } =
-      await supabase
-        .from("achievements")
-        .select(`
+    let allAchievements: unknown[];
+    try {
+      allAchievements = await fetchAllRows((from, to) =>
+        supabase
+          .from("achievements")
+          .select(`
         id,
         user_id,
         mission_id,
@@ -67,9 +70,11 @@ export async function POST(request: NextRequest) {
           difficulty
         )
       `)
-        .order("created_at", { ascending: true });
-
-    if (allAchievementsError) {
+          .order("created_at", { ascending: true })
+          .order("id", { ascending: true })
+          .range(from, to),
+      );
+    } catch (allAchievementsError) {
       console.error(
         "全グッジョブ達成データの取得に失敗しました:",
         allAchievementsError,
@@ -77,7 +82,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           error: "全グッジョブ達成データの取得に失敗しました",
-          details: allAchievementsError.message,
+          details:
+            allAchievementsError instanceof Error
+              ? allAchievementsError.message
+              : String(allAchievementsError),
         },
         { status: 500 },
       );
@@ -307,16 +315,24 @@ export async function GET() {
     const supabase = await createServiceClient();
 
     // XP未付与の達成数を確認（IN句を使用してN+1クエリを回避）
-    const { data: allAchievements, error: achievementsError } = await supabase
-      .from("achievements")
-      .select("id")
-      .order("created_at", { ascending: true });
-
-    if (achievementsError) {
+    let allAchievements: { id: string }[];
+    try {
+      allAchievements = await fetchAllRows((from, to) =>
+        supabase
+          .from("achievements")
+          .select("id")
+          .order("created_at", { ascending: true })
+          .order("id", { ascending: true })
+          .range(from, to),
+      );
+    } catch (achievementsError) {
       return NextResponse.json(
         {
           error: "データの取得に失敗しました",
-          details: achievementsError.message,
+          details:
+            achievementsError instanceof Error
+              ? achievementsError.message
+              : String(achievementsError),
         },
         { status: 500 },
       );

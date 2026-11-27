@@ -1,5 +1,6 @@
 "server-only";
 
+import { fetchAllRows, fetchByIdChunks } from "@/lib/supabase/fetch-all-rows";
 import { createServiceClient } from "@/lib/supabase/server";
 import {
   BadgeType,
@@ -466,20 +467,25 @@ export async function getMvvBadgesByQuarter(
 ): Promise<UserBadge[]> {
   const supabase = await createServiceClient();
 
-  const { data, error } = await supabase
-    .from("user_badges")
-    .select("*")
-    .in("badge_type", [
-      "MVV_PASSIONATE_EXECUTION",
-      "MVV_SUPREME_RELATIONSHIPS",
-      "MVV_HAPPINESS_CIRCULATION",
-      "MVV_START_DASH",
-    ])
-    .eq("quarter_period", quarter_period)
-    .order("achieved_at", { ascending: false });
-
-  if (error) {
+  const data = await fetchAllRows((from, to) =>
+    supabase
+      .from("user_badges")
+      .select("*")
+      .in("badge_type", [
+        "MVV_PASSIONATE_EXECUTION",
+        "MVV_SUPREME_RELATIONSHIPS",
+        "MVV_HAPPINESS_CIRCULATION",
+        "MVV_START_DASH",
+      ])
+      .eq("quarter_period", quarter_period)
+      .order("achieved_at", { ascending: false })
+      .order("id", { ascending: false })
+      .range(from, to),
+  ).catch((error) => {
     console.error("Error fetching MVV badges by quarter:", error);
+    return null;
+  });
+  if (!data) {
     return [];
   }
 
@@ -594,20 +600,23 @@ export async function getMvvBadgesWithUsers(
     const userIds = Array.from(new Set(badges.map((badge) => badge.user_id)));
 
     // ユーザー情報を一括取得
-    const { data: users, error: usersError } = await supabase
-      .from("public_user_profiles")
-      .select("id, name, avatar_url")
-      .in("id", userIds)
-      .is("suspended_at", null);
-
-    if (usersError) {
+    let users: { id: string; name: string | null; avatar_url: string | null }[];
+    try {
+      users = await fetchByIdChunks(userIds, (chunk) =>
+        supabase
+          .from("public_user_profiles")
+          .select("id, name, avatar_url")
+          .in("id", chunk)
+          .is("suspended_at", null),
+      );
+    } catch (usersError) {
       console.error("Error fetching user profiles:", usersError);
       return [];
     }
 
     // ユーザー情報のマップを作成
     const userMap = new Map(
-      (users || []).map((user) => [
+      users.map((user) => [
         user.id,
         {
           name: user.name || "",
