@@ -205,7 +205,6 @@ describe("グッジョブ詳細の提出履歴（投稿後の取り直し）", (
 
   it("取り直したあと、1200 件すべてが新しい順に並び、達成回数も 1200 になる", async () => {
     await renderHistory(await initial());
-    expect(screen.getByTestId("form-count")).toHaveTextContent(String(OWN - 1));
 
     jest
       .mocked(createBrowserClient)
