@@ -1,6 +1,10 @@
 "server-only";
 
-import { fetchAllRows, fetchByIdChunks } from "@/lib/supabase/fetch-all-rows";
+import {
+  DEFAULT_IN_CHUNK_SIZE,
+  fetchAllRows,
+  fetchByIdChunks,
+} from "@/lib/supabase/fetch-all-rows";
 import { createServiceClient } from "@/lib/supabase/server";
 import {
   BadgeType,
@@ -39,7 +43,7 @@ function sortMvvBadgesByType<T extends { badge_type: string }>(
 }
 
 /**
- * グッジョブバッジにタイトル情報を追加する
+ * グッジョブバッジにタイトル情報を追加する。取得に失敗したら例外にする
  */
 async function enrichMissionBadges(badges: UserBadge[]): Promise<UserBadge[]> {
   // グッジョブタイプのバッジのグッジョブslugを収集
@@ -53,16 +57,12 @@ async function enrichMissionBadges(badges: UserBadge[]): Promise<UserBadge[]> {
 
   const supabase = await createServiceClient();
 
-  // グッジョブ情報を取得（IDも含める）
-  const { data: missions, error: missionError } = await supabase
-    .from("missions")
-    .select("id, slug, title")
-    .in("slug", missionSlugs);
-
-  if (missionError || !missions) {
-    console.error("Error fetching mission titles:", missionError);
-    return badges;
-  }
+  // グッジョブ情報を取得（IDも含める）。MISSION バッジはグッジョブごとに増えるので slug を分割する
+  const missions = await fetchByIdChunks(
+    Array.from(new Set(missionSlugs)),
+    (chunk) =>
+      supabase.from("missions").select("id, slug, title").in("slug", chunk),
+  );
 
   // グッジョブslugとグッジョブ情報のマップを作成
   const missionMap = new Map(
@@ -167,31 +167,22 @@ export async function updateBadge({
 }
 
 /**
- * ユーザーの現在のバッジを取得（グッジョブ情報付き）
+ * ユーザーの現在のバッジを取得（グッジョブ情報付き）。取得に失敗したら例外にする
  */
 export async function getUserBadges(userId: string): Promise<UserBadge[]> {
   const supabase = await createServiceClient();
 
-  const { data, error } = await supabase
-    .from("user_badges")
-    .select("*")
-    .eq("user_id", userId)
-    .order("badge_type")
-    .order("rank");
-
-  if (error) {
-    console.error("Error fetching user badges:", {
-      error: error,
-      message: error.message,
-      details: error.details,
-      hint: error.hint,
-      code: error.code,
-      userId: userId,
-    });
-    return [];
-  }
-
-  const badges = (data || []) as UserBadge[];
+  const badges = await fetchAllRows<UserBadge>((from, to) =>
+    supabase
+      .from("user_badges")
+      .select("*")
+      .eq("user_id", userId)
+      .order("badge_type")
+      .order("rank")
+      .order("id")
+      .range(from, to)
+      .returns<UserBadge[]>(),
+  );
 
   // グッジョブバッジのタイトルを取得
   const enrichedBadges = await enrichMissionBadges(badges);
@@ -250,33 +241,24 @@ export async function getUserTopBadge(
 }
 
 /**
- * 未通知のバッジを取得
+ * 未通知のバッジを取得。取得に失敗したら例外にする
  */
 export async function getUnnotifiedBadges(
   userId: string,
 ): Promise<UserBadge[]> {
   const supabase = await createServiceClient();
 
-  const { data, error } = await supabase
-    .from("user_badges")
-    .select("*")
-    .eq("user_id", userId)
-    .eq("is_notified", false)
-    .order("created_at", { ascending: false });
-
-  if (error) {
-    console.error("Error fetching unnotified badges:", {
-      error: error,
-      message: error.message,
-      details: error.details,
-      hint: error.hint,
-      code: error.code,
-      userId: userId,
-    });
-    return [];
-  }
-
-  const badges = (data || []) as UserBadge[];
+  const badges = await fetchAllRows<UserBadge>((from, to) =>
+    supabase
+      .from("user_badges")
+      .select("*")
+      .eq("user_id", userId)
+      .eq("is_notified", false)
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: false })
+      .range(from, to)
+      .returns<UserBadge[]>(),
+  );
 
   // グッジョブバッジのタイトルを取得
   return enrichMissionBadges(badges);
@@ -291,17 +273,23 @@ export async function markBadgesAsNotified(
   const supabase = await createServiceClient();
 
   try {
-    const { error } = await supabase
-      .from("user_badges")
-      .update({
-        is_notified: true,
-        updated_at: new Date().toISOString(),
-      })
-      .in("id", badgeIds);
+    // ID が多いと URL 長の上限を超えるので分割して更新する
+    for (let i = 0; i < badgeIds.length; i += DEFAULT_IN_CHUNK_SIZE) {
+      const { error } = await supabase
+        .from("user_badges")
+        .update({
+          is_notified: true,
+          updated_at: new Date().toISOString(),
+        })
+        .in("id", badgeIds.slice(i, i + DEFAULT_IN_CHUNK_SIZE));
 
-    if (error) {
-      console.error("Error marking badges as notified:", error);
-      return { success: false, error: "バッジの通知状態の更新に失敗しました" };
+      if (error) {
+        console.error("Error marking badges as notified:", error);
+        return {
+          success: false,
+          error: "バッジの通知状態の更新に失敗しました",
+        };
+      }
     }
 
     return { success: true };
@@ -494,32 +482,31 @@ export async function getMvvBadgesByQuarter(
 }
 
 /**
- * ユーザーのMVVバッジ一覧を取得
+ * ユーザーのMVVバッジ一覧を取得。取得に失敗したら例外にする
  * @param userId ユーザーID
  * @returns MVVバッジの配列
  */
 export async function getUserMvvBadges(userId: string): Promise<UserBadge[]> {
   const supabase = await createServiceClient();
 
-  const { data, error } = await supabase
-    .from("user_badges")
-    .select("*")
-    .eq("user_id", userId)
-    .in("badge_type", [
-      "MVV_PASSIONATE_EXECUTION",
-      "MVV_SUPREME_RELATIONSHIPS",
-      "MVV_HAPPINESS_CIRCULATION",
-      "MVV_START_DASH",
-    ])
-    .order("quarter_period", { ascending: false });
-
-  if (error) {
-    console.error("Error fetching user MVV badges:", error);
-    return [];
-  }
+  const badges = await fetchAllRows<UserBadge>((from, to) =>
+    supabase
+      .from("user_badges")
+      .select("*")
+      .eq("user_id", userId)
+      .in("badge_type", [
+        "MVV_PASSIONATE_EXECUTION",
+        "MVV_SUPREME_RELATIONSHIPS",
+        "MVV_HAPPINESS_CIRCULATION",
+        "MVV_START_DASH",
+      ])
+      .order("quarter_period", { ascending: false })
+      .order("id", { ascending: true })
+      .range(from, to)
+      .returns<UserBadge[]>(),
+  );
 
   // 四半期ごとにグループ化し、各グループ内でMVVバッジタイプの順序でソート
-  const badges = (data || []) as UserBadge[];
   const groupedByQuarter = badges.reduce(
     (acc, badge) => {
       const quarter = badge.quarter_period || "";
