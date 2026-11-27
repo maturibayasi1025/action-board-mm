@@ -10,7 +10,7 @@ import {
   labelForAwardQuarter,
 } from "@/lib/mcp/award-nomination-ranking";
 import { McpToolError } from "@/lib/mcp/errors";
-import { fetchAllRows } from "@/lib/supabase/fetch-all-rows";
+import { fetchAllRows, fetchByIdChunks } from "@/lib/supabase/fetch-all-rows";
 import {
   type SurveyExportAnswer,
   type SurveyExportQuestion,
@@ -539,41 +539,57 @@ export async function listSlackDirectory(input: {
   offset: number;
 }): Promise<{ items: SlackDirectoryRow[]; limit: number; offset: number }> {
   const db = createPrivilegedDb();
-  let allowedIds: string[] | null = null;
-  if (input.query) {
-    const { data: profiles, error } = await db
-      .from("public_user_profiles")
-      .select(PUBLIC_PROFILE_NAME_SELECT)
-      .ilike("name", `%${escapeIlike(input.query)}%`)
-      .limit(500);
-    throwIfError(error, "公開プロフィール検索に失敗しました");
-    allowedIds = (profiles ?? []).map((row) => row.id);
-    if (allowedIds.length === 0) {
-      return { items: [], limit: input.limit, offset: input.offset };
+  const buildQuery = () => {
+    let query = db
+      .from("private_users")
+      .select(PRIVATE_USERS_SLACK_SELECT)
+      .is("suspended_at", null);
+    if (input.user_id) {
+      query = query.eq("id", input.user_id);
     }
-  }
+    if (!input.include_missing) {
+      query = query.not("slack_user_id", "is", null);
+    }
+    return query;
+  };
 
-  let query = db
-    .from("private_users")
-    .select(PRIVATE_USERS_SLACK_SELECT)
-    .is("suspended_at", null)
-    .order("id", { ascending: true });
-  if (input.user_id) {
-    query = query.eq("id", input.user_id);
+  let rows: Array<{ id: string; slack_user_id: string | null }>;
+  if (input.query) {
+    // 名前で絞った ID は 1 回の .in() に収まらないことがあるため、
+    // 分割して全件取得してから id 順に並べてページを切り出す
+    const query = input.query;
+    const profiles = await fetchAllRows<{ id: string }>((from, to) =>
+      db
+        .from("public_user_profiles")
+        .select("id")
+        .ilike("name", `%${escapeIlike(query)}%`)
+        .order("id", { ascending: true })
+        .range(from, to),
+    ).catch((error: Error) => {
+      throw new McpToolError(
+        `公開プロフィール検索に失敗しました: ${error.message}`,
+      );
+    });
+    const matched = await fetchByIdChunks<{
+      id: string;
+      slack_user_id: string | null;
+    }>(
+      profiles.map((row) => row.id),
+      (chunk) => buildQuery().in("id", chunk),
+    ).catch((error: Error) => {
+      throw new McpToolError(
+        `Slack 対応表の取得に失敗しました: ${error.message}`,
+      );
+    });
+    matched.sort((a, b) => a.id.localeCompare(b.id));
+    rows = matched.slice(input.offset, input.offset + input.limit);
+  } else {
+    const { data, error } = await buildQuery()
+      .order("id", { ascending: true })
+      .range(input.offset, input.offset + input.limit - 1);
+    throwIfError(error, "Slack 対応表の取得に失敗しました");
+    rows = data ?? [];
   }
-  if (allowedIds) {
-    query = query.in("id", allowedIds);
-  }
-  if (!input.include_missing) {
-    query = query.not("slack_user_id", "is", null);
-  }
-
-  const { data, error } = await query.range(
-    input.offset,
-    input.offset + input.limit - 1,
-  );
-  throwIfError(error, "Slack 対応表の取得に失敗しました");
-  const rows = data ?? [];
   const names = await mapPublicNames(
     db,
     rows.map((row) => row.id),
