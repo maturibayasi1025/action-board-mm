@@ -1,6 +1,20 @@
+import { fetchAllRows } from "@/lib/supabase/fetch-all-rows";
 import type { Database } from "@/lib/types/supabase";
 import { findBestMatch } from "@/lib/utils/fuzzyMatch";
 import type { SupabaseClient } from "@supabase/supabase-js";
+
+function fetchActivePrivateUsers(
+  supabase: SupabaseClient<Database>,
+): Promise<Array<{ id: string; name: string }>> {
+  return fetchAllRows((from, to) =>
+    supabase
+      .from("private_users")
+      .select("id, name")
+      .is("suspended_at", null)
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
+}
 
 function normalizeComparableName(s: string): string {
   return s.trim().replace(/\s+/g, "").toLowerCase();
@@ -13,13 +27,11 @@ export async function findPrivateUserByFuzzyName(
   slackUserName: string,
   supabase: SupabaseClient<Database>,
 ): Promise<string | null> {
-  const { data: users, error } = await supabase
-    .from("private_users")
-    .select("id, name")
-    .is("suspended_at", null);
-
-  if (error || !users) {
+  const users = await fetchActivePrivateUsers(supabase).catch((error) => {
     console.error("ユーザー取得エラー:", error);
+    return null;
+  });
+  if (!users) {
     return null;
   }
 
@@ -85,12 +97,8 @@ export async function findPrivateUserIdForSlackMention(
     return fuzzy;
   }
 
-  const { data: users, error } = await supabase
-    .from("private_users")
-    .select("id, name")
-    .is("suspended_at", null);
-
-  if (error || !users) {
+  const users = await fetchActivePrivateUsers(supabase).catch(() => null);
+  if (!users) {
     return null;
   }
 
