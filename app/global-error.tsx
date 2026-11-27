@@ -1,7 +1,6 @@
 "use client";
 
 import logger from "@/lib/logger";
-import NextError from "next/error";
 import { useEffect } from "react";
 
 export default function GlobalError({
@@ -93,46 +92,45 @@ export default function GlobalError({
 
   return (
     <html lang="ja">
-      <body>
-        <div style={{ padding: "20px", fontFamily: "monospace" }}>
-          <h1>アプリケーションエラーが発生しました</h1>
-          <p>詳細情報：</p>
-          <ul>
-            <li>Error Name: {error.name}</li>
-            <li>Error Message: {error.message}</li>
-            {error.digest && <li>Error Digest: {error.digest}</li>}
-          </ul>
-          <details>
-            <summary>スタックトレース</summary>
-            <pre style={{ whiteSpace: "pre-wrap", fontSize: "12px" }}>
-              {error.stack}
-            </pre>
-          </details>
-          <hr />
-          <div style={{ marginTop: "20px" }}>
-            <h2>デバッグ情報</h2>
-            <p>
-              この情報をブラウザのコンソールでも確認できます（F12キーを押してConsoleタブを開いてください）
+      <body
+        style={{
+          margin: 0,
+          minHeight: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontFamily: "sans-serif",
+          color: "#374151",
+        }}
+      >
+        <main style={{ textAlign: "center", padding: "24px" }}>
+          <h1 style={{ fontSize: "24px", color: "#111827" }}>
+            エラーが発生しました
+          </h1>
+          <p>申し訳ありません。時間をおいてもう一度お試しください。</p>
+          {error.digest && (
+            <p style={{ fontSize: "12px", color: "#6b7280" }}>
+              エラーID: {error.digest}
             </p>
-            {reset && (
-              <button
-                type="button"
-                onClick={reset}
-                style={{
-                  marginTop: "10px",
-                  padding: "10px 20px",
-                  backgroundColor: "#007bff",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "4px",
-                  cursor: "pointer",
-                }}
-              >
-                もう一度試す
-              </button>
-            )}
-          </div>
-        </div>
+          )}
+          {reset && (
+            <button
+              type="button"
+              onClick={reset}
+              style={{
+                marginTop: "16px",
+                padding: "8px 16px",
+                backgroundColor: "#2563eb",
+                color: "white",
+                border: "none",
+                borderRadius: "8px",
+                cursor: "pointer",
+              }}
+            >
+              もう一度試す
+            </button>
+          )}
+        </main>
       </body>
     </html>
   );
