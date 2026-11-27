@@ -50,7 +50,7 @@ export default async function UserDetailPage({ params }: Props) {
         .limit(PAGE_SIZE),
       supabase
         .from("activity_timeline_view")
-        .select("*", { count: "exact" })
+        .select("*", { count: "exact", head: true })
         .eq("user_id", id),
       getUserRepeatableMissionAchievements(id),
     ]);
