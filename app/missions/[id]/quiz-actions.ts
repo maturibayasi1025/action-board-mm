@@ -1,5 +1,6 @@
 "use server";
 
+import { fetchAllRows } from "@/lib/supabase/fetch-all-rows";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 
 // クイズ用の型定義
@@ -74,35 +75,54 @@ async function getQuestionsByMission(
 ): Promise<QuizQuestion[]> {
   const supabase = await createServiceClient();
 
-  // グッジョブに紐づく問題を直接取得
-  const { data, error } = await supabase
-    .from("quiz_questions")
-    .select(`
-      id,
-      question,
-      option1,
-      option2,
-      option3,
-      option4,
-      correct_answer,
-      explanation,
-      question_order,
-      quiz_categories (
-        name
-      )
-    `)
-    .eq("mission_id", missionId)
-    .order("question_order");
+  type QuizQuestionRow = {
+    id: string;
+    question: string;
+    option1: string;
+    option2: string;
+    option3: string;
+    option4: string;
+    correct_answer: number;
+    explanation: string | null;
+    question_order: number | null;
+    quiz_categories: { name: string } | { name: string }[] | null;
+  };
 
-  if (error) {
+  // グッジョブに紐づく問題を直接取得
+  let data: QuizQuestionRow[];
+  try {
+    data = await fetchAllRows<QuizQuestionRow>((from, to) =>
+      supabase
+        .from("quiz_questions")
+        .select(`
+          id,
+          question,
+          option1,
+          option2,
+          option3,
+          option4,
+          correct_answer,
+          explanation,
+          question_order,
+          quiz_categories (
+            name
+          )
+        `)
+        .eq("mission_id", missionId)
+        .order("question_order")
+        .order("id")
+        .range(from, to)
+        .returns<QuizQuestionRow[]>(),
+    );
+  } catch (error) {
     console.error("Error fetching quiz questions:", error);
     console.error("Mission ID:", missionId);
     throw new Error(
-      `クイズ問題の取得に失敗しました: ${error.message || "Unknown error"}`,
+      `クイズ問題の取得に失敗しました: ${error instanceof Error ? error.message : "Unknown error"}`,
     );
   }
 
-  if (!data || data.length === 0) {
+  if (data.length === 0) {
     console.warn("No quiz questions found for mission:", missionId);
     return [];
   }
@@ -147,25 +167,17 @@ export const getMissionLinksAction = async (missionId: string) => {
   try {
     const supabase = await createServiceClient();
 
-    const { data, error } = await supabase
-      .from("mission_quiz_links")
-      .select("link, remark, display_order")
-      .eq("mission_id", missionId)
-      .order("display_order");
+    const links = await fetchAllRows<MissionLink>((from, to) =>
+      supabase
+        .from("mission_quiz_links")
+        .select("link, remark, display_order")
+        .eq("mission_id", missionId)
+        .order("display_order")
+        .order("id")
+        .range(from, to),
+    );
 
-    if (error) {
-      console.error("Error fetching mission links:", error);
-      return {
-        success: false,
-        error: "リンクの取得に失敗しました",
-        links: [] as MissionLink[],
-      };
-    }
-
-    return {
-      success: true,
-      links: data || [],
-    };
+    return { success: true, links };
   } catch (error) {
     console.error("Error fetching mission links:", error);
     return {

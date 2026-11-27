@@ -1,5 +1,6 @@
 "use server";
 
+import { fetchAllRows, fetchByIdChunks } from "@/lib/supabase/fetch-all-rows";
 import { createServiceClient } from "@/lib/supabase/server";
 import { requireOwner } from "@/lib/utils/isOwner";
 
@@ -38,20 +39,30 @@ export async function getAssessmentData(
     const supabase = await createServiceClient();
 
     // 1. 全ユーザー一覧を取得
-    const { data: users, error: usersError } = await supabase
-      .from("private_users")
-      .select("id, name, address_prefecture, registered_at")
-      .is("suspended_at", null);
-
-    if (usersError) {
+    let users: {
+      id: string;
+      name: string;
+      address_prefecture: string | null;
+      registered_at: string;
+    }[];
+    try {
+      users = await fetchAllRows((from, to) =>
+        supabase
+          .from("private_users")
+          .select("id, name, address_prefecture, registered_at")
+          .is("suspended_at", null)
+          .order("id", { ascending: true })
+          .range(from, to),
+      );
+    } catch (usersError) {
       console.error("ユーザー取得エラー:", usersError);
       return {
         success: false,
-        error: `ユーザー取得に失敗しました: ${usersError.message}`,
+        error: `ユーザー取得に失敗しました: ${usersError instanceof Error ? usersError.message : String(usersError)}`,
       };
     }
 
-    if (!users || users.length === 0) {
+    if (users.length === 0) {
       return { success: true, data: [] };
     }
 
@@ -59,61 +70,96 @@ export async function getAssessmentData(
     const userMap = new Map(users.map((u) => [u.id, u]));
 
     // 2. 期間内の承認済みグッジョブを取得
-    const { data: missionsInPeriod } = await supabase
-      .from("user_missions")
-      .select("id, created_by, approved_at, likes_count")
-      .eq("status", "approved")
-      .gte("approved_at", startDate)
-      .lte("approved_at", endDate);
+    const missionsInPeriod = await fetchAllRows<{
+      id: string;
+      created_by: string;
+      approved_at: string | null;
+      likes_count: number;
+    }>((from, to) =>
+      supabase
+        .from("user_missions")
+        .select("id, created_by, approved_at, likes_count")
+        .eq("status", "approved")
+        .gte("approved_at", startDate)
+        .lte("approved_at", endDate)
+        .order("id", { ascending: true })
+        .range(from, to),
+    );
 
-    const missionIdsInPeriod = (missionsInPeriod || []).map((m) => m.id);
+    const missionIdsInPeriod = missionsInPeriod.map((m) => m.id);
 
     // 3. 称賛対象ユーザー（期間内のグッジョブに紐づく）
-    let praisedUsers: { user_mission_id: string; praised_user_id: string }[] =
-      [];
-    if (missionIdsInPeriod.length > 0) {
-      const { data } = await supabase
-        .from("user_mission_praised_users")
-        .select("user_mission_id, praised_user_id")
-        .in("user_mission_id", missionIdsInPeriod);
-      praisedUsers = data || [];
-    }
+    const praisedUsers = await fetchByIdChunks<{
+      user_mission_id: string;
+      praised_user_id: string;
+    }>(missionIdsInPeriod, async (chunk) => ({
+      data: await fetchAllRows((from, to) =>
+        supabase
+          .from("user_mission_praised_users")
+          .select("user_mission_id, praised_user_id")
+          .in("user_mission_id", chunk)
+          .order("id", { ascending: true })
+          .range(from, to),
+      ),
+      error: null,
+    }));
 
     // 4. MVV項目（期間内のグッジョブに紐づく）
-    let mvvItems: { user_mission_id: string; mvv_type: string }[] = [];
-    if (missionIdsInPeriod.length > 0) {
-      const { data } = await supabase
-        .from("user_mission_mvv_items")
-        .select("user_mission_id, mvv_type")
-        .in("user_mission_id", missionIdsInPeriod);
-      mvvItems = data || [];
-    }
+    const mvvItems = await fetchByIdChunks<{
+      user_mission_id: string;
+      mvv_type: string;
+    }>(missionIdsInPeriod, async (chunk) => ({
+      data: await fetchAllRows((from, to) =>
+        supabase
+          .from("user_mission_mvv_items")
+          .select("user_mission_id, mvv_type")
+          .in("user_mission_id", chunk)
+          .order("id", { ascending: true })
+          .range(from, to),
+      ),
+      error: null,
+    }));
 
     // 5. いいね（期間内に付与されたいいね）
-    const { data: likesInPeriod } = await supabase
-      .from("user_mission_likes")
-      .select("user_id, user_mission_id")
-      .gte("created_at", startDate)
-      .lte("created_at", endDate);
+    const likesInPeriod = await fetchAllRows<{
+      user_id: string;
+      user_mission_id: string;
+    }>((from, to) =>
+      supabase
+        .from("user_mission_likes")
+        .select("user_id, user_mission_id")
+        .gte("created_at", startDate)
+        .lte("created_at", endDate)
+        .order("id", { ascending: true })
+        .range(from, to),
+    );
 
     // 6. 期間内のミッション達成
-    const { data: achievementsInPeriod } = await supabase
-      .from("achievements")
-      .select("user_id")
-      .gte("created_at", startDate)
-      .lte("created_at", endDate);
+    const achievementsInPeriod = await fetchAllRows<{ user_id: string | null }>(
+      (from, to) =>
+        supabase
+          .from("achievements")
+          .select("user_id")
+          .gte("created_at", startDate)
+          .lte("created_at", endDate)
+          .order("id", { ascending: true })
+          .range(from, to),
+    );
 
     // 7. ユーザーレベル（全期間）
-    const { data: userLevels } = await supabase
-      .from("user_levels")
-      .select("user_id, xp, level")
-      .in("user_id", userIds);
+    const userLevels = await fetchByIdChunks<{
+      user_id: string;
+      xp: number;
+      level: number;
+    }>(userIds, (chunk) =>
+      supabase
+        .from("user_levels")
+        .select("user_id, xp, level")
+        .in("user_id", chunk),
+    );
 
     const levelsMap = new Map(
-      (userLevels || []).map((ul) => [
-        ul.user_id,
-        { xp: ul.xp, level: ul.level },
-      ]),
+      userLevels.map((ul) => [ul.user_id, { xp: ul.xp, level: ul.level }]),
     );
 
     // MVVごとの称賛数マップ: praised_user_id -> mvv_type -> Set<mission_id>
@@ -142,7 +188,7 @@ export async function getAssessmentData(
     const missionAchievementByUser = new Map<string, number>();
 
     // グッジョブ投稿数・いいねもらった数・投稿日数
-    for (const m of missionsInPeriod || []) {
+    for (const m of missionsInPeriod) {
       const createdBy = m.created_by;
       if (createdBy) {
         goodjobPostedByUser.set(
@@ -195,13 +241,13 @@ export async function getAssessmentData(
     }
 
     // いいね押した数
-    for (const like of likesInPeriod || []) {
+    for (const like of likesInPeriod) {
       const userId = like.user_id;
       likesGivenByUser.set(userId, (likesGivenByUser.get(userId) || 0) + 1);
     }
 
     // ミッション達成数
-    for (const a of achievementsInPeriod || []) {
+    for (const a of achievementsInPeriod) {
       const userId = a.user_id;
       if (userId) {
         missionAchievementByUser.set(

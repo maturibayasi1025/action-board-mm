@@ -10,6 +10,7 @@ import { toSerializableAuthUser } from "@/lib/auth/serializable-user";
 import { createClient } from "@/lib/supabase/server";
 import { validateAwardLateGrantAccess } from "@/lib/survey/validate-late-grant-service";
 import { redirect } from "next/navigation";
+import { ResponsesLoadError } from "../../../_components/responses-load-error";
 import { AwardSurveyFormClient } from "../_components/award-survey-form-client";
 import {
   getAwardQuestions,
@@ -63,7 +64,10 @@ export default async function AwardSurveyLatePage({
 
   const survey = await getAwardSurvey(id);
   const questions = await getAwardQuestions();
-  const existingResponses = await getUserAwardResponses(id);
+  const existingResponses = await getUserAwardResponses(id).catch((error) => {
+    console.error("回答の取得エラー:", error);
+    return null;
+  });
   const userName = await getCurrentUserName();
 
   if (!survey) {
@@ -90,6 +94,10 @@ export default async function AwardSurveyLatePage({
         </Card>
       </div>
     );
+  }
+
+  if (!existingResponses) {
+    return <ResponsesLoadError title={survey.title} />;
   }
 
   const hasResponded = Object.keys(existingResponses).length > 0;

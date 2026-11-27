@@ -1,12 +1,8 @@
 import { createClient as createServerClient } from "@/lib/supabase/server";
 import type { Tables } from "@/lib/types/supabase";
 import { nanoid } from "nanoid";
-import type {
-  Achievement,
-  MissionArtifact,
-  MissionPageData,
-  SubmissionData,
-} from "./types";
+import { fetchSubmissionHistory } from "./submission-history";
+import type { MissionPageData, SubmissionData } from "./types";
 
 export async function getMissionData(
   missionId: string,
@@ -46,143 +42,18 @@ export async function getTotalAchievementCount(
   return countData?.achievement_count || 0;
 }
 
-export async function getUserAchievements(
-  userId: string,
-  missionId: string,
-): Promise<{ achievements: Achievement[]; count: number }> {
-  const supabase = await createServerClient();
-
-  const { data: achievementsData, error } = await supabase
-    .from("achievements")
-    .select("id, created_at, mission_id, user_id")
-    .eq("user_id", userId)
-    .eq("mission_id", missionId)
-    .order("created_at", { ascending: false });
-
-  if (error) {
-    console.error("Achievements fetch error:", error);
-    return { achievements: [], count: 0 };
-  }
-
-  return {
-    achievements: achievementsData || [],
-    count: achievementsData?.length || 0,
-  };
-}
-
+/** 本人の提出履歴。取得に失敗したら null（0 件とは区別する） */
 export async function getSubmissionHistory(
   userId: string,
   missionId: string,
-): Promise<SubmissionData[]> {
+): Promise<SubmissionData[] | null> {
   const supabase = await createServerClient();
-
-  // ユーザーの達成履歴を取得
-  const { data: achievementsData, error: achievementsError } = await supabase
-    .from("achievements")
-    .select("id, created_at, mission_id, user_id")
-    .eq("user_id", userId)
-    .eq("mission_id", missionId)
-    .order("created_at", { ascending: false });
-
-  if (achievementsError) {
-    console.error("Achievements fetch error:", achievementsError);
-    return [];
+  try {
+    return await fetchSubmissionHistory(supabase, userId, missionId);
+  } catch (error) {
+    console.error("Submission history fetch error:", error);
+    return null;
   }
-
-  if (!achievementsData || achievementsData.length === 0) {
-    return [];
-  }
-
-  // 各達成に対応する成果物を取得
-  const submissionsWithArtifacts = await Promise.all(
-    achievementsData.map(async (achievement: Achievement) => {
-      const { data: artifactsData, error: artifactsError } = await supabase
-        .from("mission_artifacts")
-        .select("*")
-        .eq("achievement_id", achievement.id);
-
-      if (artifactsError) {
-        console.error("Artifacts fetch error:", artifactsError);
-        return {
-          ...achievement,
-          artifacts: [],
-        };
-      }
-
-      // 成果物に画像がある場合は署名付きURLを取得
-      const artifactsWithSignedUrls = await Promise.all(
-        (artifactsData || []).map(
-          async (artifact: Tables<"mission_artifacts">) => {
-            if (artifact.image_storage_path) {
-              const { data: signedUrlData } = await supabase.storage
-                .from("mission_artifact_files")
-                .createSignedUrl(artifact.image_storage_path, 60, {
-                  transform: {
-                    width: 240,
-                    height: 240,
-                    resize: "contain",
-                  },
-                });
-
-              if (signedUrlData) {
-                return {
-                  ...artifact,
-                  image_storage_path: signedUrlData.signedUrl,
-                };
-              }
-            }
-            return artifact;
-          },
-        ),
-      );
-
-      // 位置情報を取得
-      const artifactsWithGeolocations = await Promise.all(
-        artifactsWithSignedUrls.map(
-          async (artifact: Tables<"mission_artifacts">) => {
-            if (artifact.artifact_type === "IMAGE_WITH_GEOLOCATION") {
-              const { data: geolocationsData, error: geolocationsError } =
-                await supabase
-                  .from("mission_artifact_geolocations")
-                  .select("*")
-                  .eq("mission_artifact_id", artifact.id);
-
-              if (!geolocationsError && geolocationsData) {
-                return {
-                  ...artifact,
-                  geolocations: geolocationsData,
-                } as MissionArtifact;
-              }
-            }
-            return artifact as MissionArtifact;
-          },
-        ),
-      );
-
-      return {
-        ...achievement,
-        artifacts: artifactsWithGeolocations,
-      } as SubmissionData;
-    }),
-  );
-
-  // null値をフィルタリングして型安全にする
-  const validSubmissions = submissionsWithArtifacts.filter(
-    (submission: unknown): submission is SubmissionData => {
-      if (typeof submission !== "object" || submission === null) {
-        return false;
-      }
-      const sub = submission as Record<string, unknown>;
-      return (
-        "mission_id" in sub &&
-        "user_id" in sub &&
-        sub.mission_id !== null &&
-        sub.user_id !== null
-      );
-    },
-  );
-
-  return validSubmissions;
 }
 
 export async function getMissionMainLink(
@@ -212,19 +83,11 @@ export async function getMissionPageData(
 
   if (!mission) return null;
 
-  let userAchievements: Achievement[] = [];
-  let userAchievementCount = 0;
-  let submissions: SubmissionData[] = [];
+  let submissionHistory: SubmissionData[] | null = [];
   let referralCode: string | null = null;
 
   if (userId) {
-    const { achievements, count } = await getUserAchievements(
-      userId,
-      missionId,
-    );
-    userAchievements = achievements;
-    userAchievementCount = count;
-    submissions = await getSubmissionHistory(userId, missionId);
+    submissionHistory = await getSubmissionHistory(userId, missionId);
     referralCode = await getReferralCode(userId);
   }
 
@@ -236,9 +99,7 @@ export async function getMissionPageData(
 
   return {
     mission,
-    userAchievements,
-    submissions,
-    userAchievementCount,
+    submissionHistory,
     totalAchievementCount,
     referralCode,
     mainLink,

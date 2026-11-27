@@ -8,6 +8,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { LikeButton } from "@/components/user-mission/like-button";
+import { fetchAllRows } from "@/lib/supabase/fetch-all-rows";
 import { createClient } from "@/lib/supabase/server";
 import type { Like, MvvItem, PraisedUser } from "@/lib/types/user-missions";
 import { isLikeExpired } from "@/lib/utils/user-mission-likes";
@@ -60,18 +61,22 @@ async function getUserMissionById(id: string) {
   }
 
   // 外部ユーザー（メンバー以外）を取得
-  const { data: praisedExternalUsers, error: praisedExternalError } =
-    await supabase
+  const praisedExternalUsers = await fetchAllRows<{
+    praised_person_name: string;
+  }>((from, to) =>
+    supabase
       .from("user_mission_praised_external_users")
       .select("praised_person_name")
-      .eq("user_mission_id", data.id);
-
-  if (praisedExternalError) {
+      .eq("user_mission_id", data.id)
+      .order("id", { ascending: true })
+      .range(from, to),
+  ).catch((praisedExternalError) => {
     console.error(
       `Praised external users error for mission ${data.id}:`,
       praisedExternalError,
     );
-  }
+    return [];
+  });
 
   return {
     id: data.id,
@@ -85,10 +90,9 @@ async function getUserMissionById(id: string) {
       data.user_mission_praised_users
         ?.map((p: unknown) => (p as unknown as PraisedUser).private_users?.name)
         .filter(Boolean) || [],
-    praisedExternalUsers:
-      praisedExternalUsers?.map(
-        (p: { praised_person_name: string }) => p.praised_person_name,
-      ) || [],
+    praisedExternalUsers: praisedExternalUsers.map(
+      (p) => p.praised_person_name,
+    ),
     status: data.status,
     rejectionReason: data.rejection_reason,
     createdAt: data.created_at,

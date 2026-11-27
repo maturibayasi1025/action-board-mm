@@ -7,9 +7,20 @@
  *
  * 呼び出し側は `.range` の前に一意キー（通常は `id`）で `order` すること。
  * 並びが安定しないと、ページを跨いで行の欠落と重複が起きる。
+ *
+ * サーバ側の上限（max_rows）が pageSize より小さいと、末尾でなくても短いページが返る。
+ * そのため短いページでは止めず、返ってきた行数だけ進めて、空のページが返るまで続ける。
  */
 
 export const DEFAULT_PAGE_SIZE = 1000;
+
+/**
+ * Supabase への問い合わせがエラーを返したときの例外。
+ * 呼び出し側が「取得の失敗」と、それ以外の例外（実装の誤りなど）を見分けるために使う。
+ */
+export class SupabaseQueryError extends Error {
+  name = "SupabaseQueryError";
+}
 
 type PageResult<T> = {
   data: T[] | null;
@@ -31,15 +42,14 @@ export async function fetchAllRows<T>(
   while (true) {
     const { data, error } = await fetchPage(from, from + pageSize - 1);
     if (error) {
-      throw new Error(error.message);
+      throw new SupabaseQueryError(error.message);
     }
     const page = data ?? [];
-    all.push(...page);
-
-    if (page.length < pageSize) {
+    if (page.length === 0) {
       return all;
     }
-    from += pageSize;
+    all.push(...page);
+    from += page.length;
   }
 }
 
@@ -63,7 +73,7 @@ export async function fetchByIdChunks<T>(
     const chunk = ids.slice(i, i + chunkSize);
     const { data, error } = await fetchChunk(chunk);
     if (error) {
-      throw new Error(error.message);
+      throw new SupabaseQueryError(error.message);
     }
     all.push(...(data ?? []));
   }

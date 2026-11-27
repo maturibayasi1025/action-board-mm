@@ -19,6 +19,7 @@ import {
   saveDraftUserMissionAction,
 } from "@/lib/actions/user-missions";
 import { createClient } from "@/lib/supabase/client";
+import { fetchAllRows } from "@/lib/supabase/fetch-all-rows";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { User } from "@supabase/supabase-js";
 import { Save, Search, Trash2, X } from "lucide-react";
@@ -168,12 +169,16 @@ export function CreateMissionForm(
   // 利用可能なユーザーを取得
   useEffect(() => {
     async function fetchUsers() {
-      const { data, error } = await supabase
-        .from("private_users")
-        .select("id, name, x_username")
-        .order("name");
+      const data = await fetchAllRows((from, to) =>
+        supabase
+          .from("private_users")
+          .select("id, name, x_username")
+          .order("name")
+          .order("id")
+          .range(from, to),
+      ).catch(() => null);
 
-      if (data && !error) {
+      if (data) {
         setAvailableUsers(data);
       }
     }

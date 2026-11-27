@@ -89,8 +89,7 @@ export default async function MissionPage({ params }: Props) {
     return <div className="p-4">グッジョブが見つかりません。</div>;
   }
 
-  const { mission, submissions, userAchievementCount, referralCode, mainLink } =
-    pageData;
+  const { mission, submissionHistory, referralCode, mainLink } = pageData;
 
   // クイズグッジョブの場合は問題を事前取得
   let quizQuestions = null;
@@ -138,8 +137,7 @@ export default async function MissionPage({ params }: Props) {
                 mission={mission}
                 authUser={user}
                 referralCode={referralCode}
-                initialUserAchievementCount={userAchievementCount}
-                initialSubmissions={submissions}
+                initialSubmissions={submissionHistory}
                 missionId={id}
                 preloadedQuizQuestions={quizQuestions}
                 mainLink={mainLink}

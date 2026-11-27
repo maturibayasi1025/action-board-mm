@@ -1,5 +1,6 @@
 "use server";
 
+import { fetchAllRows } from "@/lib/supabase/fetch-all-rows";
 import { createServiceClient } from "@/lib/supabase/server";
 import { requireOwner } from "@/lib/utils/isOwner";
 import { revalidatePath } from "next/cache";
@@ -28,22 +29,27 @@ export async function listCompaniesAndUnits(): Promise<
   try {
     await requireOwner();
     const supabase = await createServiceClient();
-    const [{ data: companies, error: e1 }, { data: units, error: e2 }] =
-      await Promise.all([
-        supabase.from("companies").select("*").order("display_order"),
-        supabase.from("business_units").select("*").order("display_order"),
-      ]);
-    if (e1) {
-      return { success: false, error: e1.message };
-    }
-    if (e2) {
-      return { success: false, error: e2.message };
-    }
-    return {
-      success: true,
-      companies: (companies ?? []) as CompanyRow[],
-      units: (units ?? []) as BusinessUnitRow[],
-    };
+    const [companies, units] = await Promise.all([
+      fetchAllRows<CompanyRow>((from, to) =>
+        supabase
+          .from("companies")
+          .select("*")
+          .order("display_order")
+          .order("id")
+          .range(from, to)
+          .returns<CompanyRow[]>(),
+      ),
+      fetchAllRows<BusinessUnitRow>((from, to) =>
+        supabase
+          .from("business_units")
+          .select("*")
+          .order("display_order")
+          .order("id")
+          .range(from, to)
+          .returns<BusinessUnitRow[]>(),
+      ),
+    ]);
+    return { success: true, companies, units };
   } catch (error) {
     if (error instanceof Error && error.message === "経営者権限が必要です") {
       return { success: false, error: "経営者権限が必要です" };

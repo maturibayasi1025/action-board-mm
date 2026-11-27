@@ -1,5 +1,6 @@
 "use server";
 
+import { claimExternalPendingXp } from "@/lib/services/external-pending-xp";
 // Edge Runtime互換のCrypto APIを使用
 import {
   getOrInitializeUserLevel,
@@ -190,52 +191,19 @@ export const signUpActionWithState = async (
         .maybeSingle();
 
       if (userProfile?.name) {
-        // 名前で保留ポイントを検索
-        const { data: pendingXpRecords, error: pendingXpError } =
-          await serviceSupabase
-            .from("external_user_pending_xp")
-            .select("*")
-            .eq("external_user_name", userProfile.name)
-            .is("claimed_at", null);
-
-        if (
-          !pendingXpError &&
-          pendingXpRecords &&
-          pendingXpRecords.length > 0
-        ) {
-          // 保留ポイントをxp_transactionsに変換
-          const xpTransactions = pendingXpRecords.map((record) => ({
-            user_id: userId,
-            xp_amount: record.xp_amount,
-            source_type: "USER_MISSION_PRAISED_EXTERNAL",
-            source_id: record.user_mission_id,
-            description:
-              record.description ||
-              "ユーザーグッジョブで賞賛されました（登録後に付与）",
-          }));
-
-          // xp_transactionsに挿入
-          const { error: xpInsertError } = await serviceSupabase
-            .from("xp_transactions")
-            .insert(xpTransactions);
-
-          if (!xpInsertError) {
-            // 保留ポイントを付与済みに更新
-            const recordIds = pendingXpRecords.map((r) => r.id);
-            await serviceSupabase
-              .from("external_user_pending_xp")
-              .update({
-                claimed_at: new Date().toISOString(),
-                claimed_by_user_id: userId,
-              })
-              .in("id", recordIds);
-
-            console.log(
-              `外部ユーザー ${userProfile.name} に ${xpTransactions.length}件の保留ポイントを付与しました`,
-            );
-          } else {
-            console.error("保留ポイントの付与エラー:", xpInsertError);
-          }
+        // 名前で保留ポイントを検索して付与
+        const claimed = await claimExternalPendingXp(
+          serviceSupabase,
+          userId,
+          userProfile.name,
+        ).catch((error) => {
+          console.error("保留ポイントの付与エラー:", error);
+          return 0;
+        });
+        if (claimed > 0) {
+          console.log(
+            `外部ユーザー ${userProfile.name} に ${claimed}件の保留ポイントを付与しました`,
+          );
         }
       }
     } catch (levelError) {

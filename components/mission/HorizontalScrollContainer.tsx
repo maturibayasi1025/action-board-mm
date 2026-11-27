@@ -113,6 +113,10 @@ export function HorizontalScrollContainer({
   const handleMouseDown = useCallback(
     (e: React.MouseEvent) => {
       if (!isDesktop) return;
+      const target = e.target;
+      if (target instanceof Element && target.closest("a, button")) {
+        return;
+      }
       e.preventDefault();
       handleDragStart(e.clientX);
     },

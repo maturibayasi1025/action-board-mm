@@ -1,5 +1,6 @@
 "use server";
 
+import { fetchAllRows } from "@/lib/supabase/fetch-all-rows";
 import { createServiceClient } from "@/lib/supabase/server";
 import { isOwner, requireOwner } from "@/lib/utils/isOwner";
 import { revalidatePath } from "next/cache";
@@ -134,26 +135,26 @@ export async function getImportantMissions() {
 
     const supabase = await createServiceClient();
 
-    const { data, error } = await supabase
-      .from("missions")
-      .select(
-        "id, title, is_important, important_display_start_date, important_display_end_date, created_at",
-      )
-      .eq("is_important", true)
-      .order("created_at", { ascending: false });
+    const data = await fetchAllRows<{
+      id: string;
+      title: string;
+      is_important: boolean;
+      important_display_start_date: string | null;
+      important_display_end_date: string | null;
+      created_at: string;
+    }>((from, to) =>
+      supabase
+        .from("missions")
+        .select(
+          "id, title, is_important, important_display_start_date, important_display_end_date, created_at",
+        )
+        .eq("is_important", true)
+        .order("created_at", { ascending: false })
+        .order("id", { ascending: true })
+        .range(from, to),
+    );
 
-    if (error) {
-      console.error("重要グッジョブ取得エラー:", error);
-      return {
-        success: false,
-        error: `重要グッジョブの取得に失敗しました: ${error.message}`,
-      };
-    }
-
-    return {
-      success: true,
-      data: data || [],
-    };
+    return { success: true, data };
   } catch (error) {
     console.error("予期しないエラー:", error);
     return {
@@ -175,23 +176,20 @@ export async function getAllMissions() {
 
     const supabase = await createServiceClient();
 
-    const { data, error } = await supabase
-      .from("missions")
-      .select("id, title, is_hidden")
-      .order("title", { ascending: true });
+    const data = await fetchAllRows<{
+      id: string;
+      title: string;
+      is_hidden: boolean;
+    }>((from, to) =>
+      supabase
+        .from("missions")
+        .select("id, title, is_hidden")
+        .order("title", { ascending: true })
+        .order("id", { ascending: true })
+        .range(from, to),
+    );
 
-    if (error) {
-      console.error("ミッション取得エラー:", error);
-      return {
-        success: false,
-        error: `ミッションの取得に失敗しました: ${error.message}`,
-      };
-    }
-
-    return {
-      success: true,
-      data: data || [],
-    };
+    return { success: true, data };
   } catch (error) {
     console.error("予期しないエラー:", error);
     return {

@@ -40,6 +40,7 @@ async function fetchQuestionsForAi(
       .from("enps_questions")
       .select("id, question_text, question_type, parent_question_id")
       .eq("is_active", true)
+      .order("id", { ascending: true })
       .range(from, to),
   );
 }

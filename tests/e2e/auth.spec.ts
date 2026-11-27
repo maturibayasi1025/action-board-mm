@@ -1,9 +1,31 @@
+import type { Page } from "@playwright/test";
 import {
   assertAuthState,
   expect,
   generateRandomEmail,
   test,
 } from "../e2e-test-helpers";
+
+async function fillSignUpCredentials(
+  page: Page,
+  email: string,
+  password: string,
+) {
+  const emailField = page.getByRole("textbox", { name: "メールアドレス" });
+  const passwordField = page.getByLabel("パスワード");
+  await emailField.click();
+  await emailField.fill(email);
+  await expect(emailField).toHaveValue(email);
+  await passwordField.fill(password);
+  await expect(passwordField).toHaveValue(password);
+  return {
+    emailField,
+    passwordField,
+    terms: page.getByRole("checkbox", {
+      name: /利用規約およびプライバシーポリシーに同意する/,
+    }),
+  };
+}
 
 test.describe("ユーザー登録とログイン", () => {
   test.beforeEach(async ({ page }) => {
@@ -24,11 +46,15 @@ test.describe("ユーザー登録とログイン", () => {
 
     await expect(page).toHaveURL("/sign-up");
 
-    await page.locator("#terms").click();
     const testEmail = generateRandomEmail();
     const testPassword = "TestPassword123!";
-    await page.fill('input[name="email"]', testEmail);
-    await page.fill('input[name="password"]', testPassword);
+    const { terms } = await fillSignUpCredentials(
+      page,
+      testEmail,
+      testPassword,
+    );
+    await terms.check();
+    await expect(terms).toBeChecked();
     await page.getByRole("button", { name: "アカウントを作成" }).click();
 
     await expect(page).toHaveURL(/\/sign-up-success/, { timeout: 10000 });
@@ -61,16 +87,31 @@ test.describe("ユーザー登録とログイン", () => {
 
   test("利用規約に同意しないとアカウント作成できない", async ({ page }) => {
     await page.goto("/sign-up");
-    await page.fill('input[name="email"]', "test@example.com");
-    await page.fill('input[name="password"]', "TestPassword123!");
     await expect(
-      page.getByRole("button", { name: "アカウントを作成" }),
-    ).toBeDisabled();
+      page.getByRole("heading", { name: "アクションボードに登録" }),
+    ).toBeVisible();
 
-    await page.locator("#terms").click();
-    await expect(
-      page.getByRole("button", { name: "アカウントを作成" }),
-    ).toBeEnabled();
+    // WebKit では type=email への fill がプレースホルダのまま残ることがある。
+    // 役割で探して、値が入ったことを確かめてから同意する。
+    const email = page.getByRole("textbox", { name: "メールアドレス" });
+    const password = page.getByLabel("パスワード");
+    const terms = page.getByRole("checkbox", {
+      name: /利用規約およびプライバシーポリシーに同意する/,
+    });
+    const createAccount = page.getByRole("button", {
+      name: "アカウントを作成",
+    });
+
+    await email.click();
+    await email.fill("test@example.com");
+    await expect(email).toHaveValue("test@example.com");
+    await password.fill("TestPassword123!");
+    await expect(password).toHaveValue("TestPassword123!");
+    await expect(createAccount).toBeDisabled();
+
+    await terms.check();
+    await expect(terms).toBeChecked();
+    await expect(createAccount).toBeEnabled();
   });
 
   test("登録フォームの入力バリデーション", async ({ page }) => {
@@ -89,24 +130,21 @@ test.describe("ユーザー登録とログイン", () => {
     ).toBeVisible();
     await expect(page.getByRole("link", { name: "こちら" })).toBeVisible();
 
-    await expect(
-      page.getByRole("button", { name: "アカウントを作成" }),
-    ).toBeDisabled();
+    const createAccount = page.getByRole("button", {
+      name: "アカウントを作成",
+    });
+    await expect(createAccount).toBeDisabled();
 
-    await page.fill('input[name="email"]', "test@example.com");
-    await expect(
-      page.getByRole("button", { name: "アカウントを作成" }),
-    ).toBeDisabled();
+    const { terms } = await fillSignUpCredentials(
+      page,
+      "test@example.com",
+      "TestPassword123!",
+    );
+    await expect(createAccount).toBeDisabled();
 
-    await page.fill('input[name="password"]', "TestPassword123!");
-    await expect(
-      page.getByRole("button", { name: "アカウントを作成" }),
-    ).toBeDisabled();
-
-    await page.locator("#terms").click();
-    await expect(
-      page.getByRole("button", { name: "アカウントを作成" }),
-    ).toBeEnabled();
+    await terms.check();
+    await expect(terms).toBeChecked();
+    await expect(createAccount).toBeEnabled();
   });
 
   test("/sign-up-email は /sign-up にリダイレクトされる", async ({ page }) => {
