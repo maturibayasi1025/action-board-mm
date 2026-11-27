@@ -170,6 +170,7 @@ export function createFakePostgrest(
         range = [0, n - 1];
         return builder;
       },
+      returns: () => builder,
       single: () => {
         single = "single";
         return builder;
