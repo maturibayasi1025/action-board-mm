@@ -1,3 +1,4 @@
+import { getUserAchievementCountMap } from "@/lib/services/missions";
 import { fetchAllRows } from "@/lib/supabase/fetch-all-rows";
 import { createClient } from "@/lib/supabase/server";
 import type { Tables } from "@/lib/types/supabase";
@@ -24,35 +25,12 @@ export default async function Missions({
 }: MissionsProps) {
   const supabase = await createClient();
 
-  // ユーザーが達成したグッジョブIDのリスト
-  let achievedMissionIds: string[] = [];
   // ユーザーの各グッジョブに対する達成回数のマップ
-  let userAchievementCountMap = new Map<string, number>();
-
-  if (userId) {
-    // ユーザーの達成情報を取得
-    const { data: achievements } = await supabase
-      .from("achievements")
-      .select("mission_id")
-      .eq("user_id", userId);
-
-    // 達成したグッジョブIDのリストを作成
-    achievedMissionIds =
-      achievements?.map((achievement) => achievement.mission_id ?? "") ?? [];
-
-    // 各グッジョブの達成回数をカウント
-    if (achievements && achievements.length > 0) {
-      const missionCounts = achievements.reduce((counts, achievement) => {
-        const missionId = achievement.mission_id;
-        if (missionId) {
-          counts.set(missionId, (counts.get(missionId) || 0) + 1);
-        }
-        return counts;
-      }, new Map<string, number>());
-
-      userAchievementCountMap = missionCounts;
-    }
-  }
+  const userAchievementCountMap = userId
+    ? await getUserAchievementCountMap(supabase, userId)
+    : new Map<string, number>();
+  // ユーザーが達成したグッジョブIDのリスト
+  const achievedMissionIds = Array.from(userAchievementCountMap.keys());
 
   // すべてのグッジョブに対する達成人数を取得
   const achievement_count = await fetchAllRows<{

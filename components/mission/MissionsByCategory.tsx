@@ -1,3 +1,4 @@
+import { getUserAchievementCountMap } from "@/lib/services/missions";
 import { fetchAllRows } from "@/lib/supabase/fetch-all-rows";
 import { createClient } from "@/lib/supabase/server";
 import type { Tables } from "@/lib/types/supabase";
@@ -18,24 +19,10 @@ export default async function MissionsByCategory({
   const supabase = await createClient();
 
   // ユーザーの達成状況取得
-  let achievedMissionIds: string[] = [];
-  let userAchievementCountMap = new Map<string, number>();
-  if (userId) {
-    const { data: achievements } = await supabase
-      .from("achievements")
-      .select("mission_id")
-      .eq("user_id", userId);
-
-    achievedMissionIds = achievements?.map((a) => a.mission_id ?? "") ?? [];
-    if (achievements) {
-      userAchievementCountMap = achievements.reduce((map, a) => {
-        if (a.mission_id) {
-          map.set(a.mission_id, (map.get(a.mission_id) || 0) + 1);
-        }
-        return map;
-      }, new Map<string, number>());
-    }
-  }
+  const userAchievementCountMap = userId
+    ? await getUserAchievementCountMap(supabase, userId)
+    : new Map<string, number>();
+  const achievedMissionIds = Array.from(userAchievementCountMap.keys());
 
   // 全体の達成数取得
   const achievementCounts = await fetchAllRows<{

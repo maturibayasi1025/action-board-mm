@@ -2,7 +2,31 @@ import "server-only";
 
 import { fetchAllRows } from "@/lib/supabase/fetch-all-rows";
 import { createClient } from "@/lib/supabase/server";
-import type { Tables } from "@/lib/types/supabase";
+import type { Database, Tables } from "@/lib/types/supabase";
+import type { SupabaseClient } from "@supabase/supabase-js";
+
+/** ユーザーのグッジョブごとの達成回数。キーにないグッジョブは未達成 */
+export async function getUserAchievementCountMap(
+  supabase: SupabaseClient<Database>,
+  userId: string,
+): Promise<Map<string, number>> {
+  const achievements = await fetchAllRows<{ mission_id: string | null }>(
+    (from, to) =>
+      supabase
+        .from("achievements")
+        .select("mission_id")
+        .eq("user_id", userId)
+        .order("id", { ascending: true })
+        .range(from, to),
+  );
+  const counts = new Map<string, number>();
+  for (const { mission_id } of achievements) {
+    if (mission_id) {
+      counts.set(mission_id, (counts.get(mission_id) ?? 0) + 1);
+    }
+  }
+  return counts;
+}
 
 type MissionWithDisplayDates = {
   important_display_start_date: string | null;

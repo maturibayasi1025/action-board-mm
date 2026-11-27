@@ -113,7 +113,19 @@ export function createFakePostgrest(
         filters.push((row) => (row[column] ?? null) === value);
         return builder;
       },
-      not: (column: string, _op: "is", value: null) => {
+      not: (column: string, op: "is" | "in", value: null | string) => {
+        if (op === "in") {
+          const values = String(value)
+            .replace(/^\(|\)$/g, "")
+            .split(",")
+            .map((v) => v.replace(/^"|"$/g, ""));
+          if (values.length > MAX_IN_VALUES) {
+            inTooLong = true;
+          }
+          const set = new Set<unknown>(values);
+          filters.push((row) => !set.has(row[column]));
+          return builder;
+        }
         filters.push((row) => (row[column] ?? null) !== value);
         return builder;
       },
