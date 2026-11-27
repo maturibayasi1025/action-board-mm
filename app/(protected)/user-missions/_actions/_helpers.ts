@@ -1,4 +1,5 @@
 import { filterActiveUserIds } from "@/lib/services/user-status";
+import { fetchByIdChunks } from "@/lib/supabase/fetch-all-rows";
 import type { createClient } from "@/lib/supabase/server";
 
 export async function awardPointsForMissionCreation(
@@ -80,13 +81,18 @@ export async function sendSlackNotificationForMissionCreation(
       .single();
 
     // 賞賛対象者情報を取得（Slack メンション用に slack_user_id を含む）
-    const { data: praisedUsers } =
-      validatedPraisedUserIds.length > 0
-        ? await supabase
-            .from("private_users")
-            .select("id, name, slack_user_id")
-            .in("id", validatedPraisedUserIds)
-        : { data: null };
+    // 称賛対象の人数に上限は無いので、ID を分割して取る（1 ID に 1 行）
+    const praisedUsers = await fetchByIdChunks(
+      Array.from(new Set(validatedPraisedUserIds)),
+      (chunk) =>
+        supabase
+          .from("private_users")
+          .select("id, name, slack_user_id")
+          .in("id", chunk),
+    ).catch((error) => {
+      console.error("[Slack通知] 称賛対象者の取得に失敗:", error);
+      return [];
+    });
 
     type PraisedPrivateRow = {
       id: string;
@@ -94,7 +100,7 @@ export async function sendSlackNotificationForMissionCreation(
       slack_user_id: string | null;
     };
     const praisedById = new Map<string, PraisedPrivateRow>(
-      (praisedUsers ?? []).map((u) => [u.id, u]),
+      praisedUsers.map((u) => [u.id, u]),
     );
     const orderedPraisedInternal: PraisedPrivateRow[] = [];
     for (const id of validatedPraisedUserIds) {
