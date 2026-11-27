@@ -227,6 +227,14 @@ test.describe("アクションボード（Web版）のe2eテスト", () => {
     });
     await signedInPage.getByRole("button", { name: "このまま閉じる" }).click();
 
+    // 完了でレベルが上がると、この画面でもレベルアップのダイアログが開く
+    const levelUpDialog = signedInPage.getByRole("dialog", {
+      name: /グッジョブレベルが\s*アップしました！/,
+    });
+    await signedInPage.addLocatorHandler(levelUpDialog, async (dialog) => {
+      await dialog.getByRole("button", { name: "Close" }).click();
+    });
+
     // 投稿後に取り直した提出履歴から取り消す
     await expect(signedInPage.getByText("あなたの達成履歴")).toBeVisible({
       timeout: 10000,
@@ -262,12 +270,6 @@ test.describe("アクションボード（Web版）のe2eテスト", () => {
 
     await signedInPage.waitForTimeout(2000);
 
-    const levelUpDialog = signedInPage.getByRole("dialog", {
-      name: /グッジョブレベルが\s*アップしました！/,
-    });
-    await signedInPage.addLocatorHandler(levelUpDialog, async (dialog) => {
-      await dialog.getByRole("button", { name: "Close" }).click();
-    });
     await signedInPage.goto("/");
     await expect(
       signedInPage
