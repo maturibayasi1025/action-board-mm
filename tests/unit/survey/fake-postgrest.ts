@@ -115,6 +115,18 @@ export function createFakePostgrest(tables: Record<string, Row[]>) {
         );
         return builder;
       },
+      ilike: (column: string, pattern: string) => {
+        const needle = pattern
+          .replace(/^%|%$/g, "")
+          .replace(/\\(.)/g, "$1")
+          .toLowerCase();
+        filters.push((row) =>
+          String(row[column] ?? "")
+            .toLowerCase()
+            .includes(needle),
+        );
+        return builder;
+      },
       in: (column: string, values: unknown[]) => {
         if (values.length > MAX_IN_VALUES) {
           inTooLong = true;

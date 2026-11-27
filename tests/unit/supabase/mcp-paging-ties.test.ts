@@ -5,6 +5,7 @@ import {
   listAwardResponses,
   listEnpsMonthlySnapshots,
   listEnpsResponses,
+  listSlackDirectory,
 } from "@/lib/mcp/privileged-client";
 import { createClient } from "@supabase/supabase-js";
 import { createFakePostgrest, pad } from "../survey/fake-postgrest";
@@ -53,7 +54,15 @@ describe("MCP の limit/offset ページングは同時刻の行でも欠けも�
         award_responses: range(ROWS).map(response),
         enps_questions: [{ id: "question-1", question_text: "設問" }],
         award_questions: [{ id: "question-1", question_text: "設問" }],
-        public_user_profiles: [],
+        public_user_profiles: range(ROWS).map((i) => ({
+          id: `user-${pad(i)}`,
+          name: `社員${pad(i)}`,
+        })),
+        private_users: range(ROWS).map((i) => ({
+          id: `user-${pad(i)}`,
+          slack_user_id: `U${pad(i)}`,
+          suspended_at: null,
+        })),
         enps_monthly_snapshots: range(ROWS).map((i) => ({
           id: `snapshot-${pad(i)}`,
           survey_id: SURVEY_ID,
@@ -84,5 +93,18 @@ describe("MCP の limit/offset ページングは同時刻の行でも欠けも�
     expect([...seen].sort()).toEqual(
       range(ROWS).map((i) => `snapshot-${pad(i)}`),
     );
+  });
+
+  it("Slack 対応表の名前検索（一致が 500 人を超える）", async () => {
+    const seen = await collectPages(async (offset) => {
+      const page = await listSlackDirectory({
+        query: "社員",
+        include_missing: false,
+        limit: PAGE,
+        offset,
+      });
+      return { items: page.items.map((item) => ({ id: item.user_id })) };
+    });
+    expect(seen).toEqual(range(ROWS).map((i) => `user-${pad(i)}`));
   });
 });
