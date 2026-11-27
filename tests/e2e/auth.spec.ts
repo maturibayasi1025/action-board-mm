@@ -65,6 +65,8 @@ test.describe("ユーザー登録とログイン", () => {
       page.getByRole("heading", { name: "アクションボードに登録" }),
     ).toBeVisible();
 
+    // WebKit では type=email への fill がプレースホルダのまま残ることがある。
+    // 役割で探して、値が入ったことを確かめてから同意する。
     const email = page.getByRole("textbox", { name: "メールアドレス" });
     const password = page.getByLabel("パスワード");
     const terms = page.getByRole("checkbox", {
@@ -74,12 +76,13 @@ test.describe("ユーザー登録とログイン", () => {
       name: "アカウントを作成",
     });
 
+    await email.click();
     await email.fill("test@example.com");
+    await expect(email).toHaveValue("test@example.com");
     await password.fill("TestPassword123!");
+    await expect(password).toHaveValue("TestPassword123!");
     await expect(createAccount).toBeDisabled();
 
-    // Radix のチェックボックスは button[role=checkbox] なので、click ではなく check() で
-    // チェック状態になるまでやり直す。有効化待ちの timeout 延長ではごまかさない。
     await terms.check();
     await expect(terms).toBeChecked();
     await expect(createAccount).toBeEnabled();
