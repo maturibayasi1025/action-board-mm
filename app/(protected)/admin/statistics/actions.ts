@@ -81,12 +81,16 @@ export async function getAwardDashboardSummary(): Promise<AwardDashboardSummary 
   await requireOwner();
   const supabase = await createServiceClient();
 
-  const { data: survey } = await supabase
+  const { data: survey, error } = await supabase
     .from("award_surveys")
     .select("id, title, year_month")
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
+  if (error) {
+    console.error("表彰アンケートの取得エラー:", error);
+    throw new Error("表彰アンケートの取得に失敗しました");
+  }
 
   if (!survey) {
     return null;

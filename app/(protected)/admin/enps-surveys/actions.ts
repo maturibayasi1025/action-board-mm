@@ -131,10 +131,14 @@ export async function getTotalUsers() {
   await requireOwner();
   const supabase = await createServiceClient();
 
-  const { count } = await supabase
+  const { count, error } = await supabase
     .from("private_users")
     .select("*", { count: "exact", head: true })
     .is("suspended_at", null);
+  if (error) {
+    console.error("対象者数の取得エラー:", error);
+    throw new Error("対象者数の取得に失敗しました");
+  }
 
   return count || 0;
 }
