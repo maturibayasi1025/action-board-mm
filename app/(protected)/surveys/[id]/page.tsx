@@ -9,6 +9,7 @@ import { redirectToSignInWithReturnPath } from "@/lib/auth/redirect-to-sign-in";
 import { toSerializableAuthUser } from "@/lib/auth/serializable-user";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import { ResponsesLoadError } from "../_components/responses-load-error";
 import { getLinkedPostMissionContext } from "../_lib/linked-post-mission";
 import { SurveyFormClient } from "./_components/survey-form-client";
 import { getSurvey, getSurveyQuestions, getUserResponses } from "./actions";
@@ -32,10 +33,17 @@ export default async function SurveyPage({ params }: SurveyPageProps) {
 
   const survey = await getSurvey(id);
   const questions = await getSurveyQuestions();
-  const existingResponses = await getUserResponses(id);
+  const existingResponses = await getUserResponses(id).catch((error) => {
+    console.error("回答の取得エラー:", error);
+    return null;
+  });
 
   if (!survey) {
     redirect("/");
+  }
+
+  if (!existingResponses) {
+    return <ResponsesLoadError title={survey.title} />;
   }
 
   const now = new Date();

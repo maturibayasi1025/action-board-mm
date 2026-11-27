@@ -178,6 +178,7 @@ export async function getAwardQuestions(): Promise<AwardQuestion[]> {
   }
 }
 
+/** 本人の既存回答（設問 ID ごと）。取得に失敗したら例外にする */
 export async function getUserAwardResponses(
   surveyId: string,
 ): Promise<Record<string, AwardResponse>> {
@@ -190,19 +191,22 @@ export async function getUserAwardResponses(
     return {};
   }
 
-  const { data: responses, error } = await supabase
-    .from("award_responses")
-    .select("question_id, text_value, nominee_user_id")
-    .eq("survey_id", surveyId)
-    .eq("user_id", user.id);
-
-  if (error) {
-    console.error("回答の取得エラー:", error);
-    return {};
-  }
+  const responses = await fetchAllRows<{
+    question_id: string;
+    text_value: string | null;
+    nominee_user_id: string | null;
+  }>((from, to) =>
+    supabase
+      .from("award_responses")
+      .select("question_id, text_value, nominee_user_id")
+      .eq("survey_id", surveyId)
+      .eq("user_id", user.id)
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
 
   const responseMap: Record<string, AwardResponse> = {};
-  for (const r of responses || []) {
+  for (const r of responses) {
     responseMap[r.question_id] = {
       question_id: r.question_id,
       text_value: r.text_value ?? null,
