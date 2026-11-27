@@ -61,18 +61,28 @@ test.describe("ユーザー登録とログイン", () => {
 
   test("利用規約に同意しないとアカウント作成できない", async ({ page }) => {
     await page.goto("/sign-up");
-    const terms = page.locator("#terms");
-    await expect(terms).toBeVisible();
-    await page.fill('input[name="email"]', "test@example.com");
-    await page.fill('input[name="password"]', "TestPassword123!");
+    await expect(
+      page.getByRole("heading", { name: "アクションボードに登録" }),
+    ).toBeVisible();
+
+    const email = page.getByRole("textbox", { name: "メールアドレス" });
+    const password = page.getByLabel("パスワード");
+    const terms = page.getByRole("checkbox", {
+      name: /利用規約およびプライバシーポリシーに同意する/,
+    });
     const createAccount = page.getByRole("button", {
       name: "アカウントを作成",
     });
+
+    await email.fill("test@example.com");
+    await password.fill("TestPassword123!");
     await expect(createAccount).toBeDisabled();
 
-    await terms.click();
-    await expect(terms).toHaveAttribute("data-state", "checked");
-    await expect(createAccount).toBeEnabled({ timeout: 15000 });
+    // Radix のチェックボックスは button[role=checkbox] なので、click ではなく check() で
+    // チェック状態になるまでやり直す。有効化待ちの timeout 延長ではごまかさない。
+    await terms.check();
+    await expect(terms).toBeChecked();
+    await expect(createAccount).toBeEnabled();
   });
 
   test("登録フォームの入力バリデーション", async ({ page }) => {
