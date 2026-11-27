@@ -1,6 +1,7 @@
 "use server";
 
 import { defaultUrl } from "@/lib/metadata";
+import { fetchAllRows, fetchByIdChunks } from "@/lib/supabase/fetch-all-rows";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import {
   generateLateSubmissionSecret,
@@ -25,23 +26,27 @@ export async function listEnpsLateSubmissionGrants(
   await requireOwner();
   const supabase = await createServiceClient();
 
-  const { data: rows, error } = await supabase
-    .from("enps_late_submission_grants")
-    .select("id, user_id, expires_at, used_at, created_at")
-    .eq("survey_id", surveyId)
-    .order("created_at", { ascending: false });
-
-  if (error || !rows?.length) {
+  const rows = await fetchAllRows<Omit<EnpsLateGrantRow, "user_name">>(
+    (from, to) =>
+      supabase
+        .from("enps_late_submission_grants")
+        .select("id, user_id, expires_at, used_at, created_at")
+        .eq("survey_id", surveyId)
+        .order("created_at", { ascending: false })
+        .order("id", { ascending: false })
+        .range(from, to),
+  );
+  if (rows.length === 0) {
     return [];
   }
 
-  const userIds = rows.map((r) => r.user_id);
-  const { data: users } = await supabase
-    .from("private_users")
-    .select("id, name")
-    .in("id", userIds);
+  const users = await fetchByIdChunks<{ id: string; name: string }>(
+    Array.from(new Set(rows.map((r) => r.user_id))),
+    (chunk) =>
+      supabase.from("private_users").select("id, name").in("id", chunk),
+  );
 
-  const nameMap = new Map((users || []).map((u) => [u.id, u.name]));
+  const nameMap = new Map(users.map((u) => [u.id, u.name]));
 
   return rows.map((r) => ({
     id: r.id,
