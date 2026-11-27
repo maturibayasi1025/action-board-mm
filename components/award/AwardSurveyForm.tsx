@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { createClient } from "@/lib/supabase/client";
+import { fetchAllRows } from "@/lib/supabase/fetch-all-rows";
 import type { AwardQuestion, AwardResponse } from "@/lib/types/award-survey";
 import { cn } from "@/lib/utils/utils";
 import { Search, X } from "lucide-react";
@@ -176,12 +177,16 @@ export function AwardSurveyForm({
   useEffect(() => {
     async function fetchMembers() {
       const supabase = createClient();
-      const { data, error } = await supabase
-        .from("private_users")
-        .select("id, name")
-        .order("name");
+      const data = await fetchAllRows<MemberOption>((from, to) =>
+        supabase
+          .from("private_users")
+          .select("id, name")
+          .order("name")
+          .order("id")
+          .range(from, to),
+      ).catch(() => null);
 
-      if (data && !error) {
+      if (data) {
         setMembers(
           currentUserId ? data.filter((u) => u.id !== currentUserId) : data,
         );
