@@ -5,6 +5,10 @@ import {
   type EnpsResponseForOrgAggregate,
   aggregateNpsByBusinessUnitForScoreQuestions,
 } from "@/lib/admin/enps-nps-by-business-unit";
+import {
+  PRIVATE_USER_ORG_SELECT,
+  fetchAllPrivateUserIds,
+} from "@/lib/admin/enps-report/data-access";
 import { computeNps } from "@/lib/admin/enps-report/nps";
 import {
   buildImputedDrilldownRows,
@@ -18,10 +22,11 @@ import {
   type PrivateUserOrgRow,
   companyAndBusinessUnitFromPrivateUserRow,
 } from "@/lib/admin/private-user-org";
+import { fetchAllRows, fetchByIdChunks } from "@/lib/supabase/fetch-all-rows";
 import { createServiceClient } from "@/lib/supabase/server";
 import {
   fetchGlobalExcludedUserIds,
-  filterUnansweredPrivateUsers,
+  fetchUnansweredPrivateUsers,
 } from "@/lib/survey/unanswered-candidates";
 import { requireOwner } from "@/lib/utils/isOwner";
 import { revalidatePath } from "next/cache";
@@ -55,24 +60,37 @@ export async function getSurveyResponses(surveyId: string) {
     .eq("is_active", true)
     .order("display_order", { ascending: true });
 
-  // 回答を取得
-  const { data: responses, error } = await supabase
-    .from("enps_responses")
-    .select(
-      `
-      id,
-      question_id,
-      score_value,
-      text_value,
-      created_at,
-      user_id,
-      is_late_submission
-    `,
-    )
-    .eq("survey_id", surveyId)
-    .order("created_at", { ascending: false });
-
-  if (error) {
+  type ResponseRow = {
+    id: string;
+    question_id: string;
+    score_value: number | null;
+    text_value: string | null;
+    created_at: string;
+    user_id: string;
+    is_late_submission: boolean;
+  };
+  let responses: ResponseRow[];
+  try {
+    responses = await fetchAllRows<ResponseRow>((from, to) =>
+      supabase
+        .from("enps_responses")
+        .select(
+          `
+          id,
+          question_id,
+          score_value,
+          text_value,
+          created_at,
+          user_id,
+          is_late_submission
+        `,
+        )
+        .eq("survey_id", surveyId)
+        .order("created_at", { ascending: false })
+        .order("id", { ascending: false })
+        .range(from, to),
+    );
+  } catch (error) {
     console.error("回答の取得エラー:", error);
     return {
       questions: questions || [],
@@ -96,7 +114,7 @@ export async function getSurveyResponses(surveyId: string) {
     surveyRow?.end_date != null &&
     isEnpsSurveyEnded(surveyRow.end_date, new Date());
 
-  const scoreByQuestionId = userIdsWithScoreByQuestionId(responses || []);
+  const scoreByQuestionId = userIdsWithScoreByQuestionId(responses);
 
   let eligibleUserIds: Set<string> | null = null;
   let imputationUserOrgMap = new Map<
@@ -106,14 +124,9 @@ export async function getSurveyResponses(surveyId: string) {
 
   if (surveyEnded) {
     const excludedUserIds = await fetchGlobalExcludedUserIds(supabase);
-    const { data: allPrivateIds } = await supabase
-      .from("private_users")
-      .select("id")
-      .is("suspended_at", null);
+    const allPrivateIds = await fetchAllPrivateUserIds(supabase);
     eligibleUserIds = new Set(
-      (allPrivateIds ?? [])
-        .map((r) => r.id)
-        .filter((id) => !excludedUserIds.has(id)),
+      allPrivateIds.filter((id) => !excludedUserIds.has(id)),
     );
 
     const scoreQuestionsForImpute = (questions || []).filter(
@@ -131,30 +144,21 @@ export async function getSurveyResponses(surveyId: string) {
     }
 
     if (imputedUnion.size > 0) {
-      const { data: usersForImpute } = await supabase
-        .from("private_users")
-        .select(
-          `
-        id,
-        name,
-        business_units (
-          name,
-          display_order,
-          companies (
-            name,
-            display_order
-          )
-        )
-      `,
-        )
-        .in("id", Array.from(imputedUnion));
+      const usersForImpute = await fetchByIdChunks<PrivateUserOrgRow>(
+        Array.from(imputedUnion),
+        (chunk) =>
+          supabase
+            .from("private_users")
+            .select(PRIVATE_USER_ORG_SELECT)
+            .in("id", chunk),
+      );
 
-      imputationUserOrgMap = buildPrivateUserOrgMap(usersForImpute ?? []);
+      imputationUserOrgMap = buildPrivateUserOrgMap(usersForImpute);
     }
   }
 
   // ユーザー情報を別途取得（RLSをバイパスするため）
-  const userIds = Array.from(new Set((responses || []).map((r) => r.user_id)));
+  const userIds = Array.from(new Set(responses.map((r) => r.user_id)));
   const uniqueRespondentCount = userIds.length;
 
   type UserFields = {
@@ -164,28 +168,17 @@ export async function getSurveyResponses(surveyId: string) {
   };
   let userMap = new Map<string, UserFields>();
   if (userIds.length > 0) {
-    const { data: users } = await supabase
-      .from("private_users")
-      .select(
-        `
-        id,
-        name,
-        business_units (
-          name,
-          display_order,
-          companies (
-            name,
-            display_order
-          )
-        )
-      `,
-      )
-      .in("id", userIds);
+    const users = await fetchByIdChunks<PrivateUserOrgRow>(userIds, (chunk) =>
+      supabase
+        .from("private_users")
+        .select(PRIVATE_USER_ORG_SELECT)
+        .in("id", chunk),
+    );
 
     userMap = new Map(
-      (users || []).map((u) => {
+      users.map((u) => {
         const { company_name, business_unit_name } =
-          companyAndBusinessUnitFromPrivateUserRow(u as PrivateUserOrgRow);
+          companyAndBusinessUnitFromPrivateUserRow(u);
         return [
           u.id,
           { name: u.name, company_name, business_unit_name },
@@ -195,7 +188,7 @@ export async function getSurveyResponses(surveyId: string) {
   }
 
   // 回答データにユーザー名・所属を追加
-  const responsesWithUsers = (responses || []).map((r) => {
+  const responsesWithUsers = responses.map((r) => {
     const u = userMap.get(r.user_id);
     return {
       ...r,
@@ -340,27 +333,7 @@ export async function getUnansweredUsers(surveyId: string) {
   await requireOwner();
   const supabase = await createServiceClient();
 
-  // 回答したユーザーIDを取得
-  const { data: answeredUsers } = await supabase
-    .from("enps_responses")
-    .select("user_id")
-    .eq("survey_id", surveyId);
-
-  const answeredUserIds = new Set(answeredUsers?.map((u) => u.user_id) || []);
-
-  const excludedUserIds = await fetchGlobalExcludedUserIds(supabase);
-
-  // 全ユーザーを取得
-  const { data: allUsers } = await supabase
-    .from("private_users")
-    .select("id, name")
-    .is("suspended_at", null);
-
-  return filterUnansweredPrivateUsers(
-    allUsers ?? [],
-    answeredUserIds,
-    excludedUserIds,
-  );
+  return fetchUnansweredPrivateUsers(supabase, "enps_responses", surveyId);
 }
 
 export async function getAllSurveysNps() {

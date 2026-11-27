@@ -11,8 +11,8 @@ import {
 } from "@/lib/slack/survey-webhook-urls";
 import { createServiceClient } from "@/lib/supabase/server";
 import {
-  fetchGlobalExcludedUserIds,
-  filterUnansweredPrivateUsers,
+  type SurveyResponseTable,
+  fetchUnansweredPrivateUsers,
 } from "@/lib/survey/unanswered-candidates";
 import { requireOwner } from "@/lib/utils/isOwner";
 
@@ -32,56 +32,16 @@ function escapeSlackMrkdwn(text: string): string {
     .replace(/>/g, "&gt;");
 }
 
-async function getUnansweredNamesForEnpsSurvey(
+async function getUnansweredNames(
   supabase: Awaited<ReturnType<typeof createServiceClient>>,
+  table: SurveyResponseTable,
   surveyId: string,
 ): Promise<string[]> {
-  const { data: answeredUsers } = await supabase
-    .from("enps_responses")
-    .select("user_id")
-    .eq("survey_id", surveyId);
-
-  const answeredUserIds = new Set(answeredUsers?.map((u) => u.user_id) || []);
-
-  const excludedUserIds = await fetchGlobalExcludedUserIds(supabase);
-
-  const { data: allUsers } = await supabase
-    .from("private_users")
-    .select("id, name")
-    .is("suspended_at", null)
-    .order("name", { ascending: true });
-
-  const unanswered = filterUnansweredPrivateUsers(
-    allUsers ?? [],
-    answeredUserIds,
-    excludedUserIds,
-  );
-  return unanswered.map((u) => u.name);
-}
-
-async function getUnansweredNamesForAwardSurvey(
-  supabase: Awaited<ReturnType<typeof createServiceClient>>,
-  surveyId: string,
-): Promise<string[]> {
-  const { data: answeredUsers } = await supabase
-    .from("award_responses")
-    .select("user_id")
-    .eq("survey_id", surveyId);
-
-  const answeredUserIds = new Set(answeredUsers?.map((u) => u.user_id) || []);
-
-  const excludedUserIds = await fetchGlobalExcludedUserIds(supabase);
-
-  const { data: allUsers } = await supabase
-    .from("private_users")
-    .select("id, name")
-    .is("suspended_at", null)
-    .order("name", { ascending: true });
-
-  const unanswered = filterUnansweredPrivateUsers(
-    allUsers ?? [],
-    answeredUserIds,
-    excludedUserIds,
+  const unanswered = await fetchUnansweredPrivateUsers(
+    supabase,
+    table,
+    surveyId,
+    { orderByName: true },
   );
   return unanswered.map((u) => u.name);
 }
@@ -210,7 +170,11 @@ export async function sendSlackReminderToUnanswered(params: {
       return { ok: false, error: "eNPSアンケートが見つかりません" };
     }
 
-    const names = await getUnansweredNamesForEnpsSurvey(supabase, surveyId);
+    const names = await getUnansweredNames(
+      supabase,
+      "enps_responses",
+      surveyId,
+    );
     if (names.length === 0) {
       return { ok: false, error: "未回答者がいません" };
     }
@@ -246,7 +210,7 @@ export async function sendSlackReminderToUnanswered(params: {
     return { ok: false, error: "表彰アンケートが見つかりません" };
   }
 
-  const names = await getUnansweredNamesForAwardSurvey(supabase, surveyId);
+  const names = await getUnansweredNames(supabase, "award_responses", surveyId);
   if (names.length === 0) {
     return { ok: false, error: "未回答者がいません" };
   }

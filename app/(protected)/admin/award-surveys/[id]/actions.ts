@@ -12,12 +12,8 @@ import {
   buildNormalizedNameIndex,
   resolveNominee,
 } from "@/lib/award/nomination-ranking";
-import { fetchAllRows } from "@/lib/supabase/fetch-all-rows";
 import { createServiceClient } from "@/lib/supabase/server";
-import {
-  fetchGlobalExcludedUserIds,
-  filterUnansweredPrivateUsers,
-} from "@/lib/survey/unanswered-candidates";
+import { fetchUnansweredPrivateUsers } from "@/lib/survey/unanswered-candidates";
 import type {
   AwardGroupSummary,
   AwardNominationDetail,
@@ -348,27 +344,5 @@ export async function getAwardUnansweredUsers(surveyId: string) {
   await requireOwner();
   const supabase = await createServiceClient();
 
-  const answeredUsers = await fetchAwardResponsesForSurvey<{
-    user_id: string;
-  }>(supabase, surveyId, "user_id");
-
-  const answeredUserIds = new Set(answeredUsers.map((u) => u.user_id));
-
-  const excludedUserIds = await fetchGlobalExcludedUserIds(supabase);
-
-  const allUsers = await fetchAllRows<{ id: string; name: string }>(
-    (from, to) =>
-      supabase
-        .from("private_users")
-        .select("id, name")
-        .is("suspended_at", null)
-        .order("id", { ascending: true })
-        .range(from, to),
-  );
-
-  return filterUnansweredPrivateUsers(
-    allUsers ?? [],
-    answeredUserIds,
-    excludedUserIds,
-  );
+  return fetchUnansweredPrivateUsers(supabase, "award_responses", surveyId);
 }
