@@ -315,7 +315,8 @@ export async function listEnpsMonthlySnapshots(input: {
   let query = db
     .from("enps_monthly_snapshots")
     .select(ENPS_SNAPSHOT_SELECT)
-    .order("computed_at", { ascending: false });
+    .order("computed_at", { ascending: false })
+    .order("id", { ascending: false });
 
   if (input.year_month) {
     const { data: surveys, error: surveyError } = await db
@@ -654,7 +655,8 @@ export async function listEnpsResponses(input: {
     .from("enps_responses")
     .select(ENPS_RESPONSE_SELECT)
     .eq("survey_id", input.survey_id)
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .order("id", { ascending: false });
   if (input.question_id) {
     query = query.eq("question_id", input.question_id);
   }
@@ -710,7 +712,8 @@ export async function listAwardResponses(input: {
     .from("award_responses")
     .select(AWARD_RESPONSE_SELECT)
     .eq("survey_id", input.survey_id)
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .order("id", { ascending: false });
   if (input.question_id) {
     query = query.eq("question_id", input.question_id);
   }

@@ -104,6 +104,7 @@ export const searchPublicProfilesTool: McpToolDefinition<{
       )
       .ilike("name", `%${escaped}%`)
       .order("name", { ascending: true })
+      .order("id", { ascending: true })
       .range(range.from, range.to);
     if (input.business_unit_id) {
       query = query.eq("business_unit_id", input.business_unit_id);

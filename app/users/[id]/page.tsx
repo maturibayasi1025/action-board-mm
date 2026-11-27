@@ -46,6 +46,7 @@ export default async function UserDetailPage({ params }: Props) {
         .select("*")
         .eq("user_id", id)
         .order("created_at", { ascending: false })
+        .order("id", { ascending: false })
         .limit(PAGE_SIZE),
       supabase
         .from("activity_timeline_view")

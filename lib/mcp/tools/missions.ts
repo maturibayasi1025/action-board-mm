@@ -110,6 +110,7 @@ export const listMissionsTool: McpToolDefinition<{
       .eq("is_hidden", false)
       .order("difficulty", { ascending: true })
       .order("created_at", { ascending: false })
+      .order("id", { ascending: false })
       .range(range.from, range.to);
 
     if (input.featured === true) {
@@ -255,6 +256,7 @@ export const listAchievementsTool: McpToolDefinition<{
       )
       .eq("missions.is_hidden", false)
       .order("created_at", { ascending: false })
+      .order("id", { ascending: false })
       .range(range.from, range.to);
     if (input.user_id) {
       query = query.eq("user_id", input.user_id);
