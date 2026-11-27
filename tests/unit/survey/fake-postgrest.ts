@@ -3,21 +3,27 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 /**
  * PostgREST の既定上限（1 リクエスト最大 1000 行）を再現する最小限の Supabase クライアント。
- * 超過分はエラーにせず静かに切り捨てる。order が無いリクエストは毎回並びが変わる
- * （Postgres は ORDER BY なしの並びを保証しない）。
+ * 超過分はエラーにせず静かに切り捨てる。order で決まらない並び（order なし、または同順位）は
+ * リクエストごとに変わる（Postgres はその並びを保証しない）。
  */
 export const POSTGREST_MAX_ROWS = 1000;
 
+/**
+ * `.in()` の値が多すぎると URL 長の上限を超えて失敗する。分割の有無をテストで判別できるよう、
+ * 既定の分割サイズ（200）より大きく、テストデータの件数より小さい値で失敗させる。
+ */
+export const MAX_IN_VALUES = 500;
+
 type Row = Record<string, unknown>;
 type Filter = (row: Row) => boolean;
-type OrderKey = { column: string; ascending: boolean };
+type OrderKey = { column: string; ascending: boolean; nullsFirst: boolean };
 
 function compare(a: unknown, b: unknown): number {
   if (a === b) return 0;
-  if (a === null || a === undefined) return 1;
-  if (b === null || b === undefined) return -1;
   return String(a) < String(b) ? -1 : 1;
 }
+
+const isNull = (v: unknown) => v === null || v === undefined;
 
 export function createFakePostgrest(tables: Record<string, Row[]>) {
   let requestCount = 0;
@@ -33,25 +39,37 @@ export function createFakePostgrest(tables: Record<string, Row[]>) {
     let range: [number, number] | null = null;
     let headCount = false;
     let single: "single" | "maybeSingle" | null = null;
+    let inTooLong = false;
 
     const execute = () => {
       requestCount += 1;
+      if (inTooLong) {
+        return { data: null, error: { message: "URI Too Long" }, count: null };
+      }
       let rows = source.filter((row) => filters.every((f) => f(row)));
       const total = rows.length;
       if (headCount) {
         return { data: null, error: null, count: total };
       }
+      // Postgres は ORDER BY で決まらない並び（order なし、または同順位）を保証しない
+      if (rows.length > 0) {
+        const shift = (requestCount * 7919) % rows.length;
+        rows = [...rows.slice(shift), ...rows.slice(0, shift)];
+      }
       if (orders.length > 0) {
-        rows = [...rows].sort((a, b) => {
-          for (const { column, ascending } of orders) {
+        rows = rows.sort((a, b) => {
+          for (const { column, ascending, nullsFirst } of orders) {
+            const an = isNull(a[column]);
+            const bn = isNull(b[column]);
+            if (an || bn) {
+              if (an && bn) continue;
+              return an === nullsFirst ? -1 : 1;
+            }
             const c = compare(a[column], b[column]);
             if (c !== 0) return ascending ? c : -c;
           }
           return 0;
         });
-      } else if (rows.length > 0) {
-        const shift = (requestCount * 7919) % rows.length;
-        rows = [...rows.slice(shift), ...rows.slice(0, shift)];
       }
       const [start, end] = range ?? [0, rows.length - 1];
       const page = rows
@@ -85,13 +103,37 @@ export function createFakePostgrest(tables: Record<string, Row[]>) {
         filters.push((row) => (row[column] ?? null) !== value);
         return builder;
       },
+      gte: (column: string, value: unknown) => {
+        filters.push(
+          (row) => !isNull(row[column]) && compare(row[column], value) >= 0,
+        );
+        return builder;
+      },
+      lte: (column: string, value: unknown) => {
+        filters.push(
+          (row) => !isNull(row[column]) && compare(row[column], value) <= 0,
+        );
+        return builder;
+      },
       in: (column: string, values: unknown[]) => {
+        if (values.length > MAX_IN_VALUES) {
+          inTooLong = true;
+        }
         const set = new Set(values);
         filters.push((row) => set.has(row[column]));
         return builder;
       },
-      order: (column: string, options?: { ascending?: boolean }) => {
-        orders.push({ column, ascending: options?.ascending ?? true });
+      order: (
+        column: string,
+        options?: { ascending?: boolean; nullsFirst?: boolean },
+      ) => {
+        const ascending = options?.ascending ?? true;
+        // PostgREST と同じく、既定は昇順で NULLS LAST、降順で NULLS FIRST
+        orders.push({
+          column,
+          ascending,
+          nullsFirst: options?.nullsFirst ?? !ascending,
+        });
         return builder;
       },
       range: (start: number, end: number) => {
