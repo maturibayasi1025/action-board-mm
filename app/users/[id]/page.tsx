@@ -52,7 +52,10 @@ export default async function UserDetailPage({ params }: Props) {
         .from("activity_timeline_view")
         .select("*", { count: "exact", head: true })
         .eq("user_id", id),
-      getUserRepeatableMissionAchievements(id),
+      getUserRepeatableMissionAchievements(id).catch((error) => {
+        console.error("Failed to fetch user mission achievements:", error);
+        return null;
+      }),
     ]);
 
   return (

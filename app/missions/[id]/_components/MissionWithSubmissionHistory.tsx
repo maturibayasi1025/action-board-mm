@@ -8,6 +8,7 @@ import type { User } from "@supabase/supabase-js";
 import { useState } from "react";
 import QRCode from "react-qr-code"; // 必要に応じてnpm install react-qr-code
 import { useMissionSubmission } from "../_hooks/useMissionSubmission";
+import { fetchSubmissionHistory } from "../_lib/submission-history";
 import type { SubmissionData } from "../_lib/types";
 import { CopyReferralButton } from "./CopyReferralButton";
 import { MissionFormWrapper } from "./MissionFormWrapper";
@@ -18,8 +19,8 @@ type Props = {
   mission: Tables<"missions">;
   authUser: User;
   referralCode: string | null;
-  initialUserAchievementCount: number;
-  initialSubmissions: SubmissionData[];
+  /** 初期表示の提出履歴。サーバーでの取得に失敗したら null */
+  initialSubmissions: SubmissionData[] | null;
   missionId: string;
   preloadedQuizQuestions?:
     | {
@@ -36,17 +37,16 @@ export function MissionWithSubmissionHistory({
   mission,
   authUser,
   referralCode,
-  initialUserAchievementCount,
   initialSubmissions,
   missionId,
   preloadedQuizQuestions,
   mainLink,
 }: Props) {
-  const [submissions, setSubmissions] =
-    useState<SubmissionData[]>(initialSubmissions);
-  const [userAchievementCount, setUserAchievementCount] = useState(
-    initialUserAchievementCount,
+  const [submissions, setSubmissions] = useState<SubmissionData[] | null>(
+    initialSubmissions,
   );
+  const [refreshFailed, setRefreshFailed] = useState(false);
+  const userAchievementCount = submissions?.length ?? 0;
 
   // useMissionSubmissionフックを使用して統一
   const { hasReachedUserMaxAchievements } = useMissionSubmission(
@@ -54,120 +54,16 @@ export function MissionWithSubmissionHistory({
     userAchievementCount,
   );
 
+  // 取り直しに失敗したら、表示中の履歴を残してその場に失敗を出す
   const refreshSubmissions = async () => {
     try {
-      const supabase = createClient();
-
-      // ユーザーの達成履歴を取得
-      const { data: achievementsData, error: achievementsError } =
-        await supabase
-          .from("achievements")
-          .select("id, created_at, mission_id, user_id")
-          .eq("user_id", authUser.id)
-          .eq("mission_id", missionId)
-          .order("created_at", { ascending: false });
-
-      if (achievementsError) {
-        console.error("Achievements fetch error:", achievementsError);
-        return;
-      }
-
-      // 達成回数を更新
-      setUserAchievementCount(achievementsData?.length || 0);
-
-      if (!achievementsData || achievementsData.length === 0) {
-        setSubmissions([]);
-        return;
-      }
-
-      // 各達成に対応する成果物を取得
-      const submissionsWithArtifacts = await Promise.all(
-        achievementsData.map(async (achievement) => {
-          const { data: artifactsData, error: artifactsError } = await supabase
-            .from("mission_artifacts")
-            .select("*")
-            .eq("achievement_id", achievement.id);
-
-          if (artifactsError) {
-            console.error("Artifacts fetch error:", artifactsError);
-            return {
-              ...achievement,
-              artifacts: [],
-            };
-          }
-
-          // 成果物に画像がある場合は署名付きURLを取得
-          const artifactsWithSignedUrls = await Promise.all(
-            (artifactsData || []).map(async (artifact) => {
-              if (artifact.image_storage_path) {
-                const { data: signedUrlData } = await supabase.storage
-                  .from("mission_artifact_files")
-                  .createSignedUrl(artifact.image_storage_path, 60, {
-                    transform: {
-                      width: 240,
-                      height: 240,
-                      resize: "contain",
-                    },
-                  });
-
-                if (signedUrlData) {
-                  return {
-                    ...artifact,
-                    image_storage_path: signedUrlData.signedUrl,
-                  };
-                }
-              }
-              return artifact;
-            }),
-          );
-
-          // 位置情報を取得
-          const artifactsWithGeolocations = await Promise.all(
-            artifactsWithSignedUrls.map(async (artifact) => {
-              if (artifact.artifact_type === "IMAGE_WITH_GEOLOCATION") {
-                const { data: geolocationsData, error: geolocationsError } =
-                  await supabase
-                    .from("mission_artifact_geolocations")
-                    .select("*")
-                    .eq("mission_artifact_id", artifact.id);
-
-                if (!geolocationsError && geolocationsData) {
-                  return {
-                    ...artifact,
-                    geolocations: geolocationsData,
-                  };
-                }
-              }
-              return artifact;
-            }),
-          );
-
-          return {
-            ...achievement,
-            artifacts: artifactsWithGeolocations,
-          };
-        }),
+      setSubmissions(
+        await fetchSubmissionHistory(createClient(), authUser.id, missionId),
       );
-
-      // null値をフィルタリングして型安全にする
-      const validSubmissions = submissionsWithArtifacts.filter(
-        (submission): submission is SubmissionData => {
-          if (typeof submission !== "object" || submission === null) {
-            return false;
-          }
-          const sub = submission as Record<string, unknown>;
-          return (
-            "mission_id" in sub &&
-            "user_id" in sub &&
-            sub.mission_id !== null &&
-            sub.user_id !== null
-          );
-        },
-      );
-
-      setSubmissions(validSubmissions);
+      setRefreshFailed(false);
     } catch (error) {
       console.error("Failed to refresh submissions:", error);
+      setRefreshFailed(true);
     }
   };
 
@@ -185,6 +81,7 @@ export function MissionWithSubmissionHistory({
 
   // フォームが表示される条件と同じ
   const shouldShowGuidanceArrow =
+    submissions !== null &&
     (!hasReachedUserMaxAchievements ||
       mission.required_artifact_type === ARTIFACT_TYPES.LINK_ACCESS.key) &&
     !isNoGuidanceArrow;
@@ -210,24 +107,41 @@ export function MissionWithSubmissionHistory({
           </div>
         )}
 
-      {mission.required_artifact_type !== "REFERRAL" && (
-        <MissionFormWrapper
-          mission={mission}
-          authUser={authUser}
-          userAchievementCount={userAchievementCount}
-          onSubmissionSuccess={refreshSubmissions}
-          preloadedQuizQuestions={preloadedQuizQuestions}
-          mainLink={mainLink}
-        />
-      )}
+      {!submissions ? (
+        <p
+          role="alert"
+          className="rounded-xl border-2 p-6 text-center text-sm text-muted-foreground"
+        >
+          提出履歴の取得に失敗しました。時間をおいて、ページを再読み込みしてください。
+        </p>
+      ) : (
+        <>
+          {mission.required_artifact_type !== "REFERRAL" && (
+            <MissionFormWrapper
+              mission={mission}
+              authUser={authUser}
+              userAchievementCount={userAchievementCount}
+              onSubmissionSuccess={refreshSubmissions}
+              preloadedQuizQuestions={preloadedQuizQuestions}
+              mainLink={mainLink}
+            />
+          )}
 
-      {submissions.length > 0 && (
-        <SubmissionHistoryWrapper
-          submissions={submissions}
-          missionId={missionId}
-          userId={authUser.id}
-          maxAchievementCount={mission.max_achievement_count || 0}
-        />
+          {refreshFailed && (
+            <p role="alert" className="text-center text-sm text-red-600">
+              提出履歴の更新に失敗しました。ページを再読み込みすると最新の履歴が表示されます。
+            </p>
+          )}
+
+          {submissions.length > 0 && (
+            <SubmissionHistoryWrapper
+              submissions={submissions}
+              missionId={missionId}
+              userId={authUser.id}
+              maxAchievementCount={mission.max_achievement_count || 0}
+            />
+          )}
+        </>
       )}
     </>
   );

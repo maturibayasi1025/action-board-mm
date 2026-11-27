@@ -111,17 +111,17 @@ export const achieveMissionAction = async (formData: FormData) => {
   }
 
   if (missionData?.max_achievement_count !== null) {
-    // ユーザーの達成回数を取得
-    const { data: userAchievements, error: userAchievementError } =
+    // ユーザーの達成回数を数える（行を返さないので行数の上限を受けない）
+    const { count: userAchievementCount, error: userAchievementError } =
       await supabase
         .from("achievements")
-        .select("id", { count: "exact" })
+        .select("id", { count: "exact", head: true })
         .eq("user_id", authUser.id)
         .eq("mission_id", validatedMissionId);
 
-    if (userAchievementError) {
+    if (userAchievementError || userAchievementCount === null) {
       console.error(
-        `User achievement count fetch error: ${userAchievementError.message}`,
+        `User achievement count fetch error: ${userAchievementError?.message}`,
       );
       return {
         success: false,
@@ -131,9 +131,8 @@ export const achieveMissionAction = async (formData: FormData) => {
 
     // ユーザーの達成回数が最大達成回数に達しているかチェック
     if (
-      userAchievements &&
       typeof missionData.max_achievement_count === "number" &&
-      userAchievements.length >= missionData.max_achievement_count
+      userAchievementCount >= missionData.max_achievement_count
     ) {
       return {
         success: false,

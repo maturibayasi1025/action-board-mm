@@ -1,5 +1,6 @@
 import "server-only";
 
+import { fetchAllRows } from "@/lib/supabase/fetch-all-rows";
 import { createClient as createServerClient } from "@/lib/supabase/server";
 
 export interface MissionAchievementSummary {
@@ -8,14 +9,20 @@ export interface MissionAchievementSummary {
   achievement_count: number;
 }
 
+/** 上限なしグッジョブごとの本人の達成回数。取得に失敗したら例外にする */
 export async function getUserRepeatableMissionAchievements(
   userId: string,
 ): Promise<MissionAchievementSummary[]> {
   const supabase = await createServerClient();
 
-  const { data, error } = await supabase
-    .from("achievements")
-    .select(`
+  type AchievementWithMission = {
+    mission_id: string | null;
+    missions: { id: string; title: string } | null;
+  };
+  const data = await fetchAllRows<AchievementWithMission>((from, to) =>
+    supabase
+      .from("achievements")
+      .select(`
       mission_id,
       missions!inner (
         id,
@@ -23,15 +30,12 @@ export async function getUserRepeatableMissionAchievements(
         max_achievement_count
       )
     `)
-    .eq("user_id", userId)
-    .is("missions.max_achievement_count", null);
-
-  if (error) {
-    console.error("Failed to fetch user mission achievements:", error);
-    return [];
-  }
-
-  if (!data) return [];
+      .eq("user_id", userId)
+      .is("missions.max_achievement_count", null)
+      .order("id", { ascending: true })
+      .range(from, to)
+      .returns<AchievementWithMission[]>(),
+  );
 
   const achievementCounts = data.reduce(
     (acc, achievement) => {
@@ -39,12 +43,9 @@ export async function getUserRepeatableMissionAchievements(
       if (!missionId || !achievement.missions) return acc;
 
       if (!acc[missionId]) {
-        const mission = Array.isArray(achievement.missions)
-          ? achievement.missions[0]
-          : achievement.missions;
         acc[missionId] = {
           mission_id: missionId,
-          mission_title: mission?.title || "",
+          mission_title: achievement.missions.title || "",
           achievement_count: 0,
         };
       }
