@@ -101,6 +101,7 @@ export async function getEnpsMonthlyTrendsForQuestion(
         .in("survey_id", surveyIds)
         .eq("question_id", questionId)
         .not("score_value", "is", null)
+        .order("id", { ascending: true })
         .range(from, to),
     );
   } catch (error) {
@@ -278,6 +279,7 @@ export async function getEnpsMonthlyScoreExportRows(
         .eq("survey_id", surveyId)
         .eq("question_id", questionId)
         .not("score_value", "is", null)
+        .order("id", { ascending: true })
         .range(from, to),
     );
   } catch (error) {
