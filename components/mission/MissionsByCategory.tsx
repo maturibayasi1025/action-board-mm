@@ -1,9 +1,13 @@
-import { getUserAchievementCountMap } from "@/lib/services/missions";
+import {
+  getMissionAchievementCountMap,
+  getUserAchievementCountMap,
+} from "@/lib/services/missions";
 import { fetchAllRows } from "@/lib/supabase/fetch-all-rows";
 import { createClient } from "@/lib/supabase/server";
 import type { Tables } from "@/lib/types/supabase";
 import type { Database } from "@/lib/types/supabase";
 import { HorizontalScrollContainer } from "./HorizontalScrollContainer";
+import { MissionListLoadError } from "./MissionListLoadError";
 import Mission from "./mission";
 import type { MissionsProps } from "./missions";
 
@@ -11,40 +15,12 @@ import type { MissionsProps } from "./missions";
 type MissionCategoryViewRow =
   Database["public"]["Views"]["mission_category_view"]["Row"];
 
-export default async function MissionsByCategory({
-  userId,
-  showAchievedMissions,
-  title = "📈 グッジョブ",
-}: MissionsProps) {
+/** カテゴリ別一覧のグッジョブと達成状況を取る。取得に失敗したら例外にする */
+async function loadCategoryMissions(userId: string | undefined) {
   const supabase = await createClient();
 
-  // ユーザーの達成状況取得
-  const userAchievementCountMap = userId
-    ? await getUserAchievementCountMap(supabase, userId)
-    : new Map<string, number>();
-  const achievedMissionIds = Array.from(userAchievementCountMap.keys());
-
-  // 全体の達成数取得
-  const achievementCounts = await fetchAllRows<{
-    mission_id: string | null;
-    achievement_count: number | null;
-  }>((from, to) =>
-    supabase
-      .from("mission_achievement_count_view")
-      .select("mission_id, achievement_count")
-      .order("mission_id", { ascending: true })
-      .range(from, to),
-  ).catch((error) => {
-    console.error("達成数の取得エラー:", error);
-    return [];
-  });
-
-  const achievementCountMap = new Map(
-    achievementCounts.map((a) => [a.mission_id, a.achievement_count]),
-  );
-
   // View からグッジョブデータ取得
-  const data = await fetchAllRows<
+  const rows = fetchAllRows<
     Pick<
       MissionCategoryViewRow,
       | "category_id"
@@ -96,12 +72,45 @@ export default async function MissionsByCategory({
       .order("category_id", { ascending: true })
       .order("mission_id", { ascending: true })
       .range(from, to),
-  ).catch((error) => {
-    console.error("グッジョブの取得エラー:", error);
+  );
+
+  const [userAchievementCountMap, achievementCountMap, data] =
+    await Promise.all([
+      userId
+        ? getUserAchievementCountMap(supabase, userId)
+        : new Map<string, number>(),
+      getMissionAchievementCountMap(supabase),
+      rows,
+    ]);
+  return { userAchievementCountMap, achievementCountMap, data };
+}
+
+export default async function MissionsByCategory({
+  userId,
+  showAchievedMissions,
+  title = "📈 グッジョブ",
+}: MissionsProps) {
+  const list = await loadCategoryMissions(userId).catch((error) => {
+    console.error("カテゴリ別グッジョブ一覧の取得エラー:", error);
     return null;
   });
 
-  if (!data || data.length === 0) {
+  if (!list) {
+    return (
+      <div className="flex flex-col">
+        <div className="text-center py-8">
+          <h2 className="text-2xl md:text-4xl font-black text-gray-900">
+            {title}
+          </h2>
+        </div>
+        <MissionListLoadError />
+      </div>
+    );
+  }
+
+  const { userAchievementCountMap, achievementCountMap, data } = list;
+
+  if (data.length === 0) {
     return (
       <div className="text-center py-12">
         <p className="text-gray-500 text-lg">
@@ -186,7 +195,7 @@ export default async function MissionsByCategory({
                       (m) =>
                         m.mission_id &&
                         (showAchievedMissions ||
-                          !achievedMissionIds.includes(m.mission_id)),
+                          !userAchievementCountMap.has(m.mission_id)),
                     )
                     .map((m) => {
                       // filterでmission_idがnullでないことを確認済み
@@ -220,7 +229,7 @@ export default async function MissionsByCategory({
                         >
                           <Mission
                             mission={missionForComponent}
-                            achieved={achievedMissionIds.includes(missionId)}
+                            achieved={userAchievementCountMap.has(missionId)}
                             achievementsCount={
                               achievementCountMap.get(missionId) ?? 0
                             }

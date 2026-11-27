@@ -1,7 +1,12 @@
-import { getUserAchievementCountMap } from "@/lib/services/missions";
+import {
+  filterImportantMissionsByDisplayPeriod,
+  getMissionAchievementCountMap,
+  getUserAchievementCountMap,
+} from "@/lib/services/missions";
 import { fetchAllRows } from "@/lib/supabase/fetch-all-rows";
 import { createClient } from "@/lib/supabase/server";
 import type { Tables } from "@/lib/types/supabase";
+import { MissionListLoadError } from "./MissionListLoadError";
 import Mission from "./mission";
 
 export type MissionsProps = {
@@ -14,99 +19,64 @@ export type MissionsProps = {
   id?: string;
 };
 
-export default async function Missions({
+/**
+ * 表示するグッジョブと達成状況を取る。取得に失敗したら例外にする。
+ * 達成済みの除外と件数の絞り込みは、候補を全件取ってから手元で行う。
+ * 除外する ID を `not in` で送ると、達成済みの数に比例して URL が伸び、
+ * 達成ゼロのときは空文字列を uuid 列に渡してしまうためである。
+ */
+async function loadMissions({
   userId,
   maxSize,
   showAchievedMissions,
   filterFeatured,
   filterImportant,
-  title = "📈 グッジョブ",
-  id,
 }: MissionsProps) {
   const supabase = await createClient();
 
-  // ユーザーの各グッジョブに対する達成回数のマップ
-  const userAchievementCountMap = userId
-    ? await getUserAchievementCountMap(supabase, userId)
-    : new Map<string, number>();
-  // ユーザーが達成したグッジョブIDのリスト
-  const achievedMissionIds = Array.from(userAchievementCountMap.keys());
+  const [userAchievementCountMap, achievementCountMap, candidates] =
+    await Promise.all([
+      userId
+        ? getUserAchievementCountMap(supabase, userId)
+        : new Map<string, number>(),
+      getMissionAchievementCountMap(supabase),
+      fetchAllRows<Tables<"missions">>((from, to) => {
+        let query = supabase.from("missions").select().eq("is_hidden", false); // 非表示のグッジョブを除外
+        if (filterImportant) {
+          query = query.eq("is_important", true);
+        } else if (filterFeatured) {
+          query = query.eq("is_featured", true);
+        }
+        return query
+          .order("difficulty", { ascending: true })
+          .order("created_at", { ascending: false })
+          .order("id", { ascending: true })
+          .range(from, to);
+      }),
+    ]);
 
-  // すべてのグッジョブに対する達成人数を取得
-  const achievement_count = await fetchAllRows<{
-    mission_id: string | null;
-    achievement_count: number | null;
-  }>((from, to) =>
-    supabase
-      .from("mission_achievement_count_view")
-      .select("mission_id, achievement_count")
-      .order("mission_id", { ascending: true })
-      .range(from, to),
-  ).catch((error) => {
-    console.error("達成数の取得エラー:", error);
-    return [];
-  });
-  const achievement_count_map = new Map(
-    achievement_count.map((achievement) => [
-      achievement.mission_id,
-      achievement.achievement_count,
-    ]),
-  );
-
-  const buildQuery = () => {
-    let query = supabase
-      .from("missions")
-      .select()
-      .eq("is_hidden", false) // 非表示のグッジョブを除外
-      .order("difficulty", { ascending: true })
-      .order("created_at", { ascending: false })
-      .order("id", { ascending: true });
-
-    if (filterImportant) {
-      // 重要グッジョブをフィルタリング
-      query = query.eq("is_important", true);
-    } else if (filterFeatured) {
-      query = query.eq("is_featured", true);
-    }
-
-    if (!showAchievedMissions) {
-      query = query.not("id", "in", `("${achievedMissionIds.join('","')}")`);
-    }
-    return query;
-  };
-  let missions = maxSize
-    ? (await buildQuery().limit(maxSize)).data
-    : await fetchAllRows<Tables<"missions">>((from, to) =>
-        buildQuery().range(from, to),
-      ).catch((error) => {
-        console.error("グッジョブの取得エラー:", error);
-        return null;
-      });
-
-  // 重要グッジョブの場合、期間チェックをクライアント側で行う
-  if (filterImportant && missions) {
-    const now = new Date();
-    missions = missions.filter((mission) => {
-      const startDate = mission.important_display_start_date
-        ? new Date(mission.important_display_start_date)
-        : null;
-      const endDate = mission.important_display_end_date
-        ? new Date(mission.important_display_end_date)
-        : null;
-
-      // 開始日が設定されている場合、現在日時が開始日以降である必要がある
-      if (startDate && now < startDate) {
-        return false;
-      }
-
-      // 終了日が設定されている場合、現在日時が終了日以前である必要がある
-      if (endDate && now > endDate) {
-        return false;
-      }
-
-      return true;
-    });
+  let missions = filterImportant
+    ? filterImportantMissionsByDisplayPeriod(candidates)
+    : candidates;
+  if (!showAchievedMissions) {
+    missions = missions.filter(
+      (mission) => !userAchievementCountMap.has(mission.id),
+    );
   }
+
+  return {
+    missions: maxSize ? missions.slice(0, maxSize) : missions,
+    userAchievementCountMap,
+    achievementCountMap,
+  };
+}
+
+export default async function Missions(props: MissionsProps) {
+  const { title = "📈 グッジョブ", id } = props;
+  const list = await loadMissions(props).catch((error) => {
+    console.error("グッジョブ一覧の取得エラー:", error);
+    return null;
+  });
 
   return (
     <div className="max-w-6xl mx-auto px-4">
@@ -121,15 +91,19 @@ export default async function Missions({
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {missions && missions.length > 0 ? (
-            missions.map((mission) => (
+          {!list ? (
+            <MissionListLoadError />
+          ) : list.missions.length > 0 ? (
+            list.missions.map((mission) => (
               <Mission
                 key={mission.id}
                 mission={mission}
-                achieved={achievedMissionIds.includes(mission.id)}
-                achievementsCount={achievement_count_map.get(mission.id) ?? 0}
+                achieved={list.userAchievementCountMap.has(mission.id)}
+                achievementsCount={
+                  list.achievementCountMap.get(mission.id) ?? 0
+                }
                 userAchievementCount={
-                  userAchievementCountMap.get(mission.id) ?? 0
+                  list.userAchievementCountMap.get(mission.id) ?? 0
                 }
               />
             ))

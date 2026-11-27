@@ -28,6 +28,29 @@ export async function getUserAchievementCountMap(
   return counts;
 }
 
+/** グッジョブごとの全体の達成数 */
+export async function getMissionAchievementCountMap(
+  supabase: SupabaseClient<Database>,
+): Promise<Map<string, number>> {
+  const rows = await fetchAllRows<{
+    mission_id: string | null;
+    achievement_count: number | null;
+  }>((from, to) =>
+    supabase
+      .from("mission_achievement_count_view")
+      .select("mission_id, achievement_count")
+      .order("mission_id", { ascending: true })
+      .range(from, to),
+  );
+  const counts = new Map<string, number>();
+  for (const { mission_id, achievement_count } of rows) {
+    if (mission_id) {
+      counts.set(mission_id, achievement_count ?? 0);
+    }
+  }
+  return counts;
+}
+
 type MissionWithDisplayDates = {
   important_display_start_date: string | null;
   important_display_end_date: string | null;
