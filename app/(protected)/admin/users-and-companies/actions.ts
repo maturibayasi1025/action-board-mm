@@ -1,6 +1,7 @@
 "use server";
 
 import { getSiteUrl } from "@/lib/env";
+import { fetchAllRows } from "@/lib/supabase/fetch-all-rows";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import {
   EXISTING_AUTH_INVITE_MESSAGES,
@@ -30,10 +31,11 @@ export async function listUsersWithCompanies(): Promise<
     await requireOwner();
     const supabase = await createServiceClient();
 
-    const { data, error } = await supabase
-      .from("public_user_profiles")
-      .select(
-        `
+    const fetchPage = (from: number, to: number) =>
+      supabase
+        .from("public_user_profiles")
+        .select(
+          `
         id,
         name,
         suspended_at,
@@ -46,15 +48,22 @@ export async function listUsersWithCompanies(): Promise<
           )
         )
       `,
-      )
-      .order("name", { ascending: true });
-
-    if (error) {
+        )
+        .order("name", { ascending: true })
+        .order("id", { ascending: true })
+        .range(from, to);
+    let data: NonNullable<Awaited<ReturnType<typeof fetchPage>>["data"]>;
+    try {
+      data = await fetchAllRows(fetchPage);
+    } catch (error) {
       console.error("listUsersWithCompanies:", error);
-      return { success: false, error: error.message };
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      };
     }
 
-    const users: UserWithCompanyRow[] = (data ?? []).map((row) => {
+    const users: UserWithCompanyRow[] = data.map((row) => {
       const bu = row.business_units;
       const unit =
         bu === null ? null : Array.isArray(bu) ? (bu[0] ?? null) : bu;
@@ -191,10 +200,11 @@ export async function listPendingInvitations(): Promise<
   try {
     await requireOwner();
     const supabase = await createServiceClient();
-    const { data, error } = await supabase
-      .from("user_invitations")
-      .select(
-        `
+    const fetchPage = (from: number, to: number) =>
+      supabase
+        .from("user_invitations")
+        .select(
+          `
         id,
         email,
         status,
@@ -207,19 +217,24 @@ export async function listPendingInvitations(): Promise<
           )
         )
       `,
-      )
-      .eq("status", "pending")
-      .order("created_at", { ascending: false });
-
-    if (error) {
+        )
+        .eq("status", "pending")
+        .order("created_at", { ascending: false })
+        .order("id", { ascending: false })
+        .range(from, to);
+    let data: NonNullable<Awaited<ReturnType<typeof fetchPage>>["data"]>;
+    try {
+      data = await fetchAllRows(fetchPage);
+    } catch (error) {
       console.error("listPendingInvitations:", error);
+      const message = error instanceof Error ? error.message : String(error);
       return {
         success: false,
-        error: userInvitationsQueryErrorMessage(error, error.message),
+        error: userInvitationsQueryErrorMessage({ message }, message),
       };
     }
 
-    const invitations: InvitationRow[] = (data ?? []).map((row) => {
+    const invitations: InvitationRow[] = data.map((row) => {
       const bu = row.business_units;
       const unit =
         bu === null ? null : Array.isArray(bu) ? (bu[0] ?? null) : bu;
