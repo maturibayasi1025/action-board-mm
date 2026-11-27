@@ -68,6 +68,7 @@ export function createFakePostgrest(
     let inTooLong = false;
     let invalidUuid = false;
     let update: Row | null = null;
+    let insert: Row[] | null = null;
 
     const execute = () => {
       requestCount += 1;
@@ -87,6 +88,10 @@ export function createFakePostgrest(
           error: { message: UUID_SYNTAX_ERROR },
           count: null,
         };
+      }
+      if (insert) {
+        source.push(...insert.map((row) => ({ ...row })));
+        return { data: null, error: null, count: null };
       }
       let rows = source.filter((row) => filters.every((f) => f(row)));
       if (update) {
@@ -139,6 +144,10 @@ export function createFakePostgrest(
       },
       update: (values: Row) => {
         update = values;
+        return builder;
+      },
+      insert: (values: Row | Row[]) => {
+        insert = Array.isArray(values) ? values : [values];
         return builder;
       },
       eq: (column: string, value: unknown) => {
