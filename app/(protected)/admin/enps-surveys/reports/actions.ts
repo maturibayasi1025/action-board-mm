@@ -16,7 +16,10 @@ import {
   buildCompanyTrend,
   companyBreakdownAsBusinessUnitRows,
 } from "@/lib/admin/enps-report/comparison";
-import { fetchAllRows } from "@/lib/admin/enps-report/fetch-all";
+import {
+  fetchAllRows,
+  fetchByIdChunks,
+} from "@/lib/admin/enps-report/fetch-all";
 import { createServiceClient } from "@/lib/supabase/server";
 import { requireOwner } from "@/lib/utils/isOwner";
 
@@ -47,14 +50,21 @@ async function fetchSnapshotsForSurveys(
   }
 
   const supabase = await createServiceClient();
-  const rows = await fetchAllRows<RawSnapshotRow>((from, to) =>
-    supabase
-      .from("enps_monthly_snapshots")
-      .select(
-        "survey_id, question_id, scope, company_name, business_unit_name, target_count, respondent_count, promoters, passives, detractors, nps_respondent_base, nps_imputed_base",
-      )
-      .in("survey_id", surveyIds)
-      .range(from, to),
+  const rows = await fetchByIdChunks<RawSnapshotRow>(
+    surveyIds,
+    async (chunk) => ({
+      data: await fetchAllRows<RawSnapshotRow>((from, to) =>
+        supabase
+          .from("enps_monthly_snapshots")
+          .select(
+            "survey_id, question_id, scope, company_name, business_unit_name, target_count, respondent_count, promoters, passives, detractors, nps_respondent_base, nps_imputed_base",
+          )
+          .in("survey_id", chunk)
+          .order("id", { ascending: true })
+          .range(from, to),
+      ),
+      error: null,
+    }),
   );
 
   for (const row of rows) {
@@ -77,6 +87,7 @@ export async function listReportSurveys(): Promise<ReportSurvey[]> {
       supabase
         .from("enps_monthly_snapshots")
         .select("survey_id")
+        .order("id", { ascending: true })
         .range(from, to),
   );
   const uniqueIds = Array.from(
@@ -86,17 +97,19 @@ export async function listReportSurveys(): Promise<ReportSurvey[]> {
     return [];
   }
 
-  const surveys = await fetchAllRows<{
+  const surveys = await fetchByIdChunks<{
     id: string;
     year_month: string;
     title: string;
-  }>((from, to) =>
+  }>(uniqueIds, (chunk) =>
     supabase
       .from("enps_surveys")
       .select("id, year_month, title")
-      .in("id", uniqueIds)
-      .order("year_month", { ascending: false })
-      .range(from, to),
+      .in("id", chunk),
+  );
+  surveys.sort(
+    (a, b) =>
+      b.year_month.localeCompare(a.year_month) || b.id.localeCompare(a.id),
   );
 
   return surveys.map((s) => ({
@@ -119,6 +132,7 @@ export async function listReportScoreQuestions(): Promise<
       .eq("is_active", true)
       .eq("question_type", "score_0_10")
       .order("display_order", { ascending: true })
+      .order("id", { ascending: true })
       .range(from, to),
   );
 }

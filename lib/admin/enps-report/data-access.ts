@@ -44,6 +44,7 @@ export async function fetchExcludedUserIds(
     supabase
       .from("unanswered_survey_global_exclusions")
       .select("user_id")
+      .order("user_id", { ascending: true })
       .range(from, to),
   );
   return new Set(rows.map((r) => r.user_id));
@@ -57,6 +58,7 @@ export async function fetchAllPrivateUserIds(
       .from("private_users")
       .select("id")
       .is("suspended_at", null)
+      .order("id", { ascending: true })
       .range(from, to),
   );
   return rows.map((r) => r.id);
@@ -133,6 +135,7 @@ export async function fetchScoreResponsesForSurvey(
       )
       .eq("survey_id", surveyId)
       .not("score_value", "is", null)
+      .order("id", { ascending: true })
       .range(from, to),
   );
 }
@@ -157,6 +160,7 @@ export async function fetchTextResponsesForSurvey(
       )
       .eq("survey_id", surveyId)
       .not("text_value", "is", null)
+      .order("id", { ascending: true })
       .range(from, to),
   );
 }

@@ -1,5 +1,6 @@
 "use server";
 
+import { fetchAllRows } from "@/lib/supabase/fetch-all-rows";
 import { createServiceClient } from "@/lib/supabase/server";
 import { requireOwner } from "@/lib/utils/isOwner";
 import { revalidatePath } from "next/cache";
@@ -15,29 +16,33 @@ export async function getSurveys() {
 
   if (error) {
     console.error("アンケート一覧の取得エラー:", error);
-    return [];
+    throw new Error("アンケート一覧の取得に失敗しました");
   }
 
   // 回答数を取得
   const surveysWithResponseCount = await Promise.all(
     (surveys || []).map(async (survey) => {
-      const { count } = await supabase
+      const { count, error: countError } = await supabase
         .from("enps_responses")
         .select("*", { count: "exact", head: true })
         .eq("survey_id", survey.id);
-
-      // 行数ではなく、回答したユニークユーザー数を算出する
-      const { data: responders, error: respondersError } = await supabase
-        .from("enps_responses")
-        .select("user_id")
-        .eq("survey_id", survey.id);
-
-      if (respondersError) {
-        console.error("ユニーク回答者数の取得エラー:", respondersError);
+      if (countError) {
+        console.error("回答数の取得エラー:", countError);
+        throw new Error("回答数の取得に失敗しました");
       }
 
+      // 行数ではなく、回答したユニークユーザー数を算出する
+      const responders = await fetchAllRows<{ user_id: string }>((from, to) =>
+        supabase
+          .from("enps_responses")
+          .select("user_id")
+          .eq("survey_id", survey.id)
+          .order("id", { ascending: true })
+          .range(from, to),
+      );
+
       const uniqueUsers = new Set(
-        (responders || [])
+        responders
           .map((responder) => responder.user_id)
           .filter((userId): userId is string => typeof userId === "string"),
       ).size;
@@ -126,10 +131,14 @@ export async function getTotalUsers() {
   await requireOwner();
   const supabase = await createServiceClient();
 
-  const { count } = await supabase
+  const { count, error } = await supabase
     .from("private_users")
     .select("*", { count: "exact", head: true })
     .is("suspended_at", null);
+  if (error) {
+    console.error("対象者数の取得エラー:", error);
+    throw new Error("対象者数の取得に失敗しました");
+  }
 
   return count || 0;
 }

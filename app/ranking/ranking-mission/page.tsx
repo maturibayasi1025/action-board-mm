@@ -10,7 +10,9 @@ import {
   getUserMissionRanking,
   getUserPostingCount,
 } from "@/lib/services/missionsRanking";
+import { fetchAllRows } from "@/lib/supabase/fetch-all-rows";
 import { createClient } from "@/lib/supabase/server";
+import type { Tables } from "@/lib/types/supabase";
 
 export const runtime = "edge";
 
@@ -32,15 +34,19 @@ export default async function RankingMissionPage({ searchParams }: PageProps) {
   } = await supabase.auth.getUser();
 
   // グッジョブ一覧を取得（ランキング対象は達成回数無制限のもののみ）
-  const { data: missions, error: missionsError } = await supabase
-    .from("missions")
-    .select("*")
-    .is("max_achievement_count", null)
-    .order("is_featured", { ascending: false }) // is_featuredがtrueのものを先頭に
-    .order("difficulty", { ascending: true }); // その後、難易度の昇順でソート
-
-  // エラーハンドリング
-  if (missionsError) {
+  let missions: Tables<"missions">[];
+  try {
+    missions = await fetchAllRows<Tables<"missions">>((from, to) =>
+      supabase
+        .from("missions")
+        .select("*")
+        .is("max_achievement_count", null)
+        .order("is_featured", { ascending: false }) // is_featuredがtrueのものを先頭に
+        .order("difficulty", { ascending: true }) // その後、難易度の昇順でソート
+        .order("id", { ascending: true })
+        .range(from, to),
+    );
+  } catch (missionsError) {
     console.error("グッジョブ取得エラー:", missionsError);
     return (
       <div className="p-4 text-red-600">
@@ -49,7 +55,7 @@ export default async function RankingMissionPage({ searchParams }: PageProps) {
     );
   }
 
-  if (!missions || missions.length === 0) {
+  if (missions.length === 0) {
     return (
       <div className="p-4 text-gray-600">
         現在利用可能なグッジョブがありません。

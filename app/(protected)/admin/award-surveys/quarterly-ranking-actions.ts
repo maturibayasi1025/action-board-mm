@@ -24,6 +24,7 @@ import {
   buildAwardQuarterlyRanking,
   emptyAwardQuarterlyRankingResult,
 } from "@/lib/award/nomination-ranking";
+import { fetchAllRows } from "@/lib/supabase/fetch-all-rows";
 import { createServiceClient } from "@/lib/supabase/server";
 import { requireOwner } from "@/lib/utils/isOwner";
 
@@ -119,14 +120,21 @@ export async function getAwardQuarterlyNominationRanking(
   }
 
   try {
-    const [questionsResult, responses, dbResponseCount, userNameById] =
+    const [questions, responses, dbResponseCount, userNameById] =
       await Promise.all([
-        supabase
-          .from("award_questions")
-          .select(
-            "id, question_text, question_type, question_group, display_order, is_active",
-          )
-          .order("display_order", { ascending: true }),
+        fetchAllRows<AwardNominationQuestion>((from, to) =>
+          supabase
+            .from("award_questions")
+            .select(
+              "id, question_text, question_type, question_group, display_order, is_active",
+            )
+            .order("display_order", { ascending: true })
+            .order("id", { ascending: true })
+            .range(from, to),
+        ).catch((error) => {
+          console.error("四半期設問の取得エラー:", error);
+          return null;
+        }),
         fetchAllAwardResponses<AwardResponseForRanking>(
           supabase,
           surveyIds,
@@ -136,8 +144,7 @@ export async function getAwardQuarterlyNominationRanking(
         fetchAllPrivateUserNames(supabase),
       ]);
 
-    if (questionsResult.error) {
-      console.error("四半期設問の取得エラー:", questionsResult.error);
+    if (questions === null) {
       return withSurveysOnly(
         "四半期設問の取得に失敗したため、集計結果は表示しません。",
       );
@@ -152,7 +159,7 @@ export async function getAwardQuarterlyNominationRanking(
       label,
       expectedYearMonths: targetYearMonths,
       surveys: surveyRows,
-      questions: (questionsResult.data ?? []) as AwardNominationQuestion[],
+      questions,
       responses,
       userNameById,
       dbResponseCount,

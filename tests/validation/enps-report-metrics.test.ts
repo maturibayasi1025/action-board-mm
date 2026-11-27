@@ -227,7 +227,7 @@ describe("buildEnpsSnapshotRows", () => {
 });
 
 describe("fetchAllRows", () => {
-  it("1ページに満たなくなるまで range を進めて全件集める", async () => {
+  it("空のページが返るまで、返った行数ぶん range を進めて全件集める", async () => {
     const total = Array.from({ length: 5 }, (_, i) => ({ id: i }));
     const calls: [number, number][] = [];
 
@@ -247,6 +247,7 @@ describe("fetchAllRows", () => {
       [0, 1],
       [2, 3],
       [4, 5],
+      [5, 6],
     ]);
   });
 

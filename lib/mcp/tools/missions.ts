@@ -2,6 +2,7 @@ import { McpToolError } from "@/lib/mcp/errors";
 import { clampLimit, clampOffset, toRange } from "@/lib/mcp/pagination";
 import { pickAllowlisted } from "@/lib/mcp/redact";
 import type { McpToolDefinition } from "@/lib/mcp/tools/types";
+import { fetchAllRows, fetchByIdChunks } from "@/lib/supabase/fetch-all-rows";
 import { z } from "zod";
 
 const MISSION_COLUMNS = [
@@ -88,48 +89,77 @@ export const listMissionsTool: McpToolDefinition<{
       if (!category) {
         return { items: [], limit, offset };
       }
-      const { data: links, error: linkError } = await db
-        .from("mission_category_link")
-        .select("mission_id")
-        .eq("category_id", category.id)
-        .eq("del_flg", false);
-      if (linkError) {
+      const links = await fetchAllRows<{ mission_id: string }>((from, to) =>
+        db
+          .from("mission_category_link")
+          .select("mission_id")
+          .eq("category_id", category.id)
+          .eq("del_flg", false)
+          .order("mission_id", { ascending: true })
+          .range(from, to),
+      ).catch((linkError) => {
         throw new McpToolError(
-          `カテゴリ紐付けの取得に失敗しました: ${linkError.message}`,
+          `カテゴリ紐付けの取得に失敗しました: ${linkError instanceof Error ? linkError.message : String(linkError)}`,
         );
-      }
-      missionIds = (links ?? []).map((row) => row.mission_id);
+      });
+      missionIds = links.map((row) => row.mission_id);
       if (missionIds.length === 0) {
         return { items: [], limit, offset };
       }
     }
 
-    let query = db
-      .from("missions")
-      .select(MISSION_SELECT)
-      .eq("is_hidden", false)
-      .order("difficulty", { ascending: true })
-      .order("created_at", { ascending: false })
-      .range(range.from, range.to);
+    const buildQuery = () => {
+      let query = db
+        .from("missions")
+        .select(MISSION_SELECT)
+        .eq("is_hidden", false);
+      if (input.featured === true) {
+        query = query.eq("is_featured", true);
+      }
+      if (input.important === true) {
+        query = query.eq("is_important", true);
+      }
+      return query;
+    };
 
-    if (input.featured === true) {
-      query = query.eq("is_featured", true);
-    }
-    if (input.important === true) {
-      query = query.eq("is_important", true);
-    }
+    type MissionRow = {
+      id: string;
+      difficulty: number;
+      created_at: string;
+    };
+    let rows: MissionRow[];
     if (missionIds) {
-      query = query.in("id", missionIds);
-    }
-
-    const { data, error } = await query;
-    if (error) {
-      throw new McpToolError(
-        `ミッション一覧の取得に失敗しました: ${error.message}`,
+      // カテゴリのミッション ID は 1 回の .in() に収まらないことがあるため、
+      // 分割して全件取得してから並べてページを切り出す
+      const missions = await fetchByIdChunks<MissionRow>(missionIds, (chunk) =>
+        buildQuery().in("id", chunk),
+      ).catch((error) => {
+        throw new McpToolError(
+          `ミッション一覧の取得に失敗しました: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      });
+      missions.sort(
+        (a, b) =>
+          a.difficulty - b.difficulty ||
+          b.created_at.localeCompare(a.created_at) ||
+          b.id.localeCompare(a.id),
       );
+      rows = missions.slice(range.from, range.to + 1);
+    } else {
+      const { data, error } = await buildQuery()
+        .order("difficulty", { ascending: true })
+        .order("created_at", { ascending: false })
+        .order("id", { ascending: false })
+        .range(range.from, range.to);
+      if (error) {
+        throw new McpToolError(
+          `ミッション一覧の取得に失敗しました: ${error.message}`,
+        );
+      }
+      rows = data ?? [];
     }
     return {
-      items: (data ?? []).map((row) =>
+      items: rows.map((row) =>
         pickAllowlisted(
           row as unknown as Record<string, unknown>,
           MISSION_COLUMNS,
@@ -199,17 +229,25 @@ export const listMissionCategoriesTool: McpToolDefinition<
   inputSchema: { type: "object", additionalProperties: false },
   input: z.object({}),
   async execute(_input, { db }) {
-    const { data, error } = await db
-      .from("mission_category")
-      .select("id, slug, category_title, sort_no")
-      .eq("del_flg", false)
-      .order("sort_no", { ascending: true });
-    if (error) {
+    const items = await fetchAllRows<{
+      id: string;
+      slug: string;
+      category_title: string | null;
+      sort_no: number;
+    }>((from, to) =>
+      db
+        .from("mission_category")
+        .select("id, slug, category_title, sort_no")
+        .eq("del_flg", false)
+        .order("sort_no", { ascending: true })
+        .order("id", { ascending: true })
+        .range(from, to),
+    ).catch((error) => {
       throw new McpToolError(
-        `カテゴリ一覧の取得に失敗しました: ${error.message}`,
+        `カテゴリ一覧の取得に失敗しました: ${error instanceof Error ? error.message : String(error)}`,
       );
-    }
-    return { items: data ?? [] };
+    });
+    return { items };
   },
 };
 
@@ -255,6 +293,7 @@ export const listAchievementsTool: McpToolDefinition<{
       )
       .eq("missions.is_hidden", false)
       .order("created_at", { ascending: false })
+      .order("id", { ascending: false })
       .range(range.from, range.to);
     if (input.user_id) {
       query = query.eq("user_id", input.user_id);

@@ -22,9 +22,8 @@ export type SubmissionData = {
 
 export type MissionPageData = {
   mission: Tables<"missions">;
-  userAchievements: Achievement[];
-  submissions: SubmissionData[];
-  userAchievementCount: number;
+  /** 新しい順の本人の提出履歴（件数が達成回数）。取得に失敗したら null */
+  submissionHistory: SubmissionData[] | null;
   totalAchievementCount: number;
   referralCode: string | null;
   mainLink: Tables<"mission_main_links"> | null;

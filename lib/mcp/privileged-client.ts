@@ -10,7 +10,7 @@ import {
   labelForAwardQuarter,
 } from "@/lib/mcp/award-nomination-ranking";
 import { McpToolError } from "@/lib/mcp/errors";
-import { fetchAllRows } from "@/lib/supabase/fetch-all-rows";
+import { fetchAllRows, fetchByIdChunks } from "@/lib/supabase/fetch-all-rows";
 import {
   type SurveyExportAnswer,
   type SurveyExportQuestion,
@@ -77,6 +77,19 @@ function throwIfError(
 ): void {
   if (error) {
     throw new McpToolError(`${message}: ${error.message}`);
+  }
+}
+
+async function fetchAllRowsOrToolError<T>(
+  message: string,
+  fetchPage: Parameters<typeof fetchAllRows<T>>[0],
+): Promise<T[]> {
+  try {
+    return await fetchAllRows<T>(fetchPage);
+  } catch (error) {
+    throw new McpToolError(
+      `${message}: ${error instanceof Error ? error.message : String(error)}`,
+    );
   }
 }
 
@@ -262,15 +275,20 @@ export async function listEnpsSurveys(input: {
   );
   throwIfError(error, "eNPS サーベイ一覧の取得に失敗しました");
 
-  const { data: questions, error: questionError } = await db
-    .from("enps_questions")
-    .select(ENPS_QUESTION_SELECT)
-    .order("display_order", { ascending: true });
-  throwIfError(questionError, "eNPS 設問の取得に失敗しました");
+  const questions = await fetchAllRowsOrToolError<EnpsQuestionRow>(
+    "eNPS 設問の取得に失敗しました",
+    (from, to) =>
+      db
+        .from("enps_questions")
+        .select(ENPS_QUESTION_SELECT)
+        .order("display_order", { ascending: true })
+        .order("id", { ascending: true })
+        .range(from, to),
+  );
 
   return {
     items: (data ?? []) as EnpsSurveyRow[],
-    questions: (questions ?? []) as EnpsQuestionRow[],
+    questions,
     limit: input.limit,
     offset: input.offset,
   };
@@ -315,7 +333,8 @@ export async function listEnpsMonthlySnapshots(input: {
   let query = db
     .from("enps_monthly_snapshots")
     .select(ENPS_SNAPSHOT_SELECT)
-    .order("computed_at", { ascending: false });
+    .order("computed_at", { ascending: false })
+    .order("id", { ascending: false });
 
   if (input.year_month) {
     const { data: surveys, error: surveyError } = await db
@@ -472,11 +491,17 @@ export async function getAwardNominationRanking(input: {
   }> = [];
 
   try {
-    const [questionsResult, fetchedResponses] = await Promise.all([
-      db
-        .from("award_questions")
-        .select(AWARD_QUESTION_SELECT)
-        .order("display_order", { ascending: true }),
+    const [fetchedQuestions, fetchedResponses] = await Promise.all([
+      fetchAllRowsOrToolError<(typeof questions)[number]>(
+        "表彰設問の取得に失敗しました",
+        (from, to) =>
+          db
+            .from("award_questions")
+            .select(AWARD_QUESTION_SELECT)
+            .order("display_order", { ascending: true })
+            .order("id", { ascending: true })
+            .range(from, to),
+      ),
       fetchAllRows<{
         question_id: string;
         text_value: string | null;
@@ -490,8 +515,7 @@ export async function getAwardNominationRanking(input: {
           .range(from, to),
       ),
     ]);
-    throwIfError(questionsResult.error, "表彰設問の取得に失敗しました");
-    questions = questionsResult.data ?? [];
+    questions = fetchedQuestions;
     responses = fetchedResponses;
   } catch (error) {
     if (error instanceof McpToolError) {
@@ -538,41 +562,57 @@ export async function listSlackDirectory(input: {
   offset: number;
 }): Promise<{ items: SlackDirectoryRow[]; limit: number; offset: number }> {
   const db = createPrivilegedDb();
-  let allowedIds: string[] | null = null;
-  if (input.query) {
-    const { data: profiles, error } = await db
-      .from("public_user_profiles")
-      .select(PUBLIC_PROFILE_NAME_SELECT)
-      .ilike("name", `%${escapeIlike(input.query)}%`)
-      .limit(500);
-    throwIfError(error, "公開プロフィール検索に失敗しました");
-    allowedIds = (profiles ?? []).map((row) => row.id);
-    if (allowedIds.length === 0) {
-      return { items: [], limit: input.limit, offset: input.offset };
+  const buildQuery = () => {
+    let query = db
+      .from("private_users")
+      .select(PRIVATE_USERS_SLACK_SELECT)
+      .is("suspended_at", null);
+    if (input.user_id) {
+      query = query.eq("id", input.user_id);
     }
-  }
+    if (!input.include_missing) {
+      query = query.not("slack_user_id", "is", null);
+    }
+    return query;
+  };
 
-  let query = db
-    .from("private_users")
-    .select(PRIVATE_USERS_SLACK_SELECT)
-    .is("suspended_at", null)
-    .order("id", { ascending: true });
-  if (input.user_id) {
-    query = query.eq("id", input.user_id);
+  let rows: Array<{ id: string; slack_user_id: string | null }>;
+  if (input.query) {
+    // 名前で絞った ID は 1 回の .in() に収まらないことがあるため、
+    // 分割して全件取得してから id 順に並べてページを切り出す
+    const query = input.query;
+    const profiles = await fetchAllRows<{ id: string }>((from, to) =>
+      db
+        .from("public_user_profiles")
+        .select("id")
+        .ilike("name", `%${escapeIlike(query)}%`)
+        .order("id", { ascending: true })
+        .range(from, to),
+    ).catch((error: Error) => {
+      throw new McpToolError(
+        `公開プロフィール検索に失敗しました: ${error.message}`,
+      );
+    });
+    const matched = await fetchByIdChunks<{
+      id: string;
+      slack_user_id: string | null;
+    }>(
+      profiles.map((row) => row.id),
+      (chunk) => buildQuery().in("id", chunk),
+    ).catch((error: Error) => {
+      throw new McpToolError(
+        `Slack 対応表の取得に失敗しました: ${error.message}`,
+      );
+    });
+    matched.sort((a, b) => a.id.localeCompare(b.id));
+    rows = matched.slice(input.offset, input.offset + input.limit);
+  } else {
+    const { data, error } = await buildQuery()
+      .order("id", { ascending: true })
+      .range(input.offset, input.offset + input.limit - 1);
+    throwIfError(error, "Slack 対応表の取得に失敗しました");
+    rows = data ?? [];
   }
-  if (allowedIds) {
-    query = query.in("id", allowedIds);
-  }
-  if (!input.include_missing) {
-    query = query.not("slack_user_id", "is", null);
-  }
-
-  const { data, error } = await query.range(
-    input.offset,
-    input.offset + input.limit - 1,
-  );
-  throwIfError(error, "Slack 対応表の取得に失敗しました");
-  const rows = data ?? [];
   const names = await mapPublicNames(
     db,
     rows.map((row) => row.id),
@@ -654,7 +694,8 @@ export async function listEnpsResponses(input: {
     .from("enps_responses")
     .select(ENPS_RESPONSE_SELECT)
     .eq("survey_id", input.survey_id)
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .order("id", { ascending: false });
   if (input.question_id) {
     query = query.eq("question_id", input.question_id);
   }
@@ -710,7 +751,8 @@ export async function listAwardResponses(input: {
     .from("award_responses")
     .select(AWARD_RESPONSE_SELECT)
     .eq("survey_id", input.survey_id)
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .order("id", { ascending: false });
   if (input.question_id) {
     query = query.eq("question_id", input.question_id);
   }
@@ -969,12 +1011,17 @@ export async function exportEnpsResponsesCsv(
 ): Promise<SurveyResponsesCsvExport> {
   const survey = await resolveEnpsSurvey(input);
   const db = createPrivilegedDb();
-  const { data: questions, error: questionError } = await db
-    .from("enps_questions")
-    .select(ENPS_QUESTION_SELECT)
-    .eq("is_active", true)
-    .order("display_order", { ascending: true });
-  throwIfError(questionError, "eNPS 設問の取得に失敗しました");
+  const questions = await fetchAllRowsOrToolError<EnpsQuestionRow>(
+    "eNPS 設問の取得に失敗しました",
+    (from, to) =>
+      db
+        .from("enps_questions")
+        .select(ENPS_QUESTION_SELECT)
+        .eq("is_active", true)
+        .order("display_order", { ascending: true })
+        .order("id", { ascending: true })
+        .range(from, to),
+  );
 
   let rows: Array<{
     id: string;
@@ -1006,14 +1053,12 @@ export async function exportEnpsResponsesCsv(
     db,
     rows.map((row) => row.user_id),
   );
-  const exportQuestions: SurveyExportQuestion[] = (questions ?? []).map(
-    (question) => ({
-      id: question.id,
-      question_text: question.question_text,
-      question_type: question.question_type,
-      display_order: question.display_order,
-    }),
-  );
+  const exportQuestions: SurveyExportQuestion[] = questions.map((question) => ({
+    id: question.id,
+    question_text: question.question_text,
+    question_type: question.question_type,
+    display_order: question.display_order,
+  }));
   const exportResponses: SurveyExportAnswer[] = rows.map((row) => {
     const org = orgs.get(row.user_id);
     return {
@@ -1043,12 +1088,22 @@ export async function exportAwardResponsesCsv(
 ): Promise<SurveyResponsesCsvExport> {
   const survey = await resolveAwardSurvey(input);
   const db = createPrivilegedDb();
-  const { data: questions, error: questionError } = await db
-    .from("award_questions")
-    .select(AWARD_QUESTION_SELECT)
-    .eq("is_active", true)
-    .order("display_order", { ascending: true });
-  throwIfError(questionError, "表彰設問の取得に失敗しました");
+  const questions = await fetchAllRowsOrToolError<{
+    id: string;
+    question_text: string;
+    question_type: string;
+    question_group: string | null;
+    display_order: number;
+    is_active: boolean;
+  }>("表彰設問の取得に失敗しました", (from, to) =>
+    db
+      .from("award_questions")
+      .select(AWARD_QUESTION_SELECT)
+      .eq("is_active", true)
+      .order("display_order", { ascending: true })
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
 
   let rows: Array<{
     id: string;
@@ -1082,22 +1137,20 @@ export async function exportAwardResponsesCsv(
       row.nominee_user_id ? [row.user_id, row.nominee_user_id] : [row.user_id],
     ),
   );
-  const exportQuestions: SurveyExportQuestion[] = (questions ?? []).map(
-    (question) => {
-      const groupLabel = question.question_group
-        ? AWARD_QUESTION_GROUP_LABELS[question.question_group]
-        : undefined;
-      return {
-        id: question.id,
-        question_text: question.question_text,
-        question_type: question.question_type,
-        display_order: question.display_order,
-        header: groupLabel
-          ? `${groupLabel} / ${question.question_text}`
-          : question.question_text,
-      };
-    },
-  );
+  const exportQuestions: SurveyExportQuestion[] = questions.map((question) => {
+    const groupLabel = question.question_group
+      ? AWARD_QUESTION_GROUP_LABELS[question.question_group]
+      : undefined;
+    return {
+      id: question.id,
+      question_text: question.question_text,
+      question_type: question.question_type,
+      display_order: question.display_order,
+      header: groupLabel
+        ? `${groupLabel} / ${question.question_text}`
+        : question.question_text,
+    };
+  });
   const exportResponses: SurveyExportAnswer[] = rows.map((row) => {
     const org = orgs.get(row.user_id);
     return {

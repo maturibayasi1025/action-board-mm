@@ -42,6 +42,7 @@ export async function fetchActiveScoreQuestionIds(
         .eq("is_active", true)
         .eq("question_type", "score_0_10")
         .order("display_order", { ascending: true })
+        .order("id", { ascending: true })
         .range(from, to),
   );
   return rows.map((r) => r.id);

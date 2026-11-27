@@ -1,5 +1,6 @@
 import "server-only";
 
+import { fetchByIdChunks } from "@/lib/supabase/fetch-all-rows";
 import { createServiceClient } from "@/lib/supabase/server";
 import { USER_SUSPENDED_ERROR, isSuspendedAt } from "@/lib/utils/user-status";
 
@@ -34,10 +35,12 @@ export async function filterActiveUserIds(
     return new Set();
   }
   const supabase = await createServiceClient();
-  const { data } = await supabase
-    .from("private_users")
-    .select("id")
-    .in("id", userIds)
-    .is("suspended_at", null);
-  return new Set((data ?? []).map((row) => row.id));
+  const rows = await fetchByIdChunks<{ id: string }>(userIds, (chunk) =>
+    supabase
+      .from("private_users")
+      .select("id")
+      .in("id", chunk)
+      .is("suspended_at", null),
+  ).catch(() => []);
+  return new Set(rows.map((row) => row.id));
 }

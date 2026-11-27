@@ -20,6 +20,7 @@ import {
   fetchAllAwardResponses,
   fetchAllPrivateUsersForNomination,
 } from "@/lib/award/fetch-award-rows";
+import { fetchAllRows } from "@/lib/supabase/fetch-all-rows";
 import type { Database } from "@/lib/types/supabase";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -65,18 +66,22 @@ async function fetchSurveys(
 async function fetchQuestions(
   supabase: SupabaseClient<Database>,
 ): Promise<PeerMasterQuestion[]> {
-  const { data, error } = await supabase
-    .from("award_questions")
-    .select(
-      "id, question_text, question_type, question_group, display_order, is_active",
-    )
-    .order("display_order", { ascending: true });
-
-  if (error) {
-    throw new Error(`質問取得に失敗しました: ${error.message}`);
+  try {
+    return await fetchAllRows<PeerMasterQuestion>((from, to) =>
+      supabase
+        .from("award_questions")
+        .select(
+          "id, question_text, question_type, question_group, display_order, is_active",
+        )
+        .order("display_order", { ascending: true })
+        .order("id", { ascending: true })
+        .range(from, to),
+    );
+  } catch (error) {
+    throw new Error(
+      `質問取得に失敗しました: ${error instanceof Error ? error.message : String(error)}`,
+    );
   }
-
-  return (data ?? []) as PeerMasterQuestion[];
 }
 
 async function fetchResponses(

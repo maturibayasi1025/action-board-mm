@@ -9,6 +9,7 @@ import { redirectToSignInWithReturnPath } from "@/lib/auth/redirect-to-sign-in";
 import { toSerializableAuthUser } from "@/lib/auth/serializable-user";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import { ResponsesLoadError } from "../../_components/responses-load-error";
 import { getLinkedPostMissionContext } from "../../_lib/linked-post-mission";
 import { AwardSurveyFormClient } from "./_components/award-survey-form-client";
 import {
@@ -39,11 +40,18 @@ export default async function AwardSurveyPage({
 
   const survey = await getAwardSurvey(id);
   const questions = await getAwardQuestions();
-  const existingResponses = await getUserAwardResponses(id);
+  const existingResponses = await getUserAwardResponses(id).catch((error) => {
+    console.error("回答の取得エラー:", error);
+    return null;
+  });
   const userName = await getCurrentUserName();
 
   if (!survey) {
     redirect("/");
+  }
+
+  if (!existingResponses) {
+    return <ResponsesLoadError title={survey.title} />;
   }
 
   const now = new Date();

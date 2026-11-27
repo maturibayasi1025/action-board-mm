@@ -95,7 +95,8 @@ export async function POST(request: NextRequest) {
     const { data: activeQuestions, error: questionsError } = await supabase
       .from("enps_questions")
       .select("id")
-      .eq("is_active", true);
+      .eq("is_active", true)
+      .limit(1);
 
     if (questionsError) {
       console.error("質問取得エラー:", questionsError);

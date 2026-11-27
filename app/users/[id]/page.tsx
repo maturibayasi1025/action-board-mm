@@ -46,12 +46,16 @@ export default async function UserDetailPage({ params }: Props) {
         .select("*")
         .eq("user_id", id)
         .order("created_at", { ascending: false })
+        .order("id", { ascending: false })
         .limit(PAGE_SIZE),
       supabase
         .from("activity_timeline_view")
-        .select("*", { count: "exact" })
+        .select("*", { count: "exact", head: true })
         .eq("user_id", id),
-      getUserRepeatableMissionAchievements(id),
+      getUserRepeatableMissionAchievements(id).catch((error) => {
+        console.error("Failed to fetch user mission achievements:", error);
+        return null;
+      }),
     ]);
 
   return (

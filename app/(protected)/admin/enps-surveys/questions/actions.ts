@@ -1,5 +1,6 @@
 "use server";
 
+import { fetchAllRows } from "@/lib/supabase/fetch-all-rows";
 import { createServiceClient } from "@/lib/supabase/server";
 import { requireOwner } from "@/lib/utils/isOwner";
 import { revalidatePath } from "next/cache";
@@ -20,17 +21,15 @@ export async function getQuestions(): Promise<EnpsQuestionRow[]> {
   await requireOwner();
   const supabase = await createServiceClient();
 
-  const { data: questions, error } = await supabase
-    .from("enps_questions")
-    .select("*")
-    .order("display_order", { ascending: true });
-
-  if (error) {
-    console.error("質問一覧の取得エラー:", error);
-    return [];
-  }
-
-  return (questions || []) as EnpsQuestionRow[];
+  return fetchAllRows<EnpsQuestionRow>((from, to) =>
+    supabase
+      .from("enps_questions")
+      .select("*")
+      .order("display_order", { ascending: true })
+      .order("id", { ascending: true })
+      .range(from, to)
+      .returns<EnpsQuestionRow[]>(),
+  );
 }
 
 export async function createQuestion(data: {

@@ -1,5 +1,6 @@
 "use server";
 
+import { fetchAllRows } from "@/lib/supabase/fetch-all-rows";
 import { logPostgrestError } from "@/lib/supabase/log-postgrest-error";
 import { createClient } from "@/lib/supabase/server";
 import { mapSurveyRpcErrorMessage } from "@/lib/survey/map-survey-rpc-error";
@@ -202,20 +203,24 @@ export async function getSurvey(surveyId: string) {
 export async function getSurveyQuestions(): Promise<EnpsQuestionRow[]> {
   const supabase = await createClient();
 
-  const { data: questions, error } = await supabase
-    .from("enps_questions")
-    .select("*")
-    .eq("is_active", true)
-    .order("display_order", { ascending: true });
-
-  if (error) {
+  try {
+    return await fetchAllRows<EnpsQuestionRow>((from, to) =>
+      supabase
+        .from("enps_questions")
+        .select("*")
+        .eq("is_active", true)
+        .order("display_order", { ascending: true })
+        .order("id", { ascending: true })
+        .range(from, to)
+        .returns<EnpsQuestionRow[]>(),
+    );
+  } catch (error) {
     console.error("質問の取得エラー:", error);
     return [];
   }
-
-  return (questions || []) as EnpsQuestionRow[];
 }
 
+/** 本人の既存回答（設問 ID ごと）。取得に失敗したら例外にする */
 export async function getUserResponses(surveyId: string) {
   const supabase = await createClient();
   const {
@@ -233,23 +238,19 @@ export async function getUserResponses(surveyId: string) {
     >;
   }
 
-  const { data: responses, error } = await supabase
-    .from("enps_responses")
-    .select("question_id, score_value, text_value")
-    .eq("survey_id", surveyId)
-    .eq("user_id", user.id);
-
-  if (error) {
-    console.error("回答の取得エラー:", error);
-    return {} as Record<
-      string,
-      {
-        question_id: string;
-        score_value?: number | null;
-        text_value?: string | null;
-      }
-    >;
-  }
+  const responses = await fetchAllRows<{
+    question_id: string;
+    score_value: number | null;
+    text_value: string | null;
+  }>((from, to) =>
+    supabase
+      .from("enps_responses")
+      .select("question_id, score_value, text_value")
+      .eq("survey_id", surveyId)
+      .eq("user_id", user.id)
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
 
   const responseMap: Record<
     string,
@@ -259,14 +260,12 @@ export async function getUserResponses(surveyId: string) {
       text_value?: string | null;
     }
   > = {};
-  if (responses) {
-    for (const r of responses) {
-      responseMap[r.question_id] = {
-        question_id: r.question_id,
-        score_value: r.score_value ?? null,
-        text_value: r.text_value ?? null,
-      };
-    }
+  for (const r of responses) {
+    responseMap[r.question_id] = {
+      question_id: r.question_id,
+      score_value: r.score_value ?? null,
+      text_value: r.text_value ?? null,
+    };
   }
 
   return responseMap;

@@ -1,4 +1,10 @@
-import { DEFAULT_PAGE_SIZE, fetchAllRows } from "@/lib/supabase/fetch-all-rows";
+import {
+  DEFAULT_PAGE_SIZE,
+  SupabaseQueryError,
+  fetchAllRows,
+  fetchByIdChunks,
+} from "@/lib/supabase/fetch-all-rows";
+import { createFakePostgrest, pad } from "../survey/fake-postgrest";
 
 describe("fetchAllRows 1000件超の回帰", () => {
   it("PostgREST 既定の 1000 行上限を跨いで全件を連結する", async () => {
@@ -21,6 +27,7 @@ describe("fetchAllRows 1000件超の回帰", () => {
       [0, 999],
       [1000, 1999],
       [2000, 2999],
+      [2501, 3500],
     ]);
   });
 
@@ -37,5 +44,57 @@ describe("fetchAllRows 1000件超の回帰", () => {
       }),
     );
     expect(paged).toHaveLength(1201);
+  });
+});
+
+describe("fetchAllRows サーバ側の行上限が pageSize より小さい構成", () => {
+  it("上限 500 のとき 1200 行が欠けも重複もなく返る", async () => {
+    const ids = Array.from({ length: 1200 }, (_, i) => `user-${pad(i)}`);
+    const supabase = createFakePostgrest(
+      { private_users: ids.map((id) => ({ id })) },
+      { maxRows: 500 },
+    );
+
+    const rows = await fetchAllRows<{ id: string }>((from, to) =>
+      supabase
+        .from("private_users")
+        .select("id")
+        .order("id", { ascending: true })
+        .range(from, to),
+    );
+
+    const returned = rows.map((row) => row.id);
+    expect(returned).toHaveLength(1200);
+    expect(new Set(returned).size).toBe(1200);
+    expect(returned).toEqual(ids);
+  });
+});
+
+describe("取得の失敗とそれ以外の例外の区別", () => {
+  const failing = () =>
+    Promise.resolve({ data: null, error: { message: "connection error" } });
+
+  it.each([
+    ["fetchAllRows", () => fetchAllRows(failing)],
+    ["fetchByIdChunks", () => fetchByIdChunks(["id-1"], failing)],
+  ])(
+    "%s は問い合わせのエラーを SupabaseQueryError として投げる",
+    async (_label, run) => {
+      const error = await run().catch((e: unknown) => e);
+      expect(error).toBeInstanceOf(SupabaseQueryError);
+      expect((error as Error).message).toBe("connection error");
+    },
+  );
+
+  it.each([
+    ["fetchAllRows", () => fetchAllRows(failing, { pageSize: 0 })],
+    [
+      "fetchByIdChunks",
+      () => fetchByIdChunks(["id-1"], failing, { chunkSize: 0 }),
+    ],
+  ])("%s の引数の誤りは取得の失敗として扱わない", async (_label, run) => {
+    const error = await run().catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(Error);
+    expect(error).not.toBeInstanceOf(SupabaseQueryError);
   });
 });

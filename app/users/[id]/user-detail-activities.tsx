@@ -27,6 +27,7 @@ export default function UserDetailActivities(props: UserDetailActivitiesProps) {
       .select("*")
       .eq("user_id", props.userId)
       .order("created_at", { ascending: false })
+      .order("id", { ascending: false })
       .range(timeline.length, timeline.length + props.pageSize - 1);
     if (takeTimeline) {
       const newTimeline = [...timeline, ...takeTimeline];

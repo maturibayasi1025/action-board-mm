@@ -3,7 +3,8 @@ import { MissionAchievementCard } from "./mission-card";
 import { MissionAchievementTotalCard } from "./total-card";
 
 interface UserMissionAchievementsProps {
-  achievements: MissionAchievementSummary[];
+  /** 取得に失敗したら null */
+  achievements: MissionAchievementSummary[] | null;
   totalCount: number;
 }
 
@@ -18,13 +19,19 @@ export function UserMissionAchievements({
       </div>
       <div className="flex flex-col gap-2">
         <MissionAchievementTotalCard totalCount={totalCount} />
-        {achievements.map((achievement) => (
-          <MissionAchievementCard
-            key={achievement.mission_id}
-            title={achievement.mission_title}
-            count={achievement.achievement_count}
-          />
-        ))}
+        {achievements ? (
+          achievements.map((achievement) => (
+            <MissionAchievementCard
+              key={achievement.mission_id}
+              title={achievement.mission_title}
+              count={achievement.achievement_count}
+            />
+          ))
+        ) : (
+          <p role="alert" className="text-center text-sm text-muted-foreground">
+            グッジョブ達成状況の取得に失敗しました
+          </p>
+        )}
       </div>
     </div>
   );

@@ -2,6 +2,7 @@ import { McpToolError } from "@/lib/mcp/errors";
 import { clampLimit, clampOffset, toRange } from "@/lib/mcp/pagination";
 import { pickAllowlisted } from "@/lib/mcp/redact";
 import type { McpToolDefinition } from "@/lib/mcp/tools/types";
+import { fetchAllRows, fetchByIdChunks } from "@/lib/supabase/fetch-all-rows";
 import { z } from "zod";
 
 const PROFILE_COLUMNS = [
@@ -104,6 +105,7 @@ export const searchPublicProfilesTool: McpToolDefinition<{
       )
       .ilike("name", `%${escaped}%`)
       .order("name", { ascending: true })
+      .order("id", { ascending: true })
       .range(range.from, range.to);
     if (input.business_unit_id) {
       query = query.eq("business_unit_id", input.business_unit_id);
@@ -173,37 +175,50 @@ export const listUserBadgesTool: McpToolDefinition<{ user_id: string }> = {
   },
   input: z.object({ user_id: z.string().uuid() }),
   async execute(input, { db }) {
-    const { data, error } = await db
-      .from("user_badges")
-      .select(
-        "id, user_id, badge_type, sub_type, rank, achieved_at, quarter_period, badge_image_path, icon_image_path",
-      )
-      .eq("user_id", input.user_id)
-      .order("badge_type", { ascending: true })
-      .order("rank", { ascending: true });
-    if (error) {
-      throw new McpToolError(`バッジの取得に失敗しました: ${error.message}`);
+    type BadgeRow = Record<string, unknown>;
+    let rows: BadgeRow[];
+    try {
+      rows = await fetchAllRows<BadgeRow>((from, to) =>
+        db
+          .from("user_badges")
+          .select(
+            "id, user_id, badge_type, sub_type, rank, achieved_at, quarter_period, badge_image_path, icon_image_path",
+          )
+          .eq("user_id", input.user_id)
+          .order("badge_type", { ascending: true })
+          .order("rank", { ascending: true })
+          .order("id", { ascending: true })
+          .range(from, to),
+      );
+    } catch (error) {
+      throw new McpToolError(
+        `バッジの取得に失敗しました: ${(error as Error).message}`,
+      );
     }
-    const badges = (data ?? []).map((row) =>
-      pickAllowlisted(row as unknown as Record<string, unknown>, BADGE_COLUMNS),
+    const badges = rows.map((row) => pickAllowlisted(row, BADGE_COLUMNS));
+    const missionSlugs = Array.from(
+      new Set(
+        badges
+          .filter((badge) => badge.badge_type === "MISSION" && badge.sub_type)
+          .map((badge) => String(badge.sub_type)),
+      ),
     );
-    const missionSlugs = badges
-      .filter((badge) => badge.badge_type === "MISSION" && badge.sub_type)
-      .map((badge) => String(badge.sub_type));
     if (missionSlugs.length === 0) {
       return { items: badges };
     }
-    const { data: missions, error: missionError } = await db
-      .from("missions")
-      .select("id, slug, title")
-      .in("slug", missionSlugs);
-    if (missionError) {
+    let missions: { id: string; slug: string; title: string }[];
+    try {
+      // MISSION バッジはミッションごとに増えるので slug を分割する
+      missions = await fetchByIdChunks(missionSlugs, (chunk) =>
+        db.from("missions").select("id, slug, title").in("slug", chunk),
+      );
+    } catch (error) {
       throw new McpToolError(
-        `バッジ用ミッション名の取得に失敗しました: ${missionError.message}`,
+        `バッジ用ミッション名の取得に失敗しました: ${(error as Error).message}`,
       );
     }
     const missionMap = new Map(
-      (missions ?? []).map((mission) => [
+      missions.map((mission) => [
         mission.slug,
         { id: mission.id, title: mission.title },
       ]),
@@ -239,38 +254,55 @@ export const listBusinessUnitsTool: McpToolDefinition<{
   },
   input: z.object({ company_id: z.string().uuid().optional() }),
   async execute(input, { db }) {
-    const { data: companies, error: companyError } = await db
-      .from("companies")
-      .select("id, name, slug, display_order")
-      .eq("is_active", true)
-      .order("display_order", { ascending: true });
-    if (companyError) {
+    const companies = await fetchAllRows<{
+      id: string;
+      name: string;
+      slug: string | null;
+      display_order: number;
+    }>((from, to) =>
+      db
+        .from("companies")
+        .select("id, name, slug, display_order")
+        .eq("is_active", true)
+        .order("display_order", { ascending: true })
+        .order("id", { ascending: true })
+        .range(from, to),
+    ).catch((companyError) => {
       throw new McpToolError(
-        `会社一覧の取得に失敗しました: ${companyError.message}`,
+        `会社一覧の取得に失敗しました: ${companyError instanceof Error ? companyError.message : String(companyError)}`,
       );
-    }
+    });
 
-    let unitQuery = db
-      .from("business_units")
-      .select("id, company_id, name, parent_id, display_order")
-      .eq("is_active", true)
-      .order("display_order", { ascending: true });
-    if (input.company_id) {
-      unitQuery = unitQuery.eq("company_id", input.company_id);
-    }
-    const { data: units, error: unitError } = await unitQuery;
-    if (unitError) {
+    const units = await fetchAllRows<{
+      id: string;
+      company_id: string;
+      name: string;
+      parent_id: string | null;
+      display_order: number;
+    }>((from, to) => {
+      let unitQuery = db
+        .from("business_units")
+        .select("id, company_id, name, parent_id, display_order")
+        .eq("is_active", true);
+      if (input.company_id) {
+        unitQuery = unitQuery.eq("company_id", input.company_id);
+      }
+      return unitQuery
+        .order("display_order", { ascending: true })
+        .order("id", { ascending: true })
+        .range(from, to);
+    }).catch((unitError) => {
       throw new McpToolError(
-        `部署一覧の取得に失敗しました: ${unitError.message}`,
+        `部署一覧の取得に失敗しました: ${unitError instanceof Error ? unitError.message : String(unitError)}`,
       );
-    }
+    });
 
     const companyName = new Map(
-      (companies ?? []).map((company) => [company.id, company.name]),
+      companies.map((company) => [company.id, company.name]),
     );
     return {
-      companies: companies ?? [],
-      business_units: (units ?? []).map((unit) => ({
+      companies,
+      business_units: units.map((unit) => ({
         ...unit,
         company_name: companyName.get(unit.company_id) ?? null,
       })),

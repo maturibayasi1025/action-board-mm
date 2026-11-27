@@ -10,6 +10,7 @@ import { toSerializableAuthUser } from "@/lib/auth/serializable-user";
 import { createClient } from "@/lib/supabase/server";
 import { validateEnpsLateGrantAccess } from "@/lib/survey/validate-late-grant-service";
 import { redirect } from "next/navigation";
+import { ResponsesLoadError } from "../../_components/responses-load-error";
 import { SurveyFormClient } from "../_components/survey-form-client";
 import { getSurvey, getSurveyQuestions, getUserResponses } from "../actions";
 
@@ -58,7 +59,10 @@ export default async function EnpsSurveyLatePage({
 
   const survey = await getSurvey(id);
   const questions = await getSurveyQuestions();
-  const existingResponses = await getUserResponses(id);
+  const existingResponses = await getUserResponses(id).catch((error) => {
+    console.error("回答の取得エラー:", error);
+    return null;
+  });
 
   if (!survey) {
     redirect("/");
@@ -84,6 +88,10 @@ export default async function EnpsSurveyLatePage({
         </Card>
       </div>
     );
+  }
+
+  if (!existingResponses) {
+    return <ResponsesLoadError title={survey.title} />;
   }
 
   const hasResponded = Object.keys(existingResponses).length > 0;
