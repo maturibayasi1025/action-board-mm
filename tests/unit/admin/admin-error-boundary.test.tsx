@@ -4,7 +4,10 @@ import { getSurveys } from "@/app/(protected)/admin/enps-surveys/actions";
 import AdminError from "@/app/(protected)/admin/error";
 import { createServiceClient } from "@/lib/supabase/server";
 import { fireEvent, render, screen } from "@testing-library/react";
-import { ErrorBoundary } from "next/dist/client/components/error-boundary";
+import {
+  ErrorBoundary,
+  type ErrorComponent,
+} from "next/dist/client/components/error-boundary";
 import { createFakePostgrest } from "../survey/fake-postgrest";
 
 const refresh = jest.fn();
@@ -73,7 +76,8 @@ describe("admin の取得失敗は admin の中だけで止まる", () => {
     render(
       <ErrorBoundary errorComponent={GlobalErrorStandIn}>
         <p>ヘッダー</p>
-        <ErrorBoundary errorComponent={AdminError}>
+        {/* Next の境界は実行時に必ず reset を渡すが、型では省略可になっている */}
+        <ErrorBoundary errorComponent={AdminError as ErrorComponent}>
           <AdminPage />
         </ErrorBoundary>
       </ErrorBoundary>,
