@@ -54,14 +54,20 @@ export async function getActiveScoreQuestions() {
   await requireOwner();
   const supabase = await createServiceClient();
 
-  const { data } = await supabase
-    .from("enps_questions")
-    .select("id, question_text, display_order")
-    .eq("is_active", true)
-    .eq("question_type", "score_0_10")
-    .order("display_order", { ascending: true });
-
-  return data ?? [];
+  return fetchAllRows<{
+    id: string;
+    question_text: string;
+    display_order: number;
+  }>((from, to) =>
+    supabase
+      .from("enps_questions")
+      .select("id, question_text, display_order")
+      .eq("is_active", true)
+      .eq("question_type", "score_0_10")
+      .order("display_order", { ascending: true })
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
 }
 
 export async function getEnpsMonthlyTrendsForQuestion(
@@ -71,13 +77,20 @@ export async function getEnpsMonthlyTrendsForQuestion(
   await requireOwner();
   const supabase = await createServiceClient();
 
-  const { data: surveys } = await supabase
+  const { data: surveys, error: surveysError } = await supabase
     .from("enps_surveys")
     .select("id, title, year_month, created_at, end_date")
     .eq("is_active", true)
     .order("created_at", { ascending: true });
 
-  if (!surveys || surveys.length === 0) {
+  if (surveysError) {
+    console.error(
+      "getEnpsMonthlyTrendsForQuestion surveys error:",
+      surveysError,
+    );
+    throw new Error("アンケートの取得に失敗しました");
+  }
+  if (surveys.length === 0) {
     return [];
   }
 
@@ -90,24 +103,16 @@ export async function getEnpsMonthlyTrendsForQuestion(
 
   const surveyIds = surveys.map((s) => s.id);
 
-  let allResponses: MonthlyResponseRow[];
-  try {
-    allResponses = await fetchAllRows<MonthlyResponseRow>((from, to) =>
-      supabase
-        .from("enps_responses")
-        .select(
-          "survey_id, user_id, score_value, is_late_submission, created_at",
-        )
-        .in("survey_id", surveyIds)
-        .eq("question_id", questionId)
-        .not("score_value", "is", null)
-        .order("id", { ascending: true })
-        .range(from, to),
-    );
-  } catch (error) {
-    console.error("getEnpsMonthlyTrendsForQuestion responses error:", error);
-    return [];
-  }
+  const allResponses = await fetchAllRows<MonthlyResponseRow>((from, to) =>
+    supabase
+      .from("enps_responses")
+      .select("survey_id, user_id, score_value, is_late_submission, created_at")
+      .in("survey_id", surveyIds)
+      .eq("question_id", questionId)
+      .not("score_value", "is", null)
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
 
   const onTimeRows = allResponses.flatMap((r) => {
     if (
@@ -191,7 +196,7 @@ export async function getEnpsMonthlyTrendsForQuestion(
 
     if (surveyEnded) {
       const withScore = new Set<string>();
-      for (const r of allResponses || []) {
+      for (const r of allResponses) {
         if (r.survey_id !== survey.id) continue;
         if (r.score_value !== null && r.user_id) {
           withScore.add(r.user_id);
@@ -383,7 +388,7 @@ export async function getEnpsMonthlyScoreExportRows(
   let imputedIds: string[] = [];
   if (surveyEnded) {
     const withScore = new Set<string>();
-    for (const r of allResponses || []) {
+    for (const r of allResponses) {
       if (r.score_value !== null && r.user_id) {
         withScore.add(r.user_id);
       }

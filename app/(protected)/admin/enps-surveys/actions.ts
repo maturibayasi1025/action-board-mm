@@ -16,31 +16,30 @@ export async function getSurveys() {
 
   if (error) {
     console.error("アンケート一覧の取得エラー:", error);
-    return [];
+    throw new Error("アンケート一覧の取得に失敗しました");
   }
 
   // 回答数を取得
   const surveysWithResponseCount = await Promise.all(
     (surveys || []).map(async (survey) => {
-      const { count } = await supabase
+      const { count, error: countError } = await supabase
         .from("enps_responses")
         .select("*", { count: "exact", head: true })
         .eq("survey_id", survey.id);
+      if (countError) {
+        console.error("回答数の取得エラー:", countError);
+        throw new Error("回答数の取得に失敗しました");
+      }
 
       // 行数ではなく、回答したユニークユーザー数を算出する
-      let responders: { user_id: string }[] = [];
-      try {
-        responders = await fetchAllRows<{ user_id: string }>((from, to) =>
-          supabase
-            .from("enps_responses")
-            .select("user_id")
-            .eq("survey_id", survey.id)
-            .order("id", { ascending: true })
-            .range(from, to),
-        );
-      } catch (respondersError) {
-        console.error("ユニーク回答者数の取得エラー:", respondersError);
-      }
+      const responders = await fetchAllRows<{ user_id: string }>((from, to) =>
+        supabase
+          .from("enps_responses")
+          .select("user_id")
+          .eq("survey_id", survey.id)
+          .order("id", { ascending: true })
+          .range(from, to),
+      );
 
       const uniqueUsers = new Set(
         responders

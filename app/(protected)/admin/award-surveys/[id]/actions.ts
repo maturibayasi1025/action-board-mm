@@ -12,12 +12,14 @@ import {
   buildNormalizedNameIndex,
   resolveNominee,
 } from "@/lib/award/nomination-ranking";
+import { fetchAllRows } from "@/lib/supabase/fetch-all-rows";
 import { createServiceClient } from "@/lib/supabase/server";
 import { fetchUnansweredPrivateUsers } from "@/lib/survey/unanswered-candidates";
 import type {
   AwardGroupSummary,
   AwardNominationDetail,
 } from "@/lib/types/award-nomination";
+import type { Tables } from "@/lib/types/supabase";
 import { requireOwner } from "@/lib/utils/isOwner";
 
 const WINNER_COMMENT_GROUPS = [
@@ -56,15 +58,29 @@ export async function getAwardSurveyResponses(surveyId: string) {
   await requireOwner();
   const supabase = await createServiceClient();
 
-  const { data: questions } = await supabase
-    .from("award_questions")
-    .select(
-      "id, question_text, question_type, question_group, display_order, is_active",
-    )
-    .eq("is_active", true)
-    .order("display_order", { ascending: true });
+  const questions = await fetchAllRows<
+    Pick<
+      Tables<"award_questions">,
+      | "id"
+      | "question_text"
+      | "question_type"
+      | "question_group"
+      | "display_order"
+      | "is_active"
+    >
+  >((from, to) =>
+    supabase
+      .from("award_questions")
+      .select(
+        "id, question_text, question_type, question_group, display_order, is_active",
+      )
+      .eq("is_active", true)
+      .order("display_order", { ascending: true })
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
 
-  let responses: Array<{
+  const responses = await fetchAwardResponsesForSurvey<{
     id: string;
     question_id: string;
     text_value: string | null;
@@ -72,24 +88,12 @@ export async function getAwardSurveyResponses(surveyId: string) {
     created_at: string;
     user_id: string;
     is_late_submission: boolean | null;
-  }> = [];
-  try {
-    responses = await fetchAwardResponsesForSurvey(
-      supabase,
-      surveyId,
-      "id, question_id, text_value, nominee_user_id, created_at, user_id, is_late_submission",
-      { orderByCreatedAtDesc: true },
-    );
-  } catch (error) {
-    console.error("回答の取得エラー:", error);
-    return {
-      questions: questions || [],
-      responses: [],
-      nominationDetails: [] as AwardNominationDetail[],
-      lateNominationDetails: [] as AwardNominationDetail[],
-      winnerComments: [] as AwardGroupSummary[],
-    };
-  }
+  }>(
+    supabase,
+    surveyId,
+    "id, question_id, text_value, nominee_user_id, created_at, user_id, is_late_submission",
+    { orderByCreatedAtDesc: true },
+  );
 
   const userIds = Array.from(
     new Set([
@@ -142,7 +146,7 @@ export async function getAwardSurveyResponses(surveyId: string) {
     );
   }
 
-  const responsesWithUsers = (responses || []).map((r) => {
+  const responsesWithUsers = responses.map((r) => {
     const u = userMap.get(r.user_id);
     const nominee = r.nominee_user_id
       ? userMap.get(r.nominee_user_id)
@@ -164,7 +168,7 @@ export async function getAwardSurveyResponses(surveyId: string) {
     "team_value",
   ]);
 
-  const nominationQuestions = (questions || []).filter((q) => {
+  const nominationQuestions = questions.filter((q) => {
     if (!q.question_group || !NOMINATION_GROUPS.has(q.question_group)) {
       return false;
     }
@@ -246,14 +250,13 @@ export async function getAwardSurveyResponses(surveyId: string) {
   const nominationDetails = aggregateNominations(responsesWithUsers, false);
   const lateNominationDetails = aggregateNominations(responsesWithUsers, true);
 
-  const activeQuestions = questions || [];
   const regularResponses = responsesWithUsers.filter(
     (r) => !r.is_late_submission,
   );
 
   function aggregateWinnerComments(): AwardGroupSummary[] {
     return WINNER_COMMENT_GROUPS.map((group) => {
-      const groupQuestions = activeQuestions.filter(
+      const groupQuestions = questions.filter(
         (q) => q.question_group === group,
       );
       const nominationQuestion = groupQuestions.find(
@@ -332,7 +335,7 @@ export async function getAwardSurveyResponses(surveyId: string) {
   const winnerComments = aggregateWinnerComments();
 
   return {
-    questions: questions || [],
+    questions,
     responses: responsesWithUsers,
     nominationDetails,
     lateNominationDetails,

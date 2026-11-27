@@ -53,12 +53,20 @@ export async function getSurveyResponses(surveyId: string) {
   await requireOwner();
   const supabase = await createServiceClient();
 
-  // 質問を取得
-  const { data: questions } = await supabase
-    .from("enps_questions")
-    .select("id, question_text, question_type, display_order")
-    .eq("is_active", true)
-    .order("display_order", { ascending: true });
+  const questions = await fetchAllRows<{
+    id: string;
+    question_text: string;
+    question_type: string;
+    display_order: number;
+  }>((from, to) =>
+    supabase
+      .from("enps_questions")
+      .select("id, question_text, question_type, display_order")
+      .eq("is_active", true)
+      .order("display_order", { ascending: true })
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
 
   type ResponseRow = {
     id: string;
@@ -69,46 +77,35 @@ export async function getSurveyResponses(surveyId: string) {
     user_id: string;
     is_late_submission: boolean;
   };
-  let responses: ResponseRow[];
-  try {
-    responses = await fetchAllRows<ResponseRow>((from, to) =>
-      supabase
-        .from("enps_responses")
-        .select(
-          `
-          id,
-          question_id,
-          score_value,
-          text_value,
-          created_at,
-          user_id,
-          is_late_submission
-        `,
-        )
-        .eq("survey_id", surveyId)
-        .order("created_at", { ascending: false })
-        .order("id", { ascending: false })
-        .range(from, to),
-    );
-  } catch (error) {
-    console.error("回答の取得エラー:", error);
-    return {
-      questions: questions || [],
-      responses: [],
-      npsData: {},
-      lateNpsData: {},
-      uniqueRespondentCount: 0,
-      npsByBusinessUnitOnTime: {},
-      npsByBusinessUnitLate: {},
-      imputedDrilldownRows: [] as EnpsOrgDrilldownSourceRow[],
-    };
-  }
+  const responses = await fetchAllRows<ResponseRow>((from, to) =>
+    supabase
+      .from("enps_responses")
+      .select(
+        `
+        id,
+        question_id,
+        score_value,
+        text_value,
+        created_at,
+        user_id,
+        is_late_submission
+      `,
+      )
+      .eq("survey_id", surveyId)
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: false })
+      .range(from, to),
+  );
 
-  const { data: surveyRow } = await supabase
+  const { data: surveyRow, error: surveyError } = await supabase
     .from("enps_surveys")
     .select("end_date")
     .eq("id", surveyId)
     .single();
+  if (surveyError) {
+    console.error("アンケートの取得エラー:", surveyError);
+    throw new Error("アンケートの取得に失敗しました");
+  }
 
   const surveyEnded =
     surveyRow?.end_date != null &&
@@ -129,7 +126,7 @@ export async function getSurveyResponses(surveyId: string) {
       allPrivateIds.filter((id) => !excludedUserIds.has(id)),
     );
 
-    const scoreQuestionsForImpute = (questions || []).filter(
+    const scoreQuestionsForImpute = questions.filter(
       (q) => q.question_type === "score_0_10",
     );
     const imputedUnion = new Set<string>();
@@ -199,7 +196,7 @@ export async function getSurveyResponses(surveyId: string) {
   });
 
   // NPS計算用のデータを準備（スコア質問のみ）
-  const scoreQuestions = (questions || []).filter(
+  const scoreQuestions = questions.filter(
     (q) => q.question_type === "score_0_10",
   );
 
@@ -318,7 +315,7 @@ export async function getSurveyResponses(surveyId: string) {
   );
 
   return {
-    questions: questions || [],
+    questions,
     responses: responsesWithUsers || [],
     npsData,
     lateNpsData,
@@ -340,14 +337,19 @@ export async function getAllSurveysNps() {
   await requireOwner();
   const supabase = await createServiceClient();
 
-  const { data: firstScoreQuestion } = await supabase
+  const { data: firstScoreQuestion, error } = await supabase
     .from("enps_questions")
     .select("id")
     .eq("is_active", true)
     .eq("question_type", "score_0_10")
     .order("display_order", { ascending: true })
+    .order("id", { ascending: true })
     .limit(1)
     .maybeSingle();
+  if (error) {
+    console.error("設問の取得エラー:", error);
+    throw new Error("設問の取得に失敗しました");
+  }
 
   if (!firstScoreQuestion) {
     return [];
