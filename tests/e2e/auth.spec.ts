@@ -1,9 +1,31 @@
+import type { Page } from "@playwright/test";
 import {
   assertAuthState,
   expect,
   generateRandomEmail,
   test,
 } from "../e2e-test-helpers";
+
+async function fillSignUpCredentials(
+  page: Page,
+  email: string,
+  password: string,
+) {
+  const emailField = page.getByRole("textbox", { name: "メールアドレス" });
+  const passwordField = page.getByLabel("パスワード");
+  await emailField.click();
+  await emailField.fill(email);
+  await expect(emailField).toHaveValue(email);
+  await passwordField.fill(password);
+  await expect(passwordField).toHaveValue(password);
+  return {
+    emailField,
+    passwordField,
+    terms: page.getByRole("checkbox", {
+      name: /利用規約およびプライバシーポリシーに同意する/,
+    }),
+  };
+}
 
 test.describe("ユーザー登録とログイン", () => {
   test.beforeEach(async ({ page }) => {
@@ -24,11 +46,15 @@ test.describe("ユーザー登録とログイン", () => {
 
     await expect(page).toHaveURL("/sign-up");
 
-    await page.locator("#terms").click();
     const testEmail = generateRandomEmail();
     const testPassword = "TestPassword123!";
-    await page.fill('input[name="email"]', testEmail);
-    await page.fill('input[name="password"]', testPassword);
+    const { terms } = await fillSignUpCredentials(
+      page,
+      testEmail,
+      testPassword,
+    );
+    await terms.check();
+    await expect(terms).toBeChecked();
     await page.getByRole("button", { name: "アカウントを作成" }).click();
 
     await expect(page).toHaveURL(/\/sign-up-success/, { timeout: 10000 });
@@ -104,24 +130,21 @@ test.describe("ユーザー登録とログイン", () => {
     ).toBeVisible();
     await expect(page.getByRole("link", { name: "こちら" })).toBeVisible();
 
-    await expect(
-      page.getByRole("button", { name: "アカウントを作成" }),
-    ).toBeDisabled();
+    const createAccount = page.getByRole("button", {
+      name: "アカウントを作成",
+    });
+    await expect(createAccount).toBeDisabled();
 
-    await page.fill('input[name="email"]', "test@example.com");
-    await expect(
-      page.getByRole("button", { name: "アカウントを作成" }),
-    ).toBeDisabled();
+    const { terms } = await fillSignUpCredentials(
+      page,
+      "test@example.com",
+      "TestPassword123!",
+    );
+    await expect(createAccount).toBeDisabled();
 
-    await page.fill('input[name="password"]', "TestPassword123!");
-    await expect(
-      page.getByRole("button", { name: "アカウントを作成" }),
-    ).toBeDisabled();
-
-    await page.locator("#terms").click();
-    await expect(
-      page.getByRole("button", { name: "アカウントを作成" }),
-    ).toBeEnabled();
+    await terms.check();
+    await expect(terms).toBeChecked();
+    await expect(createAccount).toBeEnabled();
   });
 
   test("/sign-up-email は /sign-up にリダイレクトされる", async ({ page }) => {
