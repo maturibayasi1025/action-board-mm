@@ -3,11 +3,13 @@ import type GlobalErrorComponent from "./global-error";
 
 const SECRET_MESSAGE = "relation private_users does not exist (dummy)";
 const SECRET_STACK_FRAME = "at queryPrivateUsers (lib/services/dummy.ts:42:7)";
+const SECRET_NAME = "DummyInternalError";
 const DIGEST = "1234567890";
 
 function makeError(digest?: string) {
   const error = new Error(SECRET_MESSAGE) as Error & { digest?: string };
-  error.stack = `Error: ${SECRET_MESSAGE}\n    ${SECRET_STACK_FRAME}`;
+  error.name = SECRET_NAME;
+  error.stack = `${SECRET_NAME}: ${SECRET_MESSAGE}\n    ${SECRET_STACK_FRAME}`;
   if (digest) error.digest = digest;
   return error;
 }
@@ -53,8 +55,8 @@ describe("GlobalError", () => {
 
       const text = container.textContent ?? "";
       expect(text).not.toContain(SECRET_MESSAGE);
+      expect(text).not.toContain(SECRET_NAME);
       expect(text).not.toContain(SECRET_STACK_FRAME);
-      expect(text).not.toContain("Error Name");
       expect(text).not.toContain("スタックトレース");
     });
 

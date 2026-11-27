@@ -15,8 +15,8 @@ Server Componentsレンダリングエラー（Digest: 1126964366）によりSen
    - React Error Boundary統合
 
 2. **グローバルエラーハンドラー** (`/app/global-error.tsx`)
-   - カスタムロガー統合
-   - 詳細なデバッグ情報表示
+   - カスタムロガー統合（エラーの詳細は logger に記録し、画面には出さない）
+   - 画面には利用者向けの文言、エラーID（digest があるときのみ）、再試行ボタンだけを表示
 
 3. **APIエンドポイント** (`/app/api/logs/route.ts`)
    - エラーログの収集
