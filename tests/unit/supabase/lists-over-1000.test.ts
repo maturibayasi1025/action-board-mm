@@ -253,7 +253,7 @@ describe("全件前提の取得は 1000 行を超えても欠けも重複もな�
     expect(all.map((m) => m.id)).toEqual(
       range(MISSIONS).map(missionId).reverse(),
     );
-    expect(sum(all.map((m) => m.praisedExternalUsers.length))).toBe(
+    expect(sum(all.map((m) => m.praisedExternalUsers?.length ?? 0))).toBe(
       WITH_EXTERNAL,
     );
     expect(all.every((m) => m.createdByName !== "不明なユーザー")).toBe(true);
