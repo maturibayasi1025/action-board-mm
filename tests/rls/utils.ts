@@ -16,6 +16,11 @@ export const adminClient = createClient<Database>(
   process.env.SUPABASE_SERVICE_ROLE_KEY,
 );
 
+function newTestEmail(): string {
+  // Date.now() だけだと、CI の並列ワーカーが同じミリ秒で衝突する
+  return `test-${Date.now()}-${crypto.randomUUID()}@example.com`;
+}
+
 // テストユーザーの情報
 export type TestUser = {
   email: string;
@@ -27,7 +32,7 @@ export type TestUser = {
  * テストユーザーを作成し、認証情報を持つクライアントを返す
  */
 export async function createTestUser(
-  email = `test-${Date.now()}@example.com`,
+  email = newTestEmail(),
   password = "password123",
 ): Promise<{
   user: TestUser;
@@ -40,15 +45,32 @@ export async function createTestUser(
     throw new Error("NEXT_PUBLIC_SUPABASE_URLが設定されていません");
   }
 
-  // ユーザーを作成
-  const { data: authData, error: authError } =
-    await adminClient.auth.admin.createUser({
-      email,
+  // 並列実行で Auth の作成が一時的に失敗することがあるので、新しいメールでやり直す
+  let createdEmail = email;
+  let authData:
+    | Awaited<ReturnType<typeof adminClient.auth.admin.createUser>>["data"]
+    | null = null;
+  let authError: { message: string } | null = null;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const emailToUse = attempt === 0 ? email : newTestEmail();
+    const created = await adminClient.auth.admin.createUser({
+      email: emailToUse,
       password,
       email_confirm: true,
     });
+    if (!created.error && created.data.user) {
+      authData = created.data;
+      createdEmail = emailToUse;
+      authError = null;
+      break;
+    }
+    authError = created.error;
+    if (attempt < 2) {
+      await new Promise((resolve) => setTimeout(resolve, 50 * (attempt + 1)));
+    }
+  }
 
-  if (authError || !authData.user) {
+  if (authError || !authData?.user) {
     throw new Error(
       `テストユーザーの作成に失敗しました: ${authError?.message}`,
     );
@@ -76,7 +98,7 @@ export async function createTestUser(
   const { data: sessionData, error: sessionError } =
     await adminClient.auth.admin.generateLink({
       type: "magiclink",
-      email,
+      email: createdEmail,
     });
 
   if (sessionError || !sessionData.properties?.hashed_token) {
@@ -90,7 +112,7 @@ export async function createTestUser(
   );
 
   const { error: signInError } = await userClient.auth.signInWithPassword({
-    email,
+    email: createdEmail,
     password,
   });
 
@@ -100,7 +122,7 @@ export async function createTestUser(
 
   return {
     user: {
-      email,
+      email: createdEmail,
       password,
       userId: authId,
     },
