@@ -2,6 +2,7 @@
  * @jest-environment node
  */
 import Home from "@/app/page";
+import { SupabaseQueryError } from "@/lib/supabase/fetch-all-rows";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import type { ReactNode } from "react";
 import { prerenderToNodeStream } from "react-dom/static";
@@ -62,6 +63,8 @@ const USER_NAME = "テスト太郎";
 const MISSIONS = 3;
 const TOP_BADGE_TITLE = "グッジョブ0 3位";
 const FAILURE_DETAIL = "connection error";
+const LOG_PREFIX = "Error fetching user top badge:";
+const CONFIG_ERROR = "Supabase service role environment variables are required";
 const missionId = (i: number) => `mission-${pad(i)}`;
 const range = (n: number) => Array.from({ length: n }, (_, i) => i);
 
@@ -119,17 +122,20 @@ function buildServiceTables() {
   };
 }
 
-async function renderTop(failingServiceTables: string[] = []) {
-  jest
-    .mocked(createClient)
-    .mockResolvedValue(
-      createFakePostgrest(buildClientTables(), { authUserId: USER_ID }),
-    );
+function mockServiceTables(failingServiceTables: string[] = []) {
   jest.mocked(createServiceClient).mockResolvedValue(
     createFakePostgrest(buildServiceTables(), {
       failingTables: failingServiceTables,
     }),
   );
+}
+
+async function renderTop() {
+  jest
+    .mocked(createClient)
+    .mockResolvedValue(
+      createFakePostgrest(buildClientTables(), { authUserId: USER_ID }),
+    );
   const { prelude } = await prerenderToNodeStream(
     await Home({ searchParams: Promise.resolve({}) }),
   );
@@ -163,10 +169,12 @@ afterEach(() => {
 
 describe("トップのヒーローの最高ランクバッジ", () => {
   it("取得に成功すれば、名前・レベルと並んで最高ランクのバッジがグッジョブ名付きで出る", async () => {
+    mockServiceTables();
     const html = await renderTop();
     expectNormalTop(html);
     expect(html).toContain(TOP_BADGE_TITLE);
     expect(html).not.toContain("総合ランキング 40位");
+    expect(consoleError).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -175,12 +183,25 @@ describe("トップのヒーローの最高ランクバッジ", () => {
   ])(
     "%sの取得に失敗しても、バッジだけを出さず、ヒーロー・各セクション・通常レイアウトは残り、失敗の内容は画面に出ない",
     async (_label, table) => {
-      const html = await renderTop([table]);
+      mockServiceTables([table]);
+      const html = await renderTop();
       expectNormalTop(html);
       expect(html).not.toContain(TOP_BADGE_TITLE);
       expect(html).not.toContain("ランキング");
       expect(html).not.toContain(FAILURE_DETAIL);
-      expect(consoleError).toHaveBeenCalled();
+      expect(consoleError).toHaveBeenCalledTimes(1);
+      const [message, error] = consoleError.mock.calls[0];
+      expect(message).toContain(LOG_PREFIX);
+      expect(error).toBeInstanceOf(SupabaseQueryError);
+      expect(error.message).toBe(FAILURE_DETAIL);
     },
   );
+
+  it("取得の失敗ではない例外（サービス用の環境変数がない）は、バッジを消して隠さず、描画のエラーとして伝わる", async () => {
+    jest.mocked(createServiceClient).mockRejectedValue(new Error(CONFIG_ERROR));
+    await expect(renderTop()).rejects.toThrow(CONFIG_ERROR);
+    for (const [message] of consoleError.mock.calls) {
+      expect(String(message)).not.toContain(LOG_PREFIX);
+    }
+  });
 });

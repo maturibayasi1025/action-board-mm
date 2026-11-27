@@ -14,6 +14,14 @@
 
 export const DEFAULT_PAGE_SIZE = 1000;
 
+/**
+ * Supabase への問い合わせがエラーを返したときの例外。
+ * 呼び出し側が「取得の失敗」と、それ以外の例外（実装の誤りなど）を見分けるために使う。
+ */
+export class SupabaseQueryError extends Error {
+  name = "SupabaseQueryError";
+}
+
 type PageResult<T> = {
   data: T[] | null;
   error: { message: string } | null;
@@ -34,7 +42,7 @@ export async function fetchAllRows<T>(
   while (true) {
     const { data, error } = await fetchPage(from, from + pageSize - 1);
     if (error) {
-      throw new Error(error.message);
+      throw new SupabaseQueryError(error.message);
     }
     const page = data ?? [];
     if (page.length === 0) {
@@ -65,7 +73,7 @@ export async function fetchByIdChunks<T>(
     const chunk = ids.slice(i, i + chunkSize);
     const { data, error } = await fetchChunk(chunk);
     if (error) {
-      throw new Error(error.message);
+      throw new SupabaseQueryError(error.message);
     }
     all.push(...(data ?? []));
   }
