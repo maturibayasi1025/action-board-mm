@@ -1,5 +1,6 @@
 "use server";
 
+import { fetchAllRows } from "@/lib/supabase/fetch-all-rows";
 import { createServiceClient } from "@/lib/supabase/server";
 import { requireOwner } from "@/lib/utils/isOwner";
 import { revalidatePath } from "next/cache";
@@ -27,17 +28,22 @@ export async function getSurveys() {
         .eq("survey_id", survey.id);
 
       // 行数ではなく、回答したユニークユーザー数を算出する
-      const { data: responders, error: respondersError } = await supabase
-        .from("enps_responses")
-        .select("user_id")
-        .eq("survey_id", survey.id);
-
-      if (respondersError) {
+      let responders: { user_id: string }[] = [];
+      try {
+        responders = await fetchAllRows<{ user_id: string }>((from, to) =>
+          supabase
+            .from("enps_responses")
+            .select("user_id")
+            .eq("survey_id", survey.id)
+            .order("id", { ascending: true })
+            .range(from, to),
+        );
+      } catch (respondersError) {
         console.error("ユニーク回答者数の取得エラー:", respondersError);
       }
 
       const uniqueUsers = new Set(
-        (responders || [])
+        responders
           .map((responder) => responder.user_id)
           .filter((userId): userId is string => typeof userId === "string"),
       ).size;
