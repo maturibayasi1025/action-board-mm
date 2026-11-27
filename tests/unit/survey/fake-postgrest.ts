@@ -4,6 +4,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 /**
  * PostgREST の既定上限（1 リクエスト最大 1000 行）を再現する最小限の Supabase クライアント。
  * `maxRows` で上限を変えられる（サーバ側の max_rows を既定より小さくした構成の再現）。
+ * `failingTables` に挙げたテーブルへの問い合わせは、すべてエラーを返す。
  * 超過分はエラーにせず静かに切り捨てる。order で決まらない並び（order なし、または同順位）は
  * リクエストごとに変わる（Postgres はその並びを保証しない）。
  */
@@ -28,9 +29,10 @@ const isNull = (v: unknown) => v === null || v === undefined;
 
 export function createFakePostgrest(
   tables: Record<string, Row[]>,
-  options?: { maxRows?: number },
+  options?: { maxRows?: number; failingTables?: string[] },
 ) {
   const maxRows = options?.maxRows ?? POSTGREST_MAX_ROWS;
+  const failingTables = new Set(options?.failingTables ?? []);
   let requestCount = 0;
 
   const from = (table: string) => {
@@ -48,6 +50,13 @@ export function createFakePostgrest(
 
     const execute = () => {
       requestCount += 1;
+      if (failingTables.has(table)) {
+        return {
+          data: null,
+          error: { message: "connection error" },
+          count: null,
+        };
+      }
       if (inTooLong) {
         return { data: null, error: { message: "URI Too Long" }, count: null };
       }
