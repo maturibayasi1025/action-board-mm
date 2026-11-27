@@ -3,9 +3,14 @@
  */
 import { sendSlackReminderToUnanswered } from "@/app/(protected)/admin/_actions/slack-unanswered-reminder";
 import { getAwardSurveyResponses } from "@/app/(protected)/admin/award-surveys/[id]/actions";
+import { getTotalUsers as getAwardTotalUsers } from "@/app/(protected)/admin/award-surveys/actions";
 import { getSurveyResponses } from "@/app/(protected)/admin/enps-surveys/[id]/actions";
-import { getSurveys } from "@/app/(protected)/admin/enps-surveys/actions";
+import {
+  getTotalUsers as getEnpsTotalUsers,
+  getSurveys,
+} from "@/app/(protected)/admin/enps-surveys/actions";
 import { getEnpsMonthlyTrendsForQuestion } from "@/app/(protected)/admin/enps-surveys/trends/actions";
+import { getAwardDashboardSummary } from "@/app/(protected)/admin/statistics/actions";
 import { createServiceClient } from "@/lib/supabase/server";
 import { createFakePostgrest } from "./fake-postgrest";
 
@@ -166,6 +171,17 @@ describe("集計は取得に失敗したら空や 0 を返さず例外にする"
     await expect(getAwardSurveyResponses(AWARD_SURVEY_ID)).rejects.toThrow();
   });
 
+  it("eNPS・表彰の対象者数", async () => {
+    useClient(["private_users"]);
+    await expect(getEnpsTotalUsers()).rejects.toThrow();
+    await expect(getAwardTotalUsers()).rejects.toThrow();
+  });
+
+  it("統計ダッシュボードの最新表彰アンケート", async () => {
+    useClient(["award_surveys"]);
+    await expect(getAwardDashboardSummary()).rejects.toThrow();
+  });
+
   it("取得できれば値を返す（同じ構成で成功が観測できることの確認）", async () => {
     useClient();
     const [survey] = await getSurveys();
@@ -176,5 +192,7 @@ describe("集計は取得に失敗したら空や 0 を返さず例外にする"
     expect(point.respondent_count).toBe(2);
     const award = await getAwardSurveyResponses(AWARD_SURVEY_ID);
     expect(award.responses).toHaveLength(1);
+    expect(await getEnpsTotalUsers()).toBe(2);
+    expect(await getAwardTotalUsers()).toBe(2);
   });
 });
