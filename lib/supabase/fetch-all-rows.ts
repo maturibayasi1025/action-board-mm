@@ -7,6 +7,9 @@
  *
  * 呼び出し側は `.range` の前に一意キー（通常は `id`）で `order` すること。
  * 並びが安定しないと、ページを跨いで行の欠落と重複が起きる。
+ *
+ * サーバ側の上限（max_rows）が pageSize より小さいと、末尾でなくても短いページが返る。
+ * そのため短いページでは止めず、返ってきた行数だけ進めて、空のページが返るまで続ける。
  */
 
 export const DEFAULT_PAGE_SIZE = 1000;
@@ -34,12 +37,11 @@ export async function fetchAllRows<T>(
       throw new Error(error.message);
     }
     const page = data ?? [];
-    all.push(...page);
-
-    if (page.length < pageSize) {
+    if (page.length === 0) {
       return all;
     }
-    from += pageSize;
+    all.push(...page);
+    from += page.length;
   }
 }
 
