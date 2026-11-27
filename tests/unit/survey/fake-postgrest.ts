@@ -3,6 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 /**
  * PostgREST の既定上限（1 リクエスト最大 1000 行）を再現する最小限の Supabase クライアント。
+ * `maxRows` で上限を変えられる（サーバ側の max_rows を既定より小さくした構成の再現）。
  * 超過分はエラーにせず静かに切り捨てる。order で決まらない並び（order なし、または同順位）は
  * リクエストごとに変わる（Postgres はその並びを保証しない）。
  */
@@ -25,7 +26,11 @@ function compare(a: unknown, b: unknown): number {
 
 const isNull = (v: unknown) => v === null || v === undefined;
 
-export function createFakePostgrest(tables: Record<string, Row[]>) {
+export function createFakePostgrest(
+  tables: Record<string, Row[]>,
+  options?: { maxRows?: number },
+) {
+  const maxRows = options?.maxRows ?? POSTGREST_MAX_ROWS;
   let requestCount = 0;
 
   const from = (table: string) => {
@@ -74,7 +79,7 @@ export function createFakePostgrest(tables: Record<string, Row[]>) {
       const [start, end] = range ?? [0, rows.length - 1];
       const page = rows
         .slice(start, end + 1)
-        .slice(0, POSTGREST_MAX_ROWS)
+        .slice(0, maxRows)
         .map((row) => ({ ...row }));
       if (single) {
         const first = page[0] ?? null;
