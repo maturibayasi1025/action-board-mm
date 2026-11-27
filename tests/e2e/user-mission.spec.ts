@@ -103,7 +103,7 @@ test.describe("アクションボード（Web版）のe2eテスト", () => {
     await expect(signedInPage.getByText("活動タイムライン")).toBeVisible();
   });
 
-  test("グッジョブページ遷移 → グッジョブ完了 → グッジョブ取消が正常に動作する", async ({
+  test("グッジョブページ遷移 → グッジョブ完了でポイントとランキングに反映される", async ({
     signedInPage,
   }) => {
     await assertAuthState(signedInPage, true);
@@ -205,25 +205,29 @@ test.describe("アクションボード（Web版）のe2eテスト", () => {
         .and(signedInPage.locator(`a[href="${userProfileHref}"]`))
         .first(),
     ).toBeVisible({ timeout: 10000 });
+  });
 
-    // グッジョブ取消後のポイントの変動を確認
-    const levelUpDialog = signedInPage.getByRole("dialog", {
-      name: /グッジョブレベルが\s*アップしました！/,
-    });
-    await signedInPage.addLocatorHandler(levelUpDialog, async (dialog) => {
-      await dialog.getByRole("button", { name: "Close" }).click();
-    });
-    await signedInPage.goto("/");
-    const detailLink = signedInPage
+  test("グッジョブ完了 → 提出履歴から取消すとポイントが戻る", async ({
+    signedInPage,
+  }) => {
+    await assertAuthState(signedInPage, true);
+
+    await signedInPage
       .getByRole("link", { name: "詳細を見る →" })
-      .first();
-    await expect(detailLink).toBeVisible();
-    await detailLink.click();
+      .first()
+      .click();
     await expect(signedInPage).toHaveURL(/\/missions\/[^\/]+$/, {
       timeout: 10000,
     });
-    await signedInPage.removeLocatorHandler(levelUpDialog);
+    await signedInPage
+      .getByRole("button", { name: "グッジョブ完了を記録する" })
+      .click();
+    await expect(signedInPage.getByText("おめでとうございます！")).toBeVisible({
+      timeout: 10000,
+    });
+    await signedInPage.getByRole("button", { name: "このまま閉じる" }).click();
 
+    // 投稿後に取り直した提出履歴から取り消す
     await expect(signedInPage.getByText("あなたの達成履歴")).toBeVisible({
       timeout: 10000,
     });
@@ -258,6 +262,12 @@ test.describe("アクションボード（Web版）のe2eテスト", () => {
 
     await signedInPage.waitForTimeout(2000);
 
+    const levelUpDialog = signedInPage.getByRole("dialog", {
+      name: /グッジョブレベルが\s*アップしました！/,
+    });
+    await signedInPage.addLocatorHandler(levelUpDialog, async (dialog) => {
+      await dialog.getByRole("button", { name: "Close" }).click();
+    });
     await signedInPage.goto("/");
     await expect(
       signedInPage
