@@ -199,6 +199,7 @@ describe("グッジョブ詳細の提出履歴（投稿後の取り直し）", (
     ).map((li) => li.dataset.id);
 
   const initial = async () => {
+    useServerTables(buildTables());
     const page = await getMissionPageData(MISSION_ID, USER_ID);
     return (page?.submissionHistory ?? []).slice(1);
   };
