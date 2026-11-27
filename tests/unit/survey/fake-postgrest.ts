@@ -13,8 +13,15 @@ export const POSTGREST_MAX_ROWS = 1000;
 /**
  * `.in()` の値が多すぎると URL 長の上限を超えて失敗する。分割の有無をテストで判別できるよう、
  * 既定の分割サイズ（200）より大きく、テストデータの件数より小さい値で失敗させる。
+ * 本番の固定上限ではなく、URL が値の数に比例して伸びる取得を見分けるためのテスト用の値である。
  */
 export const MAX_IN_VALUES = 500;
+
+/**
+ * このアプリの ID 列は uuid 型で、`in` / `not in` に空文字列を渡すと Postgres は
+ * `invalid input syntax for type uuid` で失敗する。偽クライアントでも同じく失敗させる。
+ */
+const UUID_SYNTAX_ERROR = 'invalid input syntax for type uuid: ""';
 
 type Row = Record<string, unknown>;
 type Filter = (row: Row) => boolean;
@@ -27,9 +34,21 @@ function compare(a: unknown, b: unknown): number {
 
 const isNull = (v: unknown) => v === null || v === undefined;
 
+/** `missions.max_achievement_count` のような埋め込み先の列も引けるようにする */
+function valueAt(row: Row, column: string): unknown {
+  return column.split(".").reduce<unknown>((value, key) => {
+    if (Array.isArray(value)) return value[0]?.[key];
+    return (value as Row | null | undefined)?.[key];
+  }, row);
+}
+
 export function createFakePostgrest(
   tables: Record<string, Row[]>,
-  options?: { maxRows?: number; failingTables?: string[] },
+  options?: {
+    maxRows?: number;
+    failingTables?: string[];
+    authUserId?: string | null;
+  },
 ) {
   const maxRows = options?.maxRows ?? POSTGREST_MAX_ROWS;
   const failingTables = new Set(options?.failingTables ?? []);
@@ -47,6 +66,8 @@ export function createFakePostgrest(
     let headCount = false;
     let single: "single" | "maybeSingle" | null = null;
     let inTooLong = false;
+    let invalidUuid = false;
+    let update: Row | null = null;
 
     const execute = () => {
       requestCount += 1;
@@ -60,7 +81,18 @@ export function createFakePostgrest(
       if (inTooLong) {
         return { data: null, error: { message: "URI Too Long" }, count: null };
       }
+      if (invalidUuid) {
+        return {
+          data: null,
+          error: { message: UUID_SYNTAX_ERROR },
+          count: null,
+        };
+      }
       let rows = source.filter((row) => filters.every((f) => f(row)));
+      if (update) {
+        for (const row of rows) Object.assign(row, update);
+        return { data: null, error: null, count: null };
+      }
       const total = rows.length;
       if (headCount) {
         return { data: null, error: null, count: total };
@@ -105,12 +137,16 @@ export function createFakePostgrest(
         headCount = Boolean(options?.head);
         return builder;
       },
+      update: (values: Row) => {
+        update = values;
+        return builder;
+      },
       eq: (column: string, value: unknown) => {
         filters.push((row) => row[column] === value);
         return builder;
       },
       is: (column: string, value: null) => {
-        filters.push((row) => (row[column] ?? null) === value);
+        filters.push((row) => (valueAt(row, column) ?? null) === value);
         return builder;
       },
       not: (column: string, op: "is" | "in", value: null | string) => {
@@ -121,6 +157,9 @@ export function createFakePostgrest(
             .map((v) => v.replace(/^"|"$/g, ""));
           if (values.length > MAX_IN_VALUES) {
             inTooLong = true;
+          }
+          if (values.includes("")) {
+            invalidUuid = true;
           }
           const set = new Set<unknown>(values);
           filters.push((row) => !set.has(row[column]));
@@ -156,6 +195,9 @@ export function createFakePostgrest(
       in: (column: string, values: unknown[]) => {
         if (values.length > MAX_IN_VALUES) {
           inTooLong = true;
+        }
+        if (values.includes("")) {
+          invalidUuid = true;
         }
         const set = new Set(values);
         filters.push((row) => set.has(row[column]));
@@ -207,7 +249,24 @@ export function createFakePostgrest(
     return builder;
   };
 
-  return { from } as unknown as SupabaseClient<Database>;
+  const auth = {
+    getUser: async () => ({
+      data: {
+        user: options?.authUserId ? { id: options.authUserId } : null,
+      },
+      error: null,
+    }),
+  };
+  const storage = {
+    from: () => ({
+      createSignedUrl: async (path: string) => ({
+        data: { signedUrl: `signed:${path}` },
+        error: null,
+      }),
+    }),
+  };
+
+  return { from, auth, storage } as unknown as SupabaseClient<Database>;
 }
 
 export function pad(n: number): string {
