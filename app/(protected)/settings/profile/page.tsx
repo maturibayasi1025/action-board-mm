@@ -1,4 +1,5 @@
 import type { Message } from "@/components/form-message";
+import { fetchAllRows } from "@/lib/supabase/fetch-all-rows";
 import { createClient } from "@/lib/supabase/server";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { redirect } from "next/navigation";
@@ -54,17 +55,26 @@ export default async function ProfileSettingsPage({
       .eq("id", user.id)
       .single();
 
-    const [{ data: buCompanies }, { data: buUnits }] = await Promise.all([
-      supabase
-        .from("companies")
-        .select("id, name")
-        .eq("is_active", true)
-        .order("display_order"),
-      supabase
-        .from("business_units")
-        .select("id, company_id, name")
-        .eq("is_active", true)
-        .order("display_order"),
+    const [buCompanies, buUnits] = await Promise.all([
+      fetchAllRows<{ id: string; name: string }>((from, to) =>
+        supabase
+          .from("companies")
+          .select("id, name")
+          .eq("is_active", true)
+          .order("display_order")
+          .order("id")
+          .range(from, to),
+      ),
+      fetchAllRows<{ id: string; company_id: string; name: string }>(
+        (from, to) =>
+          supabase
+            .from("business_units")
+            .select("id, company_id, name")
+            .eq("is_active", true)
+            .order("display_order")
+            .order("id")
+            .range(from, to),
+      ),
     ]);
 
     console.log("[Profile Page] Fetch result:", {
@@ -157,8 +167,8 @@ export default async function ProfileSettingsPage({
           message={params}
           isNew={isNew}
           businessUnitOptions={{
-            companies: buCompanies ?? [],
-            units: buUnits ?? [],
+            companies: buCompanies,
+            units: buUnits,
           }}
           initialProfile={{
             name: privateUser?.name || user.user_metadata?.name || "",

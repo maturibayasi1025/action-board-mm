@@ -19,6 +19,8 @@ import {
   type StatisticsDashboardData,
   getGoodjobRangeForPreset,
 } from "@/app/(protected)/admin/statistics/dashboard-model";
+import type { AwardNominationQuestion } from "@/lib/award/nomination-ranking";
+import { fetchAllRows } from "@/lib/supabase/fetch-all-rows";
 import { createServiceClient } from "@/lib/supabase/server";
 import { requireOwner } from "@/lib/utils/isOwner";
 
@@ -95,12 +97,17 @@ export async function getAwardDashboardSummary(): Promise<AwardDashboardSummary 
     getAwardUnansweredUsers(survey.id),
   ]);
 
-  const { data: masterQuestions } = await supabase
-    .from("award_questions")
-    .select(
-      "id, question_text, question_type, question_group, display_order, is_active",
-    )
-    .order("display_order", { ascending: true });
+  const masterQuestions = await fetchAllRows<AwardNominationQuestion>(
+    (from, to) =>
+      supabase
+        .from("award_questions")
+        .select(
+          "id, question_text, question_type, question_group, display_order, is_active",
+        )
+        .order("display_order", { ascending: true })
+        .order("id", { ascending: true })
+        .range(from, to),
+  );
 
   const uniqueResponders = new Set(
     detail.responses.map((r) => r.user_id).filter(Boolean),
@@ -123,7 +130,7 @@ export async function getAwardDashboardSummary(): Promise<AwardDashboardSummary 
   const responseRows = detail.responses;
 
   function pickNominationQuestionForGroup(group: string) {
-    const groupQuestions = (masterQuestions ?? []).filter(
+    const groupQuestions = masterQuestions.filter(
       (q) =>
         q.question_group === group &&
         q.is_active &&

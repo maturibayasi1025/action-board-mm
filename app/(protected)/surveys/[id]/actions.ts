@@ -1,5 +1,6 @@
 "use server";
 
+import { fetchAllRows } from "@/lib/supabase/fetch-all-rows";
 import { logPostgrestError } from "@/lib/supabase/log-postgrest-error";
 import { createClient } from "@/lib/supabase/server";
 import { mapSurveyRpcErrorMessage } from "@/lib/survey/map-survey-rpc-error";
@@ -202,18 +203,21 @@ export async function getSurvey(surveyId: string) {
 export async function getSurveyQuestions(): Promise<EnpsQuestionRow[]> {
   const supabase = await createClient();
 
-  const { data: questions, error } = await supabase
-    .from("enps_questions")
-    .select("*")
-    .eq("is_active", true)
-    .order("display_order", { ascending: true });
-
-  if (error) {
+  try {
+    return await fetchAllRows<EnpsQuestionRow>((from, to) =>
+      supabase
+        .from("enps_questions")
+        .select("*")
+        .eq("is_active", true)
+        .order("display_order", { ascending: true })
+        .order("id", { ascending: true })
+        .range(from, to)
+        .returns<EnpsQuestionRow[]>(),
+    );
+  } catch (error) {
     console.error("質問の取得エラー:", error);
     return [];
   }
-
-  return (questions || []) as EnpsQuestionRow[];
 }
 
 export async function getUserResponses(surveyId: string) {

@@ -1,3 +1,4 @@
+import { fetchAllRows } from "@/lib/supabase/fetch-all-rows";
 import { createClient } from "@/lib/supabase/server";
 import type { Tables } from "@/lib/types/supabase";
 import type { Database } from "@/lib/types/supabase";
@@ -37,18 +38,52 @@ export default async function MissionsByCategory({
   }
 
   // 全体の達成数取得
-  const { data: achievementCounts } = await supabase
-    .from("mission_achievement_count_view")
-    .select("mission_id, achievement_count");
+  const achievementCounts = await fetchAllRows<{
+    mission_id: string | null;
+    achievement_count: number | null;
+  }>((from, to) =>
+    supabase
+      .from("mission_achievement_count_view")
+      .select("mission_id, achievement_count")
+      .order("mission_id", { ascending: true })
+      .range(from, to),
+  ).catch((error) => {
+    console.error("達成数の取得エラー:", error);
+    return [];
+  });
 
   const achievementCountMap = new Map(
-    achievementCounts?.map((a) => [a.mission_id, a.achievement_count]) ?? [],
+    achievementCounts.map((a) => [a.mission_id, a.achievement_count]),
   );
 
   // View からグッジョブデータ取得
-  const { data, error } = await supabase
-    .from("mission_category_view")
-    .select(`
+  const data = await fetchAllRows<
+    Pick<
+      MissionCategoryViewRow,
+      | "category_id"
+      | "category_title"
+      | "category_kbn"
+      | "category_sort_no"
+      | "mission_id"
+      | "title"
+      | "icon_url"
+      | "difficulty"
+      | "content"
+      | "created_at"
+      | "artifact_label"
+      | "max_achievement_count"
+      | "event_date"
+      | "is_featured"
+      | "updated_at"
+      | "is_hidden"
+      | "ogp_image_url"
+      | "required_artifact_type"
+      | "link_sort_no"
+    >
+  >((from, to) =>
+    supabase
+      .from("mission_category_view")
+      .select(`
       category_id,
       category_title,
       category_kbn,
@@ -69,10 +104,17 @@ export default async function MissionsByCategory({
       required_artifact_type,
       link_sort_no
     `)
-    .order("category_sort_no", { ascending: true })
-    .order("link_sort_no", { ascending: true });
+      .order("category_sort_no", { ascending: true })
+      .order("link_sort_no", { ascending: true })
+      .order("category_id", { ascending: true })
+      .order("mission_id", { ascending: true })
+      .range(from, to),
+  ).catch((error) => {
+    console.error("グッジョブの取得エラー:", error);
+    return null;
+  });
 
-  if (error || !data || data.length === 0) {
+  if (!data || data.length === 0) {
     return (
       <div className="text-center py-12">
         <p className="text-gray-500 text-lg">

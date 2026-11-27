@@ -1,16 +1,23 @@
 import { Card } from "@/components/ui/card";
 import { dateTimeFormatter } from "@/lib/formatter";
+import { fetchAllRows } from "@/lib/supabase/fetch-all-rows";
 import { createClient } from "@/lib/supabase/server";
+import type { Tables } from "@/lib/types/supabase";
 
 export default async function Events() {
   const supabase = await createClient();
 
-  let { data: events } = await supabase
-    .from("events")
-    .select()
-    .order("created_at", { ascending: false });
-
-  events ??= [];
+  const events = await fetchAllRows<Tables<"events">>((from, to) =>
+    supabase
+      .from("events")
+      .select()
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: true })
+      .range(from, to),
+  ).catch((error) => {
+    console.error("イベントの取得エラー:", error);
+    return [];
+  });
 
   return (
     <div className="flex flex-col px-5 py-6 gap-2">

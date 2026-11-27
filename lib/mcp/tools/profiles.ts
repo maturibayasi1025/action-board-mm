@@ -2,6 +2,7 @@ import { McpToolError } from "@/lib/mcp/errors";
 import { clampLimit, clampOffset, toRange } from "@/lib/mcp/pagination";
 import { pickAllowlisted } from "@/lib/mcp/redact";
 import type { McpToolDefinition } from "@/lib/mcp/tools/types";
+import { fetchAllRows } from "@/lib/supabase/fetch-all-rows";
 import { z } from "zod";
 
 const PROFILE_COLUMNS = [
@@ -240,38 +241,55 @@ export const listBusinessUnitsTool: McpToolDefinition<{
   },
   input: z.object({ company_id: z.string().uuid().optional() }),
   async execute(input, { db }) {
-    const { data: companies, error: companyError } = await db
-      .from("companies")
-      .select("id, name, slug, display_order")
-      .eq("is_active", true)
-      .order("display_order", { ascending: true });
-    if (companyError) {
+    const companies = await fetchAllRows<{
+      id: string;
+      name: string;
+      slug: string | null;
+      display_order: number;
+    }>((from, to) =>
+      db
+        .from("companies")
+        .select("id, name, slug, display_order")
+        .eq("is_active", true)
+        .order("display_order", { ascending: true })
+        .order("id", { ascending: true })
+        .range(from, to),
+    ).catch((companyError) => {
       throw new McpToolError(
-        `会社一覧の取得に失敗しました: ${companyError.message}`,
+        `会社一覧の取得に失敗しました: ${companyError instanceof Error ? companyError.message : String(companyError)}`,
       );
-    }
+    });
 
-    let unitQuery = db
-      .from("business_units")
-      .select("id, company_id, name, parent_id, display_order")
-      .eq("is_active", true)
-      .order("display_order", { ascending: true });
-    if (input.company_id) {
-      unitQuery = unitQuery.eq("company_id", input.company_id);
-    }
-    const { data: units, error: unitError } = await unitQuery;
-    if (unitError) {
+    const units = await fetchAllRows<{
+      id: string;
+      company_id: string;
+      name: string;
+      parent_id: string | null;
+      display_order: number;
+    }>((from, to) => {
+      let unitQuery = db
+        .from("business_units")
+        .select("id, company_id, name, parent_id, display_order")
+        .eq("is_active", true);
+      if (input.company_id) {
+        unitQuery = unitQuery.eq("company_id", input.company_id);
+      }
+      return unitQuery
+        .order("display_order", { ascending: true })
+        .order("id", { ascending: true })
+        .range(from, to);
+    }).catch((unitError) => {
       throw new McpToolError(
-        `部署一覧の取得に失敗しました: ${unitError.message}`,
+        `部署一覧の取得に失敗しました: ${unitError instanceof Error ? unitError.message : String(unitError)}`,
       );
-    }
+    });
 
     const companyName = new Map(
-      (companies ?? []).map((company) => [company.id, company.name]),
+      companies.map((company) => [company.id, company.name]),
     );
     return {
-      companies: companies ?? [],
-      business_units: (units ?? []).map((unit) => ({
+      companies,
+      business_units: units.map((unit) => ({
         ...unit,
         company_name: companyName.get(unit.company_id) ?? null,
       })),

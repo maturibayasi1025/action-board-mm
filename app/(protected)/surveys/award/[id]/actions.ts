@@ -1,5 +1,6 @@
 "use server";
 
+import { fetchAllRows } from "@/lib/supabase/fetch-all-rows";
 import { logPostgrestError } from "@/lib/supabase/log-postgrest-error";
 import { createClient } from "@/lib/supabase/server";
 import { mapSurveyRpcErrorMessage } from "@/lib/survey/map-survey-rpc-error";
@@ -160,18 +161,21 @@ export async function getAwardSurvey(surveyId: string) {
 export async function getAwardQuestions(): Promise<AwardQuestion[]> {
   const supabase = await createClient();
 
-  const { data: questions, error } = await supabase
-    .from("award_questions")
-    .select("*")
-    .eq("is_active", true)
-    .order("display_order", { ascending: true });
-
-  if (error) {
+  try {
+    return await fetchAllRows<AwardQuestion>((from, to) =>
+      supabase
+        .from("award_questions")
+        .select("*")
+        .eq("is_active", true)
+        .order("display_order", { ascending: true })
+        .order("id", { ascending: true })
+        .range(from, to)
+        .returns<AwardQuestion[]>(),
+    );
+  } catch (error) {
     console.error("質問の取得エラー:", error);
     return [];
   }
-
-  return (questions || []) as AwardQuestion[];
 }
 
 export async function getUserAwardResponses(

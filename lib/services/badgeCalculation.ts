@@ -1,6 +1,7 @@
 "server-only";
 
 import { PREFECTURES } from "@/lib/address";
+import { fetchAllRows } from "@/lib/supabase/fetch-all-rows";
 import { createServiceClient } from "@/lib/supabase/server";
 import { updateBadge } from "./badges";
 
@@ -179,19 +180,24 @@ export async function calculateMissionRankingBadges(): Promise<{
 
   try {
     // max_achievement_countがnullのグッジョブを取得
-    const { data: missions, error: missionsError } = await supabase
-      .from("missions")
-      .select("id, slug")
-      .is("max_achievement_count", null)
-      .eq("is_hidden", false);
-
-    if (missionsError) {
+    let missions: { id: string; slug: string }[];
+    try {
+      missions = await fetchAllRows<{ id: string; slug: string }>((from, to) =>
+        supabase
+          .from("missions")
+          .select("id, slug")
+          .is("max_achievement_count", null)
+          .eq("is_hidden", false)
+          .order("id", { ascending: true })
+          .range(from, to),
+      );
+    } catch (missionsError) {
       console.error("Error fetching missions:", missionsError);
       return { success: false, updatedCount: 0 };
     }
 
     // 各グッジョブごとに処理
-    for (const mission of missions || []) {
+    for (const mission of missions) {
       const { data: missionRanking, error } = await supabase.rpc(
         "get_mission_ranking",
         {

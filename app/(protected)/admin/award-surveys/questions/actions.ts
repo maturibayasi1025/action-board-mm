@@ -1,5 +1,6 @@
 "use server";
 
+import { fetchAllRows } from "@/lib/supabase/fetch-all-rows";
 import { createServiceClient } from "@/lib/supabase/server";
 import { requireOwner } from "@/lib/utils/isOwner";
 import { revalidatePath } from "next/cache";
@@ -27,17 +28,15 @@ export async function getAwardQuestions(): Promise<AwardQuestionRecord[]> {
   await requireOwner();
   const supabase = await createServiceClient();
 
-  const { data: questions, error } = await supabase
-    .from("award_questions")
-    .select("*")
-    .order("display_order", { ascending: true });
-
-  if (error) {
-    console.error("質問一覧の取得エラー:", error);
-    return [];
-  }
-
-  return (questions || []) as AwardQuestionRecord[];
+  return fetchAllRows<AwardQuestionRecord>((from, to) =>
+    supabase
+      .from("award_questions")
+      .select("*")
+      .order("display_order", { ascending: true })
+      .order("id", { ascending: true })
+      .range(from, to)
+      .returns<AwardQuestionRecord[]>(),
+  );
 }
 
 export async function createAwardQuestion(data: {

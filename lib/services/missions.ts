@@ -1,6 +1,8 @@
 import "server-only";
 
+import { fetchAllRows } from "@/lib/supabase/fetch-all-rows";
 import { createClient } from "@/lib/supabase/server";
+import type { Tables } from "@/lib/types/supabase";
 
 type MissionWithDisplayDates = {
   important_display_start_date: string | null;
@@ -49,17 +51,24 @@ export async function hasImportantMissions(): Promise<boolean> {
   const supabase = await createClient();
 
   // 重要グッジョブを取得して、期間チェックをクライアント側で行う
-  const { data, error } = await supabase
-    .from("missions")
-    .select("id, important_display_start_date, important_display_end_date")
-    .eq("is_important", true)
-    .eq("is_hidden", false);
-
-  if (error || !data) {
+  try {
+    const data = await fetchAllRows<{
+      id: string;
+      important_display_start_date: string | null;
+      important_display_end_date: string | null;
+    }>((from, to) =>
+      supabase
+        .from("missions")
+        .select("id, important_display_start_date, important_display_end_date")
+        .eq("is_important", true)
+        .eq("is_hidden", false)
+        .order("id", { ascending: true })
+        .range(from, to),
+    );
+    return filterImportantMissionsByDisplayPeriod(data).length > 0;
+  } catch {
     return false;
   }
-
-  return filterImportantMissionsByDisplayPeriod(data).length > 0;
 }
 
 /**
@@ -69,22 +78,21 @@ export async function hasImportantMissions(): Promise<boolean> {
 export async function getImportantMissions() {
   const supabase = await createClient();
 
-  const { data, error } = await supabase
-    .from("missions")
-    .select("*")
-    .eq("is_important", true)
-    .eq("is_hidden", false)
-    .order("difficulty", { ascending: true })
-    .order("created_at", { ascending: false });
-
-  if (error) {
+  try {
+    const data = await fetchAllRows<Tables<"missions">>((from, to) =>
+      supabase
+        .from("missions")
+        .select("*")
+        .eq("is_important", true)
+        .eq("is_hidden", false)
+        .order("difficulty", { ascending: true })
+        .order("created_at", { ascending: false })
+        .order("id", { ascending: true })
+        .range(from, to),
+    );
+    return filterImportantMissionsByDisplayPeriod(data);
+  } catch (error) {
     console.error("重要グッジョブ取得エラー:", error);
     return [];
   }
-
-  if (!data) {
-    return [];
-  }
-
-  return filterImportantMissionsByDisplayPeriod(data);
 }
