@@ -32,19 +32,30 @@ function escapeSlackMrkdwn(text: string): string {
     .replace(/>/g, "&gt;");
 }
 
+/** 取得に失敗したら null。一部だけの宛先で送らないよう、呼び出し側は送信せずに止める */
 async function getUnansweredNames(
   supabase: Awaited<ReturnType<typeof createServiceClient>>,
   table: SurveyResponseTable,
   surveyId: string,
-): Promise<string[]> {
-  const unanswered = await fetchUnansweredPrivateUsers(
-    supabase,
-    table,
-    surveyId,
-    { orderByName: true },
-  );
-  return unanswered.map((u) => u.name);
+): Promise<string[] | null> {
+  try {
+    const unanswered = await fetchUnansweredPrivateUsers(
+      supabase,
+      table,
+      surveyId,
+      { orderByName: true },
+    );
+    return unanswered.map((u) => u.name);
+  } catch (error) {
+    console.error("未回答者の取得エラー:", error);
+    return null;
+  }
 }
+
+const UNANSWERED_FETCH_FAILED: SendSlackReminderResult = {
+  ok: false,
+  error: "未回答者の取得に失敗しました",
+};
 
 async function postSlackWebhookReminder(params: {
   webhookUrl: string;
@@ -175,6 +186,9 @@ export async function sendSlackReminderToUnanswered(params: {
       "enps_responses",
       surveyId,
     );
+    if (names === null) {
+      return UNANSWERED_FETCH_FAILED;
+    }
     if (names.length === 0) {
       return { ok: false, error: "未回答者がいません" };
     }
@@ -211,6 +225,9 @@ export async function sendSlackReminderToUnanswered(params: {
   }
 
   const names = await getUnansweredNames(supabase, "award_responses", surveyId);
+  if (names === null) {
+    return UNANSWERED_FETCH_FAILED;
+  }
   if (names.length === 0) {
     return { ok: false, error: "未回答者がいません" };
   }
