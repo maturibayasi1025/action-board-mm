@@ -3,7 +3,6 @@
 // ==========================================
 
 import type { Metadata } from "next";
-import localFont from "next/font/local";
 
 export const defaultUrl =
   process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
@@ -27,28 +26,13 @@ export const config = {
 };
 
 // font-family設定
-// ビルド時に Google Fonts を取得しないよう、@fontsource/noto-sans-jp の latin サブセットをリポジトリに同梱している
-export const notoSansJP = localFont({
-  src: [
-    {
-      path: "../app/fonts/noto-sans-jp/noto-sans-jp-latin-400-normal.woff2",
-      weight: "400",
-      style: "normal",
-    },
-    {
-      path: "../app/fonts/noto-sans-jp/noto-sans-jp-latin-500-normal.woff2",
-      weight: "500",
-      style: "normal",
-    },
-    {
-      path: "../app/fonts/noto-sans-jp/noto-sans-jp-latin-700-normal.woff2",
-      weight: "700",
-      style: "normal",
-    },
-  ],
-  variable: "--font-noto-sans-jp",
-  display: "swap",
-});
+// フォント本体は app/layout.tsx で読み込む @fontsource/noto-sans-jp (OFL-1.1) の 400/500/700。
+// unicode-range で分割された face を同梱し、ビルド時に Google Fonts を取得しない。
+// variable のクラスで --font-noto-sans-jp を定義している (app/globals.css)
+export const notoSansJP = {
+  variable: "font-noto-sans-jp-variable",
+  style: { fontFamily: '"Noto Sans JP"' },
+} as const;
 
 // ==========================================
 // URL検証（Supabase Storage対応）

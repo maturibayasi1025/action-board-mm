@@ -9,6 +9,9 @@ import { ThemeProvider } from "next-themes";
 import Script from "next/script";
 import { Suspense } from "react";
 import Footer from "./footer";
+import "@fontsource/noto-sans-jp/400.css";
+import "@fontsource/noto-sans-jp/500.css";
+import "@fontsource/noto-sans-jp/700.css";
 import "./globals.css";
 
 const GA_ID = process.env.NEXT_PUBLIC_GA_ID;

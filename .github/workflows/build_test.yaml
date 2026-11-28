@@ -48,7 +48,7 @@ jobs:
         run: npm ci
 
       # 外部要因の一時的なビルド失敗に備えて最大3回まで再試行する。
-      # (Noto Sans JP は next/font/local の同梱ファイルを使うため、ビルド時に Google Fonts は取得しない)
+      # (Noto Sans JP は @fontsource/noto-sans-jp の同梱ファイルを使うため、ビルド時に Google Fonts は取得しない)
       - name: Build
         run: |
           for attempt in 1 2 3; do
