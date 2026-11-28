@@ -85,22 +85,3 @@ export function captureError(error: Error, context?: Record<string, unknown>) {
     });
   }
 }
-
-// Test function for Sentry
-export function testSentry() {
-  if (typeof window === "undefined") return;
-
-  console.log("[Sentry Client] Testing error capture...");
-
-  try {
-    throw new Error(
-      `Sentry test error from client: ${new Date().toISOString()}`,
-    );
-  } catch (error) {
-    captureError(error as Error, {
-      test: true,
-      timestamp: new Date().toISOString(),
-      userAgent: navigator.userAgent,
-    });
-  }
-}

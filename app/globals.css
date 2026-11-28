@@ -2,6 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
+.font-noto-sans-jp-variable {
+  --font-noto-sans-jp: "Noto Sans JP";
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;
