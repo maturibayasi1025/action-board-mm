@@ -58,9 +58,14 @@ describe.each(routeSources)("%s から見たルート一覧", (_source, listRout
   it("通常のページは含まれる", () => {
     expect(routes).toContain("/");
     expect(routes).toContain("/missions/[id]");
+    expect(routes).toContain("/api/slack/webhook");
   });
 
   it("意図的にエラーを起こす /test-error は本番ルートに無い", () => {
     expect(routes).not.toContain("/test-error");
+  });
+
+  it("署名検証をしない Slack テスト用の /api/slack/test-webhook は本番ルートに無い", () => {
+    expect(routes).not.toContain("/api/slack/test-webhook");
   });
 });
