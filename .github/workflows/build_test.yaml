@@ -47,8 +47,19 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # lib/metadata.ts の next/font/google (Noto Sans JP) はビルド時に Google Fonts の CSS を取得する。
+      # 応答本文が想定外だと loader が TypeError で落ち、コードと無関係に CI が失敗するため、最大3回まで再試行する。
       - name: Build
-        run: npm run build
+        run: |
+          for attempt in 1 2 3; do
+            npm run build && exit 0
+            if [ "$attempt" -lt 3 ]; then
+              echo "::warning::npm run build failed (attempt $attempt/3). Retrying in 20s..."
+              sleep 20
+            fi
+          done
+          echo "::error::npm run build failed after 3 attempts."
+          exit 1
 
       - name: Build for Cloudflare Pages
         run: npm run build:pages
