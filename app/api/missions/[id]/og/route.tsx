@@ -1,7 +1,6 @@
 // Edge Runtime互換のため、画像をbase64エンコードして埋め込み
 import { getMissionPageData } from "@/app/missions/[id]/_lib/data";
 import { sanitizeImageUrl } from "@/lib/metadata";
-import { Noto_Sans_JP } from "next/font/google";
 import { ImageResponse } from "next/og";
 import type { NextRequest } from "next/server";
 

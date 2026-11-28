@@ -3,7 +3,7 @@
 // ==========================================
 
 import type { Metadata } from "next";
-import { Noto_Sans_JP } from "next/font/google";
+import localFont from "next/font/local";
 
 export const defaultUrl =
   process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
@@ -27,11 +27,27 @@ export const config = {
 };
 
 // font-family設定
-export const notoSansJP = Noto_Sans_JP({
-  subsets: ["latin"],
+// ビルド時に Google Fonts を取得しないよう、@fontsource/noto-sans-jp の latin サブセットをリポジトリに同梱している
+export const notoSansJP = localFont({
+  src: [
+    {
+      path: "../app/fonts/noto-sans-jp/noto-sans-jp-latin-400-normal.woff2",
+      weight: "400",
+      style: "normal",
+    },
+    {
+      path: "../app/fonts/noto-sans-jp/noto-sans-jp-latin-500-normal.woff2",
+      weight: "500",
+      style: "normal",
+    },
+    {
+      path: "../app/fonts/noto-sans-jp/noto-sans-jp-latin-700-normal.woff2",
+      weight: "700",
+      style: "normal",
+    },
+  ],
   variable: "--font-noto-sans-jp",
   display: "swap",
-  weight: ["400", "500", "700"],
 });
 
 // ==========================================
